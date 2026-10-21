@@ -1,0 +1,357 @@
+---
+title: "The eqsat Substrate: Equality Saturation with Replayable\\newline Certificates for Learned Rewrite Games"
+subtitle: "Draft — proposed, not accepted"
+author:
+  - name: "mlopt project"
+    affiliation: "handl-lang / eqsat"
+date: "2026-10-21"
+abstract: |
+  Learned play over program rewriting needs a world: terms a policy
+  can move, a referee that can check the moves, a score that can rank
+  them, and an exit that can run the result.  We describe eqsat —
+  the substrate under the mlopt game — as one artifact.  A term IR
+  and a bounded e-graph saturate a program under a law bank whose
+  every delivered answer carries a standalone-replayable
+  certificate; a rewrite law is a serializable data row — a pattern
+  pair plus declarative `cond`/`dspec` guards and procedural
+  `check`/`derive` hooks; machinery mints composite laws by fixpoint
+  and ships them through a staged admission gauntlet that has
+  falsified the engine's own candidates; a cost algebra prices
+  shared structure honestly so a fold's compile-time work is not
+  billed per call; and a hexagonal port surface lets backends lower,
+  execute, and verify without the engine importing them.  Because
+  the pieces are substrate, novelty becomes a decidable predicate —
+  certified, strictly paying, and underivable from the catalogued
+  bank — rather than a literature claim.  The repository is
+  `handl-lang/eqsat`; the domain consumers are the
+  tensor-optimization paper (`handl-lang/graphopt`) and a private
+  codegen-domain companion.
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=2.4cm
+    fontsize: 11pt
+    number-sections: true
+    colorlinks: true
+    linkcolor: black
+    urlcolor: blue
+    citecolor: black
+bibliography: references.bib
+---
+
+::: {.callout-important}
+**Status.**  This is a working draft — *proposed, not accepted*.  It
+has not had human revision or external review.  It is the platform
+paper: it owns the substrate narrative once so the domain papers can
+cite it instead of repeating it, and every claim names the module or
+artifact that carries it.
+:::
+
+# Introduction
+
+Every learned-rewriting system assembles the same four pieces —
+a term world, a law bank, a referee, a score — and every paper about
+one re-explains them.  The mlopt project split that world out:
+`handl-lang/eqsat` is the substrate repository, and the domain repos
+consume it as pinned dependencies on `packages/` subdirectories.
+This paper is the substrate's own account — deliberately compact,
+because its job is to be cited, not to report a domain result.
+
+The pieces have arrived separately.  Massalin's superoptimizer
+[@massalin1987superoptimizer] searched programs exhaustively;
+equality saturation [@tate2009; @willsey2021egg] closes the program
+space under a fixed law bank.  Rule-inference work (Ruler
+[@nandi2021ruler], TASO [@jia2019taso], the Enumo line
+[@pal2023enumo]) grows the bank itself.  And learned play on
+well-defined games — AlphaGo Zero [@silver2017alphago], AlphaTensor
+[@fawzi2022alphatensor], AlphaGeometry [@trinh2024alphageometry] —
+reaches structure beyond hand-written heuristics.  eqsat is the
+layer at which these stops being separate: the same calculus holds
+the programs, the laws, and the derivations, so a discovered rule
+re-enters the bank it was found with — a value, not a build step.
+
+The claim is narrow and checkable:
+
+> The substrate is *self-contained*: programs, rewrite laws, and
+> derivations are data in one engine — serializable, storable,
+> composable — and every optimized artifact it ships carries a proof
+> the consumer can replay without trusting the search that made it.
+
+No domain speedup is claimed here; those claims, and their measured
+ledgers, belong to the domain papers (@sec-domains).  What this
+paper fixes is the shared vocabulary: the e-graph and its bounds
+(@sec-egraph), laws and their guard contract (@sec-laws),
+certificates and bounded derivability (@sec-certs), the ports
+(@sec-ports), the cost algebra (@sec-cost), and the falsifiable
+novelty predicate (@sec-novelty).
+
+# Terms and the e-graph {#sec-egraph}
+
+`mlopt_core.ir` is the term language — `Op`, `Var`, `Param`,
+`Const`, `TensorType`, with attrs carried as plain data.  A program
+reads as a 1-morphism between tensor types; a rewrite law is a
+2-cell between programs; a derivation — one law proven from
+premises — is a 3-cell.  The operational consequence is that all
+three levels are values the same engine manipulates.
+
+`EGraph.add_term` interns a term; an `ENode` is an operator plus
+children e-class ids, hash-consed so identical subterms share
+storage, and a union-find merges the classes a rewrite proves
+equal.  `EGraph.run` is then a *closure*, not a search: it fires the
+rule bank to a fixed point, and the e-graph *is* the set of
+consequences.  Its controls are honest bounds —
+`max_iterations`, `max_nodes`, `rule_budgets`, `stop`, `patience` —
+and a bound can only ever refuse a claim: resource exhaustion
+reports unfinished, never a fabricated merge.  `extract_best` picks
+the cheapest member of a saturated class under a cost function, and
+an optional Rust engine behind `engine=` (`mlopt-native`,
+maturin/PyO3) is opt-in and never auto-detected — `stats["engine"]`
+records which ran.
+
+# Laws as data, and the machinery over them {#sec-laws}
+
+A `Rewrite` is a data row: an LHS/RHS pattern pair plus a guard
+spec.  Guards come in two vocabularies that conjoin — `cond`/`dspec`
+are *declarative* (pure data in the `laws.cond` grammar, evaluated
+against the match binding), while `check`/`derive` are procedural
+hooks for what the declarative fragment cannot express.  This is the
+soundness boundary: any unsound rule poisons every e-class it
+touches, so a rule's side conditions are the *only* layer that keeps
+a false member out — certificate replay (@sec-certs) re-proves that
+a step is a valid application, not that the rule is true.
+
+The shipped bank — `mlopt_core.laws.ALL_RULES` (86 rules in this
+tree), the `DEFAULT` `RuleSet`, the `priorart` preset — mixes
+human-authored axioms with thirteen machine-admitted objects
+(`mlopt_core.laws.provenance.MACHINE_SHIPPED`).  `laws.serialize`
+gives each rule a content key (`alpha_key` up to metavariable
+renaming), which is what makes "the same law, spelled again" a
+decidable question.
+
+Three pieces of machinery operate on the bank:
+
+**Minting.**  `mlopt_core.meta.synthesize_rules` runs a bounded
+fixpoint over the bank on a seed term: each round applies rules,
+composes the pairs that chain, and emits `syn_*` composites carrying
+*premise provenance* — the names of the rules each composite was
+built from.
+
+**Guard transport.**  A minted rule's side conditions are closures
+over its premise objects, so they are stored as *specs* — parent
+names plus re-expression maps — not code, and `check`/`derive` are
+rebuilt by resolving parents transitively.  `mlopt_core.laws.minted`
+embeds those records as data and replays the same rebuild at import,
+louder than the store: a parent resolving short of declared strength
+raises rather than admitting a degraded rule.
+
+**Admission.**  A staged gauntlet decides what re-enters the bank:
+reconstruct → full-data → measure → truth → novelty → typed-pay →
+closure → certificate, with truth itself two legs (a numeric oracle
+over the guarded region *and* premise-anchored derivability) and
+novelty refusing re-spellings of shipped laws.  The staging policy
+lives in the discovery domain — `mlopt_discovery.evidence` in
+`handl-lang/graphopt` — but every leg it calls is substrate: guard
+rebuild, saturation, certificate replay, alpha-keyed duplicate
+detection, typed extraction.  It has repeatedly falsified the
+engine's own candidates; the falsification record is the domain
+paper's [@graphopt2026fold].
+
+# Certificates and bounded derivability {#sec-certs}
+
+A certificate is the artifact a search produces that outlives the
+search: an ordered list of `CertStep`s (a rule name, the e-class it
+fired on, the resulting merge) over `ProofEdge`s, replayable from
+source term to extracted term.  `EGraph.certificate(src, dst)`
+extracts the derivation a saturated graph witnesses;
+`verify_certificate(term, cert)` replays it *standalone* — apply
+each step, check the claimed result lands in the same class — and a
+certificate that does not replay raises rather than passing.  The
+codec (`cert_to_data`/`cert_from_data`) makes the certificate a wire
+value: it can cross a cache or a backend boundary.
+
+Certificates do two jobs.  *Delivery*: every program the pipeline
+lowers ships its certificate — search → extract → certify — so
+downstream consumers verify the derivation, not the optimizer's
+reputation.  *Admission*: `verify_law` answers "is this instance
+derivable under a rule bank?" with a replayable witness — intern
+both sides in a fresh small e-graph, saturate under the known laws,
+replay the witness in both directions.  For a stored composite the
+honest question is derivability *under the premises it was minted
+from*, so the check evaluates against `base_rules` plus the object's
+transitive premise closure — with an anti-gaming bar: the
+certificate must be standalone-replayable and every step naming a
+non-axiom rule must site-verify under the fp64 numeric oracle.  A
+premise false at its applied site revokes the credit and the verdict
+falls back to the axioms-only answer.  `verify_law` itself is
+domain-side (`mlopt_discovery.verifier`); everything it calls is
+here.
+
+The boundary is honest: a certificate proves *equality of the
+derivation*, nothing else — whether the extraction was worth it is a
+measured question the certificate deliberately does not answer.
+
+# The ports {#sec-ports}
+
+eqsat never imports a backend, and a backend never sees the search.
+They meet through `mlopt_core.ports`: `Protocol` shapes each side
+implements or consumes.
+
+- **`Source` / `Sink`** — lift a domain object into terms, and the
+  way back down: `lower` emits a runnable artifact, `verify` checks
+  it against the source, `executors` lists what can run it, all on
+  top of `Capabilities`' hard feasibility declaration.  A certified
+  result is not married to the backend that priced it.
+- **`Engine`** — the `engine=` contract: an alternate saturation
+  engine, passed explicitly, never auto-detected.
+- **`Policy`** — *orders* the saturation schedule.  Every rule still
+  fires, so the fixed point and the certificate are unchanged: a
+  policy can never decide equivalence.
+- **`Runner` / `Executor` / `Composer` / `Criterion` / `CostFn` /
+  `Strategy`** — delivery and choice: how a lowered artifact is
+  executed, timed, chained, and what "cheapest" means.
+
+The port binds shapes, never contents: the bank rows, the domain
+registries, and the weight tables are data — the names are frozen
+(the frozen surface is the repo's `docs/site/reference/frozen-api.md`,
+mirrored in `graphopt:docs/public_api.md`), the rows are each domain
+repo's business.
+
+# The cost algebra {#sec-cost}
+
+`dag_cost(term, cost_fn)` prices a program graph honestly: shared
+subtrees are paid once, so a DAG is not billed as a tree.  It sums
+static weights — FLOPs per op, parameter bytes, node counts — with
+no tensors ever executing.  One structural discount matters: a
+subtree closed over `Param`/`Const` leaves whose root op is in
+`FOLD_OPS` — the 161-op fold-at-lowering alphabet, single-sourced at
+the substrate and consumed by the domain lowerers — is priced at ~0
+marginal, because it is once-per-deployment work, not per-call work.
+The shipped models cover counting (`count_cost`, `flops_cost`,
+`param_bytes_cost`), backend-aware (`backend_cost`,
+`executor_cost_for`, `fused_cost_for`), and shape-aware
+(`depth_cost`, `roofline_cost`, fusion regions) axes.
+
+`dag_cost` has no notion of memory traffic, kernel fusion, or launch
+overhead, so it *ranks* candidates — measured lanes (fixtures,
+verify, wall clocks) make the claims.  The game-layer consequence is
+what matters here: a cheap, deterministic, checkable score that a
+policy can be trained against without executing a tensor.
+
+# The falsifiable novelty predicate {#sec-novelty}
+
+"Novel" is where rewrite-discovery systems go vague.  The substrate
+makes it decidable — *machine-original against catalogued
+knowledge*, a closed-world claim with a counter-witness on every
+leg.  A minted law is a novelty candidate iff three gates pass:
+
+- **cert** — the candidate's own rule derives its instance with a
+  standalone-replayable certificate.  A rule whose own rewrite
+  cannot carry a replayable witness fails here.
+- **beat** — on at least one registered baseline case, the certified
+  extraction under `rules + {candidate}` lands *strictly below* the
+  best recorded baseline — a tie is a rediscovery, not a find — and
+  the derivation certificate actually invokes the candidate.  A win
+  the rule never touched is not the rule's win.
+- **$\neg$derivable** — the candidate's instance is not saturatable under
+  the known bank with the candidate *and every alpha-sibling*
+  (`laws.serialize.alpha_key`) removed.  "Derives anyway" means the
+  bank already proves it: the law adds no theorem.  An inverse
+  spelling is a different law and stays in the premises — a bank
+  holding both directions honestly knows the equation.
+
+The predicate is implemented by the discovery domain's sieve
+(`bench/drivers/screen/novelty_sieve.py` in `handl-lang/graphopt`),
+which defaults the bank to the widest shipped surface — shipped
+rules plus the prior-art preset — so derivability is tested against
+everything the library knows.  What it does *not* claim is "novel to
+humanity": that remains an open-world literature question, and the
+domain papers say so explicitly.
+
+# The domain papers {#sec-domains}
+
+The substrate is the shared basis of two companion drafts:
+
+- **The discovery domain** — `handl-lang/graphopt` reports one
+  complete traversal of this machinery [@graphopt2026fold]: a
+  rewrite a hand optimizer would write (the eval-mode conv+BN weight
+  fold) minted, admitted, shipped verbatim in `MACHINE_SHIPPED`, and
+  runtime-priced bitwise-equal through an independent engine.
+- **The codegen domain** — a private codegen-domain companion paper
+  applies the same substrate to fused-kernel law discovery; it is
+  cited here only to bound the platform story, not for results.
+
+A third sibling, `handl-lang/gamekit`, is the orthogonal game layer
+— the `Board` protocol, episode/train/eval drivers, and the player
+registry — substrate-free by contract (`gamekit` $\perp$ `eqsat`, enforced
+by import-linter): the domain repos implement its board over the
+machinery described here, which is what makes "a learned policy
+plays the rewrite game" a well-formed sentence — moves are rule
+applications, the gauntlet is the referee, the cost algebra is the
+score.
+
+# Related work {#sec-related}
+
+**Equality saturation.**  Tate et al. [@tate2009] introduced the
+technique; egg [@willsey2021egg] made it practical; TENSAT
+[@yang2021tensat] applies it to tensor graphs; egglog
+[@zhang2023egglog] unifies it with Datalog — and serves the mlopt
+project as a test-only differential oracle.  eqsat's difference is
+not the saturation loop but what surrounds it: certificates as
+first-class transportable values, and a bank that the discovery loop
+writes back into.
+
+**Rule inference and library learning.**  Ruler [@nandi2021ruler]
+infers rewrite rules by enumeration plus equality-saturation
+filtering — the direct ancestor of mint-then-verify.  TASO
+[@jia2019taso] generates DNN substitutions and verifies them with a
+theorem prover; Isaria [@thomas2024isaria] synthesizes sound
+rule systems from ISA specifications; Enumo [@pal2023enumo] makes
+rule inference programmable.  Each grows a bank offline; in eqsat
+the minted object is a value in the runtime calculus, so admission
+is a runtime decision, not a build step.  Babble [@cao2023babble]
+and Glenside [@smith2021glenside] are the library-learning and
+access-pattern precedents respectively.
+
+**Learned play over rewriting.**  CompilerGym
+[@cummins2022compilergym] casts compiler optimization as an RL
+environment; Omelette [@singh2022omelette], MCTS-GEB
+[@he2023mctsgeb], and Aurora [@barbulescu2024aurora] train policies
+that steer e-graph construction — over a static bank.
+AlphaGeometry [@trinh2024alphageometry] couples a learned proposer
+to a certifying deducer, and AlphaTensor [@fawzi2022alphatensor]
+searches one fixed structure.  The differentiator here is the
+closure: a law minted during play re-enters the bank as a move.
+
+# Limitations and availability {#sec-limitations}
+
+- **Language and scale.**  The reference engine is pure-Python
+  stdlib; `mlopt-native` (PyO3/Rust) is opt-in and covers search
+  only — certificates and the non-local passes are Python-engine
+  capabilities.
+- **Certificates bound, not arbitrate.**  Replay proves equality of
+  derivation under the given bank; it does not prove the bank sound.
+  The guard contract (@sec-laws) is the only layer between a wrong
+  rule and a poisoned e-class.
+- **Cost is a ranker.**  `dag_cost` shares the limits of every
+  static model; measured lanes remain the arbiter of any speedup
+  claim.
+- **Novelty is closed-world** by construction (@sec-novelty) — a
+  design choice, honestly named, not a literature-survey result.
+
+The repository is `handl-lang/eqsat`.  Everything named above is
+importable from the committed tree:
+
+```python
+from mlopt_core.egraph import EGraph, verify_certificate
+from mlopt_core.laws import ALL_RULES, DEFAULT
+from mlopt_core.laws.provenance import MACHINE_SHIPPED
+from mlopt_core.meta import synthesize_rules
+from mlopt_core.cost import dag_cost
+from mlopt_core.ports import Sink, Source
+from mlopt_orchestrator import search, lower, Optimizer
+```
+
+# References {.unnumbered}
+
+::: {#refs}
+:::
