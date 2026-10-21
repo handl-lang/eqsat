@@ -10,9 +10,12 @@ abstract: |
   can move, a referee that can check the moves, a score that can rank
   them, and an exit that can run the result.  We describe eqsat —
   the substrate under the mlopt game — as one artifact.  A term IR
-  and a bounded e-graph saturate a program under a law bank whose
-  every delivered answer carries a standalone-replayable
-  certificate; a rewrite law is a serializable data row — a pattern
+  and a bounded e-graph saturate a program under a law bank; every
+  delivered answer carries a replayable derivation certificate —
+  steps the e-graph witnessed but that have no standalone
+  justification are flagged `egraph_dependent`, and
+  `verify_certificate(strict=True)` accepts only fully standalone
+  certificates; a rewrite law is a serializable data row — a pattern
   pair plus declarative `cond`/`dspec` guards and procedural
   `check`/`derive` hooks; machinery mints composite laws by fixpoint
   and ships them through a staged admission gauntlet that has
@@ -66,8 +69,11 @@ space under a fixed law bank.  Rule-inference work (Ruler
 well-defined games — AlphaGo Zero [@silver2017alphago], AlphaTensor
 [@fawzi2022alphatensor], AlphaGeometry [@trinh2024alphageometry] —
 reaches structure beyond hand-written heuristics.  eqsat is the
-layer at which these stops being separate: the same calculus holds
-the programs, the laws, and the derivations, so a discovered rule
+layer at which these stops being separate: one calculus holds
+the programs, the laws, and the derivations — the cells-as-data
+pattern the handl kernel defines [@kernel2026], realised here in
+stdlib-only Python that imports nothing from the kernel — so a
+discovered rule
 re-enters the bank it was found with — a value, not a build step.
 
 The claim is narrow and checkable:
@@ -91,7 +97,10 @@ novelty predicate (@sec-novelty).
 `Const`, `TensorType`, with attrs carried as plain data.  A program
 reads as a 1-morphism between tensor types; a rewrite law is a
 2-cell between programs; a derivation — one law proven from
-premises — is a 3-cell.  The operational consequence is that all
+premises — is a 3-cell (the cells-as-data framing of the kernel
+calculus [@kernel2026], implemented here directly — eqsat is pure
+Python and runs on none of the kernel's combinators).  The
+operational consequence is that all
 three levels are values the same engine manipulates.
 
 `EGraph.add_term` interns a term; an `ENode` is an operator plus
@@ -103,10 +112,12 @@ consequences.  Its controls are honest bounds —
 `max_iterations`, `max_nodes`, `rule_budgets`, `stop`, `patience` —
 and a bound can only ever refuse a claim: resource exhaustion
 reports unfinished, never a fabricated merge.  `extract_best` picks
-the cheapest member of a saturated class under a cost function, and
-an optional Rust engine behind `engine=` (`mlopt-native`,
-maturin/PyO3) is opt-in and never auto-detected — `stats["engine"]`
-records which ran.
+the cheapest member of a saturated class under a cost function.
+At the pipeline seam one level up, `search`/`Optimizer`'s `engine=`
+kwarg admits an optional Rust engine (`mlopt-native`,
+maturin/PyO3) — opt-in, never auto-detected, with
+`stats["engine"]` on the `SearchResult` recording which ran
+(@sec-ports).
 
 # Laws as data, and the machinery over them {#sec-laws}
 
@@ -121,7 +132,7 @@ a false member out — certificate replay (@sec-certs) re-proves that
 a step is a valid application, not that the rule is true.
 
 The shipped bank — `mlopt_core.laws.ALL_RULES` (86 rules in this
-tree), the `DEFAULT` `RuleSet`, the `priorart` preset — mixes
+tree), the `DEFAULT` `RuleSet`, the `prior_art` preset — mixes
 human-authored axioms with thirteen machine-admitted objects
 (`mlopt_core.laws.provenance.MACHINE_SHIPPED`).  `laws.serialize`
 gives each rule a content key (`alpha_key` up to metavariable
@@ -146,9 +157,11 @@ raises rather than admitting a degraded rule.
 
 **Admission.**  A staged gauntlet decides what re-enters the bank:
 reconstruct → full-data → measure → truth → novelty → typed-pay →
-closure → certificate, with truth itself two legs (a numeric oracle
-over the guarded region *and* premise-anchored derivability) and
-novelty refusing re-spellings of shipped laws.  The staging policy
+closure → certificate.  The measure gate carries both the numeric
+oracle *and* premise-anchored derivability; the truth gate is the
+guarded-region sweep — every guard-accepted evaluable binding must
+be equal, and at least one must exist — and
+novelty refuses re-spellings of shipped laws.  The staging policy
 lives in the discovery domain — `mlopt_discovery.evidence` in
 `handl-lang/graphopt` — but every leg it calls is substrate: guard
 rebuild, saturation, certificate replay, alpha-keyed duplicate
@@ -159,13 +172,23 @@ paper's [@graphopt2026fold].
 # Certificates and bounded derivability {#sec-certs}
 
 A certificate is the artifact a search produces that outlives the
-search: an ordered list of `CertStep`s (a rule name, the e-class it
-fired on, the resulting merge) over `ProofEdge`s, replayable from
-source term to extracted term.  `EGraph.certificate(src, dst)`
-extracts the derivation a saturated graph witnesses;
-`verify_certificate(term, cert)` replays it *standalone* — apply
-each step, check the claimed result lands in the same class — and a
-certificate that does not replay raises rather than passing.  The
+search.  Saturation records each merge as a `ProofEdge` — the fired
+rule, the two canonical e-class ids, the substitution — and
+`EGraph.certificate(src, dst)` reconstructs from that merge log an
+ordered list of `CertStep`s, positional term-level steps
+`(rule, path, lhs, rhs, bindings, egraph_dependent, note)` that
+locate each rewrite by a child-index `path`; no e-class survives
+into the step.  `verify_certificate(term, cert)` replays the
+derivation standalone: descend to `path`, re-match the rule's LHS
+against the subterm there, check the recorded bindings and re-run
+the `check`/`derive` side conditions, instantiate the RHS,
+substitute — and require the reconstructed term to equal `cert.dst`
+exactly; a certificate that does not replay raises rather than
+passing.  Steps the e-graph witnessed but that have no standalone
+justification (`egraph_dependent` — non-local merges such as the
+pairing pass, manual unions, budget exhaustion) replay as trusted
+assertions under the default `strict=False` and are rejected under
+`strict=True`.  The
 codec (`cert_to_data`/`cert_from_data`) makes the certificate a wire
 value: it can cross a cache or a backend boundary.
 
@@ -212,8 +235,9 @@ implements or consumes.
 
 The port binds shapes, never contents: the bank rows, the domain
 registries, and the weight tables are data — the names are frozen
-(the frozen surface is the repo's `docs/site/reference/frozen-api.md`,
-mirrored in `graphopt:docs/public_api.md`), the rows are each domain
+(the contract lives upstream in `graphopt:docs/public_api.md`; this
+repo's `docs/site/reference/frozen-api.md` is the vendored eqsat
+slice of that manifest), the rows are each domain
 repo's business.
 
 # The cost algebra {#sec-cost}
@@ -261,9 +285,12 @@ leg.  A minted law is a novelty candidate iff three gates pass:
 
 The predicate is implemented by the discovery domain's sieve
 (`bench/drivers/screen/novelty_sieve.py` in `handl-lang/graphopt`),
-which defaults the bank to the widest shipped surface — shipped
-rules plus the prior-art preset — so derivability is tested against
-everything the library knows.  What it does *not* claim is "novel to
+whose `known_bank()` defaults to the widest shipped surface the
+bounded prover can saturate against — shipped rules plus the
+`prior_art` preset's `FUSION`/`CATEGORICAL` rows (the
+`SIMPLIFICATION`/`EXPANSIVE` families explode the derivability
+checker's node budget and stay out of the floor) — so derivability
+is tested against the full reachable slice of catalogued knowledge.  What it does *not* claim is "novel to
 humanity": that remains an open-world literature question, and the
 domain papers say so explicitly.
 
@@ -332,6 +359,14 @@ closure: a law minted during play re-enters the bank as a move.
   derivation under the given bank; it does not prove the bank sound.
   The guard contract (@sec-laws) is the only layer between a wrong
   rule and a poisoned e-class.
+- **Not every certificate is fully standalone.**  A derivation can
+  carry `egraph_dependent` steps — merges the e-graph witnessed that
+  have no positional rewrite justification — which replay as trusted
+  assertions (their recorded `lhs` must still match) under the
+  default `strict=False`; only `verify_certificate(strict=True)`
+  rejects them (@sec-certs).  The certificate is honest about the
+  flag in the data, but a consumer running default verification is
+  trusting those steps.
 - **Cost is a ranker.**  `dag_cost` shares the limits of every
   static model; measured lanes remain the arbiter of any speedup
   claim.
