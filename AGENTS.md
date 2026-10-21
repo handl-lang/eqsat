@@ -1,4 +1,4 @@
-# Agent guide — eqsat (PRIVATE for now)
+# Agent guide — eqsat
 
 The eqsat substrate for the mlopt game, extracted from
 `handl-lang/graphopt` (plan 0032 phase 4).  Python 3.13, stdlib-only
