@@ -162,10 +162,22 @@ omit = ["*/tests/*"]
 # Re-measured at the phase-4 extraction (2026-10): 56% on this repo's
 # suite.  The parent's 100% was a whole-monorepo property — most
 # substrate lines are exercised by domain-bound tests (torch
-# backends, discovery, carriers) that cannot run here.  The ratchet
-# is pinned at the measured value for this repo's suite; tighten,
-# never lower.  Cross-repo merged coverage is a phase-5 follow-up.
-fail_under = 56
+# backends, discovery, carriers) that cannot run here.
+#
+# Post-split trajectory: the substrate-pure test functions that had
+# travelled to graphopt's domain test files were ported back
+# (``tests/test_ported_*.py``, ~530 functions across ~70 files — see
+# AGENTS.md), and focused duck-typed-tensor tests were written for the
+# value-analysis passes the ports could not reach
+# (``tests/test_value_passes.py``, ``tests/test_profile.py``,
+# ``tests/faketensor.py``).  Re-measured 75% (2026-10); the ratchet is
+# pinned below the measured value for hypothesis-order slack —
+# tighten, never lower.  The remaining uncovered mass is the
+# orchestrator's diagram/morphism/regime machinery plus deep
+# ``laws/headshare`` chain spellings, whose faithful tests are
+# domain-bound (torch models, carrier executors); cross-repo merged
+# coverage is a phase-5 follow-up.
+fail_under = 74
 show_missing = true
 exclude_also = [
     "if __name__ == ['\"]__main__['\"]:",

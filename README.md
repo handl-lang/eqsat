@@ -38,4 +38,9 @@ uv sync --group dev
 ```
 
 The coverage floor (`[tool.coverage.report] fail_under`) is
-re-measured for this repo's suite — tighten, never lower.
+re-measured for this repo's suite — 56% at the extraction scaffold,
+75% after the substrate-pure tests were ported back from graphopt's
+domain test files (`tests/test_ported_*`, plus the duck-typed
+`tests/test_value_passes.py` / `tests/test_profile.py`) — tighten,
+never lower.  The suite includes two `slow`-marked e-graph
+saturations (~17 min); iterate with `-m "not slow"` (~35 s).
