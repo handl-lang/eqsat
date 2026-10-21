@@ -20,11 +20,7 @@ dev = [
     "pytest-xdist>=3.0",
     "ruff>=0.6",
     "coverage>=7.0",
-    # Pinned to the parent's locked version: ty 0.0.90 newly flags
-    # mlopt-native's `_classes` property override
-    # (invalid-property-type-override) — a real finding to fix, then
-    # unpin (phase-5 follow-up).
-    "ty==0.0.84",
+    "ty>=0.0.90",
     "vulture>=2.16",
     "import-linter>=2.15",
     "hypothesis>=6.168.1",

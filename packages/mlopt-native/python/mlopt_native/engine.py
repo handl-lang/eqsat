@@ -648,3 +648,13 @@ class NativeEngine(_ExtractMixin):
                 view[eid] = ec
             self._view = view
         return view
+
+    @_classes.setter
+    def _classes(self, view: dict[int, EClass]) -> None:
+        # ``_ExtractMixin`` declares ``_classes`` as a *writable*
+        # attribute — a read-only property would not be a
+        # substitutable override.  The view is a materialised cache,
+        # so assigning it is honest: the setter replaces the cached
+        # materialisation (nothing in the mixin writes through it
+        # today, but the contract permits it).
+        self._view = view
