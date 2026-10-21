@@ -463,7 +463,7 @@ STACK_EXPAND = R(
         dim="D",
     ),
     law="stack(a,b,d) decomposes to the unsqueeze+concat pair.",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
     derivation=("stack_fold",),
 )
 
@@ -1184,7 +1184,7 @@ BROADCAST_TO_EXPAND = R(
     Op.make("expand", "u", shape="S"),
     law="broadcast_to(u, s) = expand(u, s) — the strict spelling is "
     "a special case of the view.",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 SLICE_NOOP = R(
@@ -1455,7 +1455,7 @@ VAR_SQUARE_STD = R(
         Op.make("std", "u", dim="D", correction="C", keepdim="K"),
     ),
     law="var = std² — the reverse spelling.",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
     derivation=("std_sqrt_var",),
 )
 
@@ -1472,7 +1472,7 @@ VAR_SQUARE_STD_BARE = R(
     Op.make("var", "u"),
     Op.make("square", Op.make("std", "u")),
     law="The whole-tensor var = std².",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
     derivation=("std_sqrt_var_bare",),
 )
 
@@ -1490,7 +1490,7 @@ NORM2_EXPAND = R(
     ),
     law="‖u‖₂ = sqrt(Σ u²) — the L2 norm's spelled work (XLA "
     "linalg decomposition).",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 NORM2_FOLD = R(
@@ -1521,7 +1521,7 @@ MEAN_EXPAND = R(
     law="mean(u, d) = sum(u, d)/n with n the reduced extent — "
     "XLA's mean decomposition; n mints a Const leaf.",
     derive=_derive_mean_count,
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 MEAN_FOLD = R(
@@ -1554,7 +1554,7 @@ LOG_SOFTMAX_EXPAND = R(
     Op.make("softmax", "u", dim="D"),
     law="exp(log_softmax(u, d)) = softmax(u, d) — the same kernel "
     "pair the other way.",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
     derivation=("log_softmax_fold",),
 )
 
@@ -1572,7 +1572,7 @@ SIGMOID_EXPAND = R(
     ),
     law="σ(x) = 1/(1+e⁻ˣ) — the definition, expanded so pointwise "
     "laws see the interior (Inductor decomp).",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 SIGMOID_FOLD = R(
@@ -1621,7 +1621,7 @@ TANH_EXPAND = R(
     ),
     law="tanh(x) = 2σ(2x) − 1 — the sigmoid-based decomposition "
     "(the TASO/XLA tanh spelling).",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 TANH_FOLD = R(
@@ -1667,7 +1667,7 @@ GELU_EXPAND = R(
     law="gelu(x) = 0.5x(1 + erf(x/√2)) — the exact erf definition "
     "(aten's default gelu; the tanh approximation is a DIFFERENT "
     "op under this bank and is not claimed).",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 MISH_EXPAND = R(
@@ -1675,7 +1675,7 @@ MISH_EXPAND = R(
     Op.make("mish", "x"),
     Op.make("mul", "x", Op.make("tanh", Op.make("softplus", "x"))),
     law="mish(x) = x·tanh(softplus(x)) — the Mish definition.",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 HARDSIGMOID_EXPAND = R(
@@ -1688,7 +1688,7 @@ HARDSIGMOID_EXPAND = R(
     ),
     law="hardsigmoid(x) = relu6(x+3)/6 — the piecewise-linear "
     "approximation's definition.",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 HARDSIGMOID_FOLD = R(
@@ -1722,7 +1722,7 @@ HARDSWISH_EXPAND = R(
         ),
     ),
     law="hardswish(x) = x·relu6(x+3)/6.",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 SOFTPLUS_EXPAND = R(
@@ -1731,7 +1731,7 @@ SOFTPLUS_EXPAND = R(
     Op.make("log1p", Op.make("exp", "x")),
     law="softplus(x) = log1p(eˣ) at the default beta=1 — the "
     "exported bare spelling.",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 SOFTPLUS_FOLD = R(
@@ -1754,7 +1754,7 @@ ELU_EXPAND = R(
     ),
     law="elu(x) = x·[x>0] + (eˣ−1)·[x≤0] at the default α=1 — the "
     "where-spelled piecewise (XLA elu).",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 LEAKY_RELU_EXPAND = R(
@@ -1762,7 +1762,7 @@ LEAKY_RELU_EXPAND = R(
     Op.make("leaky_relu", "x"),
     Op.make("maximum", "x", Op.make("mul", "x", Const(0.01))),
     law="leaky_relu(x) = max(x, 0.01x) at the default slope 0.01.",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 RELU_FOLD_MAX_R = R(
@@ -1794,7 +1794,7 @@ RELU_EXPAND = R(
     Op.make("relu", "u"),
     Op.make("clamp_min", "u", min=0),
     law="relu(u) = clamp_min(u, 0).",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
     derivation=("relu_fold_clamp",),
 )
 
@@ -1819,7 +1819,7 @@ RELU6_EXPAND = R(
     Op.make("relu6", "u"),
     Op.make("clamp", "u", min=0, max=6),
     law="relu6(u) = clamp(u, 0, 6).",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
     derivation=("relu6_fold",),
 )
 
@@ -2025,7 +2025,7 @@ SQRT_TO_POW = R(
     Op.make("pow", "u", Const(0.5)),
     law="sqrt(u) = u^0.5 — the pow spelling (bridge to the pow "
     "family).",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
     derivation=("pow_half",),
 )
 
@@ -2051,7 +2051,7 @@ RECIP_EXPAND = R(
     Op.make("reciprocal", "u"),
     Op.make("div", Const(1), "u"),
     law="reciprocal(u) = 1/u — the div spelling.",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
     derivation=("div_one_recip",),
 )
 
@@ -2456,7 +2456,7 @@ ADALN_ONE_PLUS = R(
     law="u·(1+s) = u + u·s — the AdaLN-Zero ``1 + scale`` idiom "
     "spelled as distributivity (derivable through the pointwise "
     "factor laws — kept as the direct edge).",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 DROPOUT_EVAL = R(
@@ -2507,7 +2507,7 @@ ADDCMUL_EXPAND = R(
     Op.make("add", "t", Op.make("mul", "a", "b")),
     law="addcmul(t, a, b) = t + a·b — the fused op's spelled work "
     "(value=1 default).",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 ADDCDIV_EXPAND = R(
@@ -2515,7 +2515,7 @@ ADDCDIV_EXPAND = R(
     Op.make("addcdiv", "t", "a", "b"),
     Op.make("add", "t", Op.make("div", "a", "b")),
     law="addcdiv(t, a, b) = t + a/b.",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 LERP_EXPAND = R(
@@ -2523,7 +2523,7 @@ LERP_EXPAND = R(
     Op.make("lerp", "x", "y", "w"),
     Op.make("add", "x", Op.make("mul", "w", Op.make("sub", "y", "x"))),
     law="lerp(x, y, w) = x + w·(y−x) — the interpolation's definition.",
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 
@@ -2562,7 +2562,7 @@ LAYER_NORM_EXPAND_PLAIN = R(
     "kernel's decomposed form (XLA).",
     derive=_derive_ln,
     check=_check_ln,
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 LAYER_NORM_EXPAND_AFFINE = R(
@@ -2576,7 +2576,7 @@ LAYER_NORM_EXPAND_AFFINE = R(
     law="The affine variant: LN(u, ns, γ, β) = x̂·γ + β.",
     derive=_derive_ln,
     check=_check_ln,
-    tags=_PA_SIM,
+    tags=_PA_EXP,
 )
 
 
