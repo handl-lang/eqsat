@@ -155,6 +155,9 @@ from mlopt_core.laws.layout import (  # noqa: F401
     _is_swap,
     _linear_shapes_ok,
 )
+from mlopt_core.laws.priorart import (  # noqa: F401
+    PRIOR_ART_RULES,
+)
 from mlopt_core.laws.pairing import (  # noqa: F401
     _CONV_ATTR_KEYS,
     _pair_shared_input,
@@ -182,6 +185,7 @@ from mlopt_core.laws.ruleset import (
     LATE,
     NORMAL,
     PRESETS,
+    PRIOR_ART,
     SIMPLIFICATION,
     SYMMETRY,
     WITH_LAYOUT,
@@ -434,6 +438,8 @@ __all__ = [
     "POW_TO_RSQRT",
     "POW_TO_SQUARE",
     "PRESETS",
+    "PRIOR_ART",
+    "PRIOR_ART_RULES",
     "QKV_FUSE",
     "QKV_FUSE_ASYM",
     "RECIP_SQRT_TO_RSQRT",

@@ -35,6 +35,7 @@ from typing import Any
 from mlopt_core.egraph import Rewrite
 from mlopt_core.laws import tags
 from mlopt_core.laws.attention import ATTENTION_RULES
+from mlopt_core.laws.priorart import PRIOR_ART_RULES
 from mlopt_core.laws.scan import SCAN_DIAG_LAWS, SCAN_LAWS
 from mlopt_core.laws.tensor import (
     ALL_RULES_WITH_LAYOUT,
@@ -55,6 +56,7 @@ __all__ = [
     "LATE",
     "NORMAL",
     "PRESETS",
+    "PRIOR_ART",
     "SIMPLIFICATION",
     "SYMMETRY",
     "WITH_LAYOUT",
@@ -374,6 +376,23 @@ CARRIER_SEARCH = RuleSet(
     ),
 )
 
+#: The prior-art bank — known compiler transforms (TASO's
+#: substitution set, the high-frequency Inductor/XLA patterns, and
+#: the named corpus-family equivalences) encoded as certified laws.
+#: Opt-in, never in :data:`DEFAULT`: these are the transforms the
+#: literature already owns — ``known_bank()`` folds them into the
+#: novelty floor so a minted candidate re-deriving one is demoted
+#: ``known`` rather than queued for review.
+PRIOR_ART = RuleSet(
+    "prior_art",
+    tuple(PRIOR_ART_RULES),
+    description=(
+        "the prior-art bank — TASO / Inductor-XLA / corpus-family "
+        "transforms as certified laws (opt-in; the novelty sieve's "
+        "known floor)"
+    ),
+)
+
 #: Today's ``ALL_RULES_WITH_LAYOUT`` — the whole core equational
 #: surface plus the transpose/layout migration laws.
 WITH_LAYOUT = RuleSet(
@@ -418,6 +437,7 @@ PRESETS: dict[str, RuleSet] = {
         FUSION,
         SYMMETRY,
         ATTENTION,
+        PRIOR_ART,
         CARRIERS,
         CARRIER_SEARCH,
         WITH_LAYOUT,

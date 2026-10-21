@@ -30,6 +30,11 @@ priority is a :class:`~mlopt_core.laws.RuleSet` concern instead.
   scale commutation, the right-multiply absorb, the score-scale
   migration) — opt-in, never in
   :data:`~mlopt_core.laws.DEFAULT`.
+* :data:`PRIOR_ART` — a rule in the opt-in prior-art bank
+  (:mod:`mlopt_core.laws.priorart`): a known compiler transform
+  (TASO / Inductor-XLA / corpus-family equivalences) encoded as a
+  certified law — human-authored, never machine-admitted, never in
+  :data:`~mlopt_core.laws.DEFAULT` on this account alone.
 * :data:`REDUNDANT` — a derivable rule whose spelling is a literal
   alpha-duplicate of another shipped rule (the same 2-cell carried by
   two rule objects — e.g. ``weight_distribute_matmul`` is
@@ -51,6 +56,7 @@ LAYOUT = "layout"
 SCAN = "scan"
 DECODE = "decode"
 ATTENTION = "attention"
+PRIOR_ART = "prior_art"
 REDUNDANT = "redundant"
 
 __all__ = [
@@ -61,6 +67,7 @@ __all__ = [
     "EXPANSIVE",
     "FUSION",
     "LAYOUT",
+    "PRIOR_ART",
     "REDUNDANT",
     "SCAN",
     "SIMPLIFICATION",
