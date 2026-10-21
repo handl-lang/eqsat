@@ -219,8 +219,12 @@ def test_laws_exports_every_rewrite():
     # the conv_channel_scale/shift anchor family of the conv+BN fold)
     # + 1 machine-minted verbatim composite (conv_bn_fold — the
     # conv+BN fold, shipped via mlopt_core.laws.minted)
+    # + 185 prior-art bank rules (opt-in PRIOR_ART_RULES — the
+    # TASO/Inductor-XLA/corpus-family transforms, held out of the
+    # default set; where_same / logical_not_inv dropped as honest
+    # dtype misses)
     # rewrites.
-    assert len(found) == 295
+    assert len(found) == 480
 
 
 def test_all_rules_count_unchanged():

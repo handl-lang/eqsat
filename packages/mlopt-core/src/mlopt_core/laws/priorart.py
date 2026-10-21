@@ -57,7 +57,6 @@ from mlopt_core.egraph import Rewrite
 from mlopt_core.ir import Const, Op
 from mlopt_core.laws import tags
 from mlopt_core.laws.base import R, _shape_of
-from mlopt_core.laws.cond import _shape
 
 __all__ = ["PRIOR_ART_RULES"]
 
@@ -90,7 +89,11 @@ def _check_unsq_sq(bound: dict) -> bool:
     """
     s = _shape_of(bound.get("u"))
     ud, sd = _aval(bound, "UD"), _aval(bound, "SD")
-    if not (isinstance(s, tuple) and isinstance(ud, int) and isinstance(sd, int)):
+    if not (
+        isinstance(s, tuple)
+        and isinstance(ud, int)
+        and isinstance(sd, int)
+    ):
         return False
     n = len(s) + 1
     return ud % n == sd % n
@@ -124,7 +127,7 @@ def _check_expand_noop(bound: dict) -> bool:
         and len(tgt) == len(s)
     ):
         return False
-    return all(t == -1 or t == d for t, d in zip(tgt, s))
+    return all(t == -1 or t == d for t, d in zip(tgt, s, strict=True))
 
 
 def _check_permute_id(bound: dict) -> bool:
@@ -167,19 +170,37 @@ def _check_pad_noop(bound: dict) -> bool:
 
 
 def _check_repeat_noop(bound: dict) -> bool:
-    """repeat(u, S) is a no-op when every factor is 1."""
+    """repeat(u, S) is a no-op under the full-cover guard.
+
+    Every factor must be 1 AND S must cover exactly u's rank — a
+    longer repeat prepends axes (repeat left-pads the rank).
+    """
+    s = _shape_of(bound.get("u"))
     p = _aval(bound, "S")
-    return isinstance(p, (tuple, list)) and all(v == 1 for v in p)
+    return (
+        isinstance(s, tuple)
+        and isinstance(p, (tuple, list))
+        and len(p) == len(s)
+        and all(v == 1 for v in p)
+    )
 
 
 def _check_flip_inv(bound: dict) -> bool:
-    """flip(flip(u, D), D) — the same dim set reverses twice."""
+    """flip(flip(u, D), D) — the same dim TUPLE reverses twice.
+
+    The eval binding iterates the dims attr — an int dims can't
+    spell flip, so the guard needs the tuple spelling.
+    """
     d0, d1 = _aval(bound, "D1"), _aval(bound, "D2")
-    return d0 == d1
+    return (
+        isinstance(d0, (tuple, list))
+        and all(isinstance(v, int) for v in d0)
+        and d0 == d1
+    )
 
 
 def _check_rope_equiv(bound: dict) -> bool:
-    """The rotate-half ↔ cat-pair rotary equivalence's shape half.
+    """Check the rotate-half ↔ cat-pair rotary equivalence's shape half.
 
     The two spellings are equal exactly when the rotate-half's
     ``concat(neg(x2), x1)`` splits the same axis the cat form writes —
@@ -199,8 +220,11 @@ def _check_rope_equiv(bound: dict) -> bool:
     if not all(isinstance(d, int) for d in (cd, s1d, s2d)):
         return False
     nd = len(xs)
-    axis = cd % nd
-    if s1d % nd != axis or s2d % nd != axis:
+    # The slice/concat eval bindings use the dim RAW (no ``% rank``
+    # normalization — a negative dim shifts the tuple index), so the
+    # guard requires the nonneg literal axis spelling.
+    axis = cd
+    if not 0 <= axis < nd or s1d != axis or s2d != axis:
         return False
     width = xs[axis]
     if not isinstance(width, int) or width % 2 != 0:
@@ -230,7 +254,7 @@ def _check_linear_out_channel(bound: dict) -> bool:
 
 
 def _derive_mean_count(bound: dict) -> dict | None:
-    """The ``mean`` divisor: the product of the reduced extents."""
+    """Derive the ``mean`` divisor: the product of the reduced extents."""
     s = _shape_of(bound.get("u"))
     d = _aval(bound, "D")
     if not (isinstance(s, tuple) and s):
@@ -248,7 +272,7 @@ def _derive_mean_count(bound: dict) -> dict | None:
 
 
 def _check_mean_count(bound: dict) -> bool:
-    """The fold direction: the Const divisor IS the reduced count."""
+    """Check the fold direction: the Const divisor IS the reduced count."""
     c = bound.get("C")
     got = _derive_mean_count(bound)
     return (
@@ -303,7 +327,7 @@ _SPEC_WT = ("transpose-out", "W", None, None)
 _COND_LINEAR_XW = (
     "and",
     ("mm-shape-ok", "x", _SPEC_WT),
-    ("rank", "W", "<=", 2),
+    ("rank", "W", "==", 2),
 )
 _SPEC_LINEAR_OUT = ("mm-out", "x", _SPEC_WT)
 
@@ -311,6 +335,7 @@ _COND_LINEAR_BIAS = (
     "and",
     _COND_LINEAR_XW,
     ("bcast-into", "b", _SPEC_LINEAR_OUT),
+    ("rank", "b", "<=", 1),
 )
 
 #: Dim-1 reduce keepdim=True is the identity; keepdim=False squeezes.
@@ -327,7 +352,12 @@ _COND_DIM1 = (
 
 #: The squeeze axis for the drop half: D as int, or D[0] for tuples.
 _DSPEC_SQ_DIM = {
-    "SD": ("if", ("attr-type", "D", "int"), ("attr", "D"), ("attr0", "D"))
+    "SD": (
+        "if",
+        ("attr-type", "D", "int"),
+        ("attr", "D"),
+        ("attr0", "D"),
+    )
 }
 
 
@@ -516,9 +546,7 @@ MM_CONCAT_LEFT = R(
         Op.make("matmul", "b", "W"),
         dim="CD",
     ),
-    Op.make(
-        "matmul", Op.make("concat", "a", "b", dim="CD"), "W"
-    ),
+    Op.make("matmul", Op.make("concat", "a", "b", dim="CD"), "W"),
     law="cat(a@W, b@W) = cat(a,b)@W on a non-contraction axis — "
     "row/batch blocks of a shared contraction merge into one matmul "
     "(TASO matmul-concat).",
@@ -528,9 +556,7 @@ MM_CONCAT_LEFT = R(
 
 MM_CONCAT_LEFT_REV = R(
     "mm_concat_left_rev",
-    Op.make(
-        "matmul", Op.make("concat", "a", "b", dim="CD"), "W"
-    ),
+    Op.make("matmul", Op.make("concat", "a", "b", dim="CD"), "W"),
     Op.make(
         "concat",
         Op.make("matmul", "a", "W"),
@@ -545,13 +571,21 @@ MM_CONCAT_LEFT_REV = R(
 )
 
 #: The right-operand concat must sit on the OUTPUT axis (its last
-#: axis); the contraction axis (-2) must agree.
+#: axis); the contraction axis (-2) must agree AND the shared
+#: left operand's contraction extent must match it.
+#: The output concat dim is pinned to ``-1``: for a rank-1 output
+#: (vector ``x``) a spelled ``dim=1`` normalizes to the same axis
+#: under the guard's ``% rank`` but is out-of-range for
+#: ``torch.cat`` — the literal ``-1`` is valid on every output rank.
 _COND_MM_CR = (
     "and",
-    ("rank", "b", ">=", 2),
-    ("rank", "c", ">=", 2),
+    ("rank", "x", "<=", 2),
+    ("rank", "b", "==", 2),
+    ("rank", "c", "==", 2),
+    ("attr-eq", "CD", -1),
     ("axis", "b", "CD", -1),
     ("dim-eq", "b", -2, "c", -2),
+    ("dim-eq", "x", -1, "b", -2),
 )
 
 MM_CONCAT_RIGHT = R(
@@ -562,9 +596,7 @@ MM_CONCAT_RIGHT = R(
         Op.make("matmul", "x", "c"),
         dim="CD",
     ),
-    Op.make(
-        "matmul", "x", Op.make("concat", "b", "c", dim="CD")
-    ),
+    Op.make("matmul", "x", Op.make("concat", "b", "c", dim="CD")),
     law="cat(x@b, x@c) = x@cat(b,c) along the output axis — column "
     "blocks of a shared input merge into one matmul.",
     cond=_COND_MM_CR,
@@ -573,9 +605,7 @@ MM_CONCAT_RIGHT = R(
 
 MM_CONCAT_RIGHT_REV = R(
     "mm_concat_right_rev",
-    Op.make(
-        "matmul", "x", Op.make("concat", "b", "c", dim="CD")
-    ),
+    Op.make("matmul", "x", Op.make("concat", "b", "c", dim="CD")),
     Op.make(
         "concat",
         Op.make("matmul", "x", "b"),
@@ -589,13 +619,15 @@ MM_CONCAT_RIGHT_REV = R(
 )
 
 #: Split-K: matmul(concat(a,b,-1), W) = a@W_top + b@W_bot where the
-#: split sizes are the two operands' contraction extents.
+#: split sizes are the two operands' contraction extents.  Scoped
+#: to the rank-2 GEMM — the batched-matmul batch-dim agreement
+#: isn't expressible in the pattern language.
 _COND_MM_SPLITK = (
     "and",
-    ("rank", "a", ">=", 1),
-    ("rank", "b", ">=", 1),
-    ("rank-eq", "a", "b"),
-    ("rank", "W", ">=", 2),
+    ("rank", "a", "==", 2),
+    ("rank", "b", "==", 2),
+    ("dim-eq", "a", -2, "b", -2),
+    ("rank", "W", "==", 2),
     ("axis", "a", "CD", -1),
     (
         "attr-cmp",
@@ -611,12 +643,8 @@ _DSPEC_SPLITK = {
 
 
 def _mm_splitk_rhs() -> Op:
-    w_top = Op.make(
-        "split", "W", sizes="SZ", dim=-2, index=0
-    )
-    w_bot = Op.make(
-        "split", "W", sizes="SZ", dim=-2, index=1
-    )
+    w_top = Op.make("split", "W", sizes="SZ", dim=-2, index=0)
+    w_bot = Op.make("split", "W", sizes="SZ", dim=-2, index=1)
     return Op.make(
         "add",
         Op.make("matmul", "a", w_top),
@@ -626,9 +654,7 @@ def _mm_splitk_rhs() -> Op:
 
 MM_SPLITK = R(
     "mm_splitk",
-    Op.make(
-        "matmul", Op.make("concat", "a", "b", dim="CD"), "W"
-    ),
+    Op.make("matmul", Op.make("concat", "a", "b", dim="CD"), "W"),
     _mm_splitk_rhs(),
     law="(cat(a,b,-1)) @ W = a@W_top + b@W_bot — the split-K "
     "decomposition: the contraction axis partitions, the weight "
@@ -653,18 +679,15 @@ MM_SPLITK_REV = R(
             Op.make("split", "W", sizes="SZ", dim=-2, index=1),
         ),
     ),
-    Op.make(
-        "matmul", Op.make("concat", "a", "b", dim="CD"), "W"
-    ),
+    Op.make("matmul", Op.make("concat", "a", "b", dim=-1), "W"),
     law="The split-K refold — the two partial products merge into "
     "one contraction.",
     cond=(
         "and",
-        ("rank", "a", ">=", 1),
-        ("rank", "b", ">=", 1),
-        ("rank", "W", ">=", 2),
-        ("axis", "a", "CD", -1),
-        ("axis", "W", -2, -2),
+        ("rank", "a", "==", 2),
+        ("rank", "b", "==", 2),
+        ("dim-eq", "a", -2, "b", -2),
+        ("rank", "W", "==", 2),
         (
             "attr-cmp",
             "SZ",
@@ -683,13 +706,13 @@ MM_SPLITK_REV = R(
 )
 
 #: linear(x, cat(A,B,0)) = cat(linear(x,A), linear(x,B), -1) — the
-#: fused-projection distribution (TASO; the qkv_fuse class).
+#: fused-projection distribution (TASO; the qkv_fuse class).  The
+#: output concat rides the operand rank — guarded to the last axis.
 _COND_LIN_CAT = (
     "and",
     ("rank", "A", "==", 2),
     ("rank", "B", "==", 2),
     ("dim-eq", "A", 1, "B", 1),
-    ("axis", "A", "AD", 0),
     ("axis", "x", "CD", -1),
 )
 
@@ -701,9 +724,7 @@ LINEAR_CONCAT_W = R(
         Op.make("linear", "x", "B"),
         dim="CD",
     ),
-    Op.make(
-        "linear", "x", Op.make("concat", "A", "B", dim="AD")
-    ),
+    Op.make("linear", "x", Op.make("concat", "A", "B", dim=0)),
     law="cat(xAᵀ, xBᵀ) = x[A;B]ᵀ on the output axis — the "
     "MergedColumnParallelLinear merge (TASO).",
     cond=_COND_LIN_CAT,
@@ -712,17 +733,21 @@ LINEAR_CONCAT_W = R(
 
 LINEAR_CONCAT_W_REV = R(
     "linear_concat_w_rev",
-    Op.make(
-        "linear", "x", Op.make("concat", "A", "B", dim="AD")
-    ),
+    Op.make("linear", "x", Op.make("concat", "A", "B", dim="AD")),
     Op.make(
         "concat",
         Op.make("linear", "x", "A"),
         Op.make("linear", "x", "B"),
-        dim="CD",
+        dim=-1,
     ),
     law="Reverse: split a fused projection into per-block linears.",
-    cond=_COND_LIN_CAT,
+    cond=(
+        "and",
+        ("rank", "A", "==", 2),
+        ("rank", "B", "==", 2),
+        ("dim-eq", "A", 1, "B", 1),
+        ("axis", "A", "AD", 0),
+    ),
     tags=_PA_EXP,
     derivation=("linear_concat_w",),
 )
@@ -754,7 +779,7 @@ LINEAR_BIAS_EXPAND = R(
     Op.make("add", Op.make("linear", "x", "W"), "b"),
     law="Reverse: expose the fused bias as a pointwise epilogue "
     "(eqsat weighs fused vs spelled).",
-    cond=_COND_LINEAR_XW,
+    cond=_COND_LINEAR_BIAS,
     tags=_PA_EXP,
     derivation=("linear_bias_fold",),
 )
@@ -803,17 +828,18 @@ _CONV_ATTR_SUFFIX = ("", "_sp", "_spdg")
 
 
 def _conv_pat(args: tuple, attrs: tuple) -> Op:
-    kw = {k: _CONV_ATTR_MV[k] for k in attrs}
+    kw: dict[str, Any] = {k: _CONV_ATTR_MV[k] for k in attrs}
     return Op.make("conv2d", *args, **kw)
 
 
 def _conv_merge_cond(attrs: tuple, bias: bool) -> Any:
     if "groups" in attrs:
+        # groups>1 needs a channel interleave, not a plain cat —
+        # scoped to groups==1.
         inc = (
-            "attr-cmp",
-            ("dim", "x", 1),
-            "==",
-            ("mul", ("dim", "W1", 1), ("attr", "GR")),
+            "and",
+            ("attr-eq", "GR", 1),
+            ("dim-eq", "x", 1, "W1", 1),
         )
     else:
         inc = ("dim-eq", "x", 1, "W1", 1)
@@ -825,6 +851,8 @@ def _conv_merge_cond(attrs: tuple, bias: bool) -> Any:
         ("rank", "W1", "==", 4),
         inc,
         ("dim-eq", "W1", 1, "W2", 1),
+        # the output concat rides the channel axis (output rank = x's)
+        ("axis", "x", "CD", 1),
         *(
             (
                 ("rank", "b1", "==", 1),
@@ -839,6 +867,14 @@ def _conv_merge_cond(attrs: tuple, bias: bool) -> Any:
 
 
 def _make_conv_merge_rules() -> list[Rewrite]:
+    """cat(conv(x,W1), conv(x,W2), ch) = conv(x, cat(W1,W2,0)).
+
+    The output-channel concat merge — TASO's conv-merge (the
+    Inception parallel fold): two same-geometry convs over a shared
+    input are one conv over the output-concat'd filter bank.  The
+    concat axis is the output's channel axis (axis 1 of a rank-4
+    conv output).
+    """
     out: list[Rewrite] = []
     tails = ((), ("stride", "padding"), _CONV_ATTR_MV.keys())
     for na, suf in enumerate(_CONV_ATTR_SUFFIX):
@@ -851,7 +887,7 @@ def _make_conv_merge_rules() -> list[Rewrite]:
                 "x",
                 Op.make("concat", "W1", "W2", dim=0),
                 *(
-                    (Op.make("add", "b1", "b2"),)
+                    (Op.make("concat", "b1", "b2", dim=0),)
                     if bias
                     else ()
                 ),
@@ -860,14 +896,15 @@ def _make_conv_merge_rules() -> list[Rewrite]:
                 R(
                     f"conv_out_merge{suf}{bs}",
                     Op.make(
-                        "add",
+                        "concat",
                         _conv_pat(args1, attrs),
                         _conv_pat(args2, attrs),
+                        dim="CD",
                     ),
                     _conv_pat(merged_args, attrs),
-                    law="conv(x,W1,b1) + conv(x,W2,b2) = "
-                    "conv(x, cat(W1,W2), b1+b2) — same-geometry "
-                    "convs merge along the output channel (TASO's "
+                    law="cat(conv(x,W1), conv(x,W2)) = "
+                    "conv(x, cat(W1,W2,0)) on the channel axis — "
+                    "same-geometry convs merge into one (TASO's "
                     "conv-merge; the Inception parallel fold).",
                     cond=_conv_merge_cond(attrs, bias),
                     tags=_PA_FUS,
@@ -892,9 +929,7 @@ def _select_pull(op: str) -> Rewrite:
             Op.make("select", "u", dim="D", index="I"),
             Op.make("select", "v", dim="D", index="I"),
         ),
-        Op.make(
-            "select", Op.make(op, "u", "v"), dim="D", index="I"
-        ),
+        Op.make("select", Op.make(op, "u", "v"), dim="D", index="I"),
         law=f"{op} commutes with select — the select_mul guard: same "
         "index on the same axis and a denoting broadcast grid.",
         cond=_COND_SEL_PAIR,
@@ -915,23 +950,52 @@ UNBIND_SELECT = R(
     tags=_PA_SIM,
 )
 
-GETITEM_SELECT = R(
-    "getitem_select",
-    Op.make("getitem", "u", index="I"),
-    Op.make("select", "u", dim=0, index="I"),
-    law="u[i] on a tensor IS select(u, 0, i) — the leading-axis "
-    "index read.",
-    cond=("rank", "u", ">=", 1),
-    tags=_PA_SIM,
+#  Dropped (see also the block by MAXIMUM_IDEM below):
+#    getitem_select — u[i] = select(u,0,i) holds for TENSOR u, but
+#      ``u`` can also bind a tuple-returning term (``topk``/``max``
+#      results) whose shape is still provable; the pattern language
+#      has no tensor-vs-tuple kind guard, so the law is unguarded-
+#      wrong there.
+
+#: ``D`` is a valid NONNEGATIVE axis of ``u`` — the eval binding
+#: indexes ``t[(slice(None),) * d + ...]``, which does NOT normalize
+#: negative dims the way the guard-side ``_dim_at`` does
+#: (``dim=-3`` on a rank-2 tensor slices axis 0 at eval while the
+#: guard's ``d % len`` reads axis 1 — a real divergence the
+#: nonneg-range guard closes).
+_COND_AXIS = (
+    "and",
+    ("attr-type", "D", "int"),
+    ("attr-cmp", "D", ">=", 0),
+    ("attr-cmp", ("len", ("shape", "u")), ">", ("attr", "D")),
+)
+
+#: select(u, d, i) ⇄ slice — select DROPS the axis, slice keeps a
+#: unit-width one, so the bridge carries a squeeze/unsqueeze pair.
+_COND_SEL_RANGE = (
+    "and",
+    _COND_AXIS,
+    ("attr-type", "I", "int"),
+    ("attr-cmp", "I", ">=", 0),
+    (
+        "attr-cmp",
+        ("nth", ("shape", "u"), ("attr", "D")),
+        ">",
+        ("attr", "I"),
+    ),
 )
 
 SELECT_TO_SLICE = R(
     "select_to_slice",
     Op.make("select", "u", dim="D", index="I"),
-    Op.make("slice", "u", dim="D", start="I", end="E"),
-    law="select(u, d, i) = slice(u, d, i, i+1) — the unit-width "
-    "slice spelling of an index pick (keeps the axis).",
-    cond=("attr-type", "I", "int"),
+    Op.make(
+        "squeeze",
+        Op.make("slice", "u", dim="D", start="I", end="E"),
+        dim="D",
+    ),
+    law="select(u, d, i) = squeeze(slice(u, d, i, i+1), d) — the "
+    "unit-width slice spelling of an index pick.",
+    cond=_COND_SEL_RANGE,
     dspec={"E": ("add", ("attr", "I"), 1)},
     tags=_PA_SIM,
 )
@@ -939,12 +1003,24 @@ SELECT_TO_SLICE = R(
 SLICE_TO_SELECT = R(
     "slice_to_select",
     Op.make("slice", "u", dim="D", start="S", end="E"),
-    Op.make("select", "u", dim="D", index="S"),
-    law="slice(u, d, i, i+1) = select(u, d, i) — the one-element "
-    "slice folds to the index pick (rank drops).",
+    Op.make(
+        "unsqueeze",
+        Op.make("select", "u", dim="D", index="S"),
+        dim="D",
+    ),
+    law="slice(u, d, i, i+1) = unsqueeze(select(u, d, i), d) — the "
+    "one-element slice is the re-widened index pick.",
     cond=(
         "and",
+        _COND_AXIS,
         ("attr-type", "S", "int"),
+        ("attr-cmp", "S", ">=", 0),
+        (
+            "attr-cmp",
+            ("nth", ("shape", "u"), ("attr", "D")),
+            ">",
+            ("attr", "S"),
+        ),
         ("attr-cmp", "E", "==", ("add", ("attr", "S"), 1)),
     ),
     tags=_PA_SIM,
@@ -1117,7 +1193,7 @@ SLICE_NOOP = R(
     "u",
     law="slice(u, d, 0, e) = u when e >= u[d] — the full-cover "
     "slice strip (the export's ``x[..., :e]`` no-op).",
-    cond=("attr-cmp-dim", "E", ">=", "u", "D"),
+    cond=("and", _COND_AXIS, ("attr-cmp-dim", "E", ">=", "u", "D")),
     tags=_PA_SIM,
 )
 
@@ -1127,7 +1203,7 @@ SLICE_NOOP_NOSTART = R(
     "u",
     law="The start-elided full-cover slice — ``x[..., :e]`` with "
     "e >= u[d].",
-    cond=("attr-cmp-dim", "E", ">=", "u", "D"),
+    cond=("and", _COND_AXIS, ("attr-cmp-dim", "E", ">=", "u", "D")),
     tags=_PA_SIM,
 )
 
@@ -1178,9 +1254,7 @@ PERMUTE_NOOP = R(
 
 PERMUTE_COMPOSE = R(
     "permute_compose",
-    Op.make(
-        "permute", Op.make("permute", "u", dims="P"), dims="Q"
-    ),
+    Op.make("permute", Op.make("permute", "u", dims="P"), dims="Q"),
     Op.make("permute", "u", dims="C"),
     law="permute(permute(u,P),Q) = permute(u, P∘Q) — permutation "
     "composition, minted as gather(P, Q).",
@@ -1360,9 +1434,7 @@ STD_SQRT_VAR = R(
     ),
     Op.make(
         "sqrt",
-        Op.make(
-            "var", "u", dim="D", correction="C", keepdim="K"
-        ),
+        Op.make("var", "u", dim="D", correction="C", keepdim="K"),
     ),
     law="std = sqrt(var) — the same dims/correction/keepdim on both "
     "sides (XLA's std decomposition).",
@@ -1380,9 +1452,7 @@ VAR_SQUARE_STD = R(
     ),
     Op.make(
         "square",
-        Op.make(
-            "std", "u", dim="D", correction="C", keepdim="K"
-        ),
+        Op.make("std", "u", dim="D", correction="C", keepdim="K"),
     ),
     law="var = std² — the reverse spelling.",
     tags=_PA_SIM,
@@ -1408,9 +1478,7 @@ VAR_SQUARE_STD_BARE = R(
 
 NORM2_EXPAND = R(
     "norm2_expand",
-    Op.make(
-        "linalg_vector_norm", "u", ord="O", dim="D", keepdim="K"
-    ),
+    Op.make("linalg_vector_norm", "u", ord=2, dim="D", keepdim="K"),
     Op.make(
         "sqrt",
         Op.make(
@@ -1422,7 +1490,6 @@ NORM2_EXPAND = R(
     ),
     law="‖u‖₂ = sqrt(Σ u²) — the L2 norm's spelled work (XLA "
     "linalg decomposition).",
-    cond=("attr-eq", "O", 2),
     tags=_PA_SIM,
 )
 
@@ -1437,9 +1504,7 @@ NORM2_FOLD = R(
             keepdim="K",
         ),
     ),
-    Op.make(
-        "linalg_vector_norm", "u", ord=2, dim="D", keepdim="K"
-    ),
+    Op.make("linalg_vector_norm", "u", ord=2, dim="D", keepdim="K"),
     law="sqrt(Σ u²) folds to the L2 kernel.",
     tags=_PA_SIM,
     derivation=("norm2_expand",),
@@ -1514,9 +1579,7 @@ SIGMOID_FOLD = R(
     "sigmoid_fold",
     Op.make(
         "reciprocal",
-        Op.make(
-            "add", "ONE", Op.make("exp", Op.make("neg", "x"))
-        ),
+        Op.make("add", "ONE", Op.make("exp", Op.make("neg", "x"))),
     ),
     Op.make("sigmoid", "x"),
     law="1/(1+e⁻ˣ) folds to σ(x) — the manual-spelling fold "
@@ -1531,9 +1594,7 @@ SIGMOID_FOLD_DIV = R(
     Op.make(
         "div",
         "ONE",
-        Op.make(
-            "add", "ONE2", Op.make("exp", Op.make("neg", "x"))
-        ),
+        Op.make("add", "ONE2", Op.make("exp", Op.make("neg", "x"))),
     ),
     Op.make("sigmoid", "x"),
     law="The div-spelled 1/(1+e⁻ˣ) folds to σ(x).",
@@ -1554,9 +1615,7 @@ TANH_EXPAND = R(
         Op.make(
             "mul",
             Const(2),
-            Op.make(
-                "sigmoid", Op.make("mul", Const(2), "x")
-            ),
+            Op.make("sigmoid", Op.make("mul", Const(2), "x")),
         ),
         Const(1),
     ),
@@ -1572,9 +1631,7 @@ TANH_FOLD = R(
         Op.make(
             "mul",
             "TWO",
-            Op.make(
-                "sigmoid", Op.make("mul", "TWO2", "x")
-            ),
+            Op.make("sigmoid", Op.make("mul", "TWO2", "x")),
         ),
         "ONE",
     ),
@@ -1616,9 +1673,7 @@ GELU_EXPAND = R(
 MISH_EXPAND = R(
     "mish_expand",
     Op.make("mish", "x"),
-    Op.make(
-        "mul", "x", Op.make("tanh", Op.make("softplus", "x"))
-    ),
+    Op.make("mul", "x", Op.make("tanh", Op.make("softplus", "x"))),
     law="mish(x) = x·tanh(softplus(x)) — the Mish definition.",
     tags=_PA_SIM,
 )
@@ -1705,9 +1760,7 @@ ELU_EXPAND = R(
 LEAKY_RELU_EXPAND = R(
     "leaky_relu_expand",
     Op.make("leaky_relu", "x"),
-    Op.make(
-        "maximum", "x", Op.make("mul", "x", Const(0.01))
-    ),
+    Op.make("maximum", "x", Op.make("mul", "x", Const(0.01))),
     law="leaky_relu(x) = max(x, 0.01x) at the default slope 0.01.",
     tags=_PA_SIM,
 )
@@ -1824,21 +1877,12 @@ RSQRT_SQUARE = R(
     tags=_PA_SIM,
 )
 
-WHERE_SAME = R(
-    "where_same",
-    Op.make("where", "c", "u", "u"),
-    "u",
-    law="where(c, u, u) = u — both arms are the same value.",
-    tags=_PA_SIM,
-)
-
-LOGICAL_NOT_INV = R(
-    "logical_not_inv",
-    Op.make("logical_not", Op.make("logical_not", "u")),
-    "u",
-    law="¬¬u = u — boolean involution.",
-    tags=_PA_SIM,
-)
+#  Dropped (honest misses — see results_prior_art_bank.md):
+#    where_same — where(c,u,u)=u needs a BOOL-typed condition; the
+#      pattern language guards shape, not dtype, and the fp64
+#      oracle's envs can't mint bool operands.
+#    logical_not_inv — ¬¬u = u only for bool u; on fp64 operands
+#      the double-negation materializes a bool mask ≠ u.
 
 MAXIMUM_IDEM = R(
     "maximum_idem",
@@ -1946,20 +1990,23 @@ POW_ONE = R(
 
 POW_ZERO = R(
     "pow_zero",
-    Op.make("pow", "u", "P"),
-    Const(1),
-    law="pow(u, 0) = 1 — IEEE-total including NaN bases "
-    "(pow(nan,0)=1).",
-    cond=("const-cmp", "P", "==", 0),
+    Op.make("pow", "u", Const(0)),
+    Op.make("ones_like", "u"),
+    law="pow(u, 0) = ones(u) — IEEE-total including NaN bases "
+    "(pow(nan,0)=1); spelled ones_like so the mint carries u's "
+    "shape (the eval compare is shape-strict, not broadcast).",
     tags=_PA_SIM,
 )
 
 POW_NEG_ONE = R(
     "pow_neg_one",
-    Op.make("pow", "u", "P"),
+    Op.make("pow", "u", Const(-1)),
     Op.make("reciprocal", "u"),
-    law="pow(u, −1) = 1/u — the reciprocal spelling.",
-    cond=("const-cmp", "P", "==", -1),
+    law="pow(u, −1) = 1/u — the reciprocal spelling.  The "
+    "Const-operand corner is excluded: an int-typed base does int "
+    "exponentiation (pow(2,−1) → 0), which the pattern language "
+    "can't dtype-guard otherwise.",
+    cond=("not", ("const-num", "u")),
     tags=_PA_SIM,
 )
 
@@ -2227,14 +2274,25 @@ MUL_CONST_DIV = R(
 
 
 def _zeros_like(op: str, unit: str, keep: Any) -> Rewrite:
-    """``op(u, unit_like(v)) → u`` under a broadcast-grid guard."""
+    """Fold ``op(u, unit_like(v))`` to ``u``.
+
+    ``unit`` is the spelled additive/multiplicative unit.  The grid
+    guard: the pair must broadcast AND the result shape must BE
+    ``u``'s — a smaller ``u`` broadcasting up produces the *grid*
+    shape, not ``u`` (the same corner as ``ste_fold``).
+    """
     return R(
         f"{op}_{unit}like_r",
         Op.make(op, "u", Op.make(unit + "_like", "v")),
         "u",
         law=f"{op}(u, {unit}_like(v)) = u — the spelled additive/"
-        "multiplicative unit (grid guard keeps it honest).",
-        cond=("shaped", ("bcast", "u", "v")),
+        "multiplicative unit (grid-equality guard keeps it "
+        "honest).",
+        cond=(
+            "and",
+            ("shaped", ("bcast", "u", "v")),
+            ("shape-eq", "u", ("bcast", "u", "v")),
+        ),
         tags=_PA_SIM,
     )
 
@@ -2249,13 +2307,12 @@ DIV_ONES_R = _zeros_like("div", "ones", "u")
 #  §3 — zoo-corpus named transforms
 # ---------------------------------------------------------------------------
 
+
 #: The HF rotate-half rotary `x·cos + rotate_half(x)·sin` spelled
 #: with half-width tables concat'd to full width — equal to the
 #: Llama cat-pair `cat(x1·c − x2·s, x2·c + x1·s)`.
 def _slice2(x: Any, p: str) -> Op:
-    return Op.make(
-        "slice", x, dim=f"{p}D", start=f"{p}A", end=f"{p}E"
-    )
+    return Op.make("slice", x, dim=f"{p}D", start=f"{p}A", end=f"{p}E")
 
 
 def _rope_rh_pat(x: Any, c: Any, s: Any) -> Op:
@@ -2306,19 +2363,24 @@ ROPE_RH_TO_CAT = R(
     tags=_PA_FUS,
 )
 
+#: The STE idiom folds only when the broadcast recovers ``y``
+#: exactly — ``x + (y−x)`` broadcasts to ``bcast(x,y)``, which must
+#: BE ``y``'s shape (a smaller ``x`` broadcasting up changes the
+#: sum's extent, not just its values).
+_COND_STE = ("shape-eq", "y", ("bcast", "x", "y"))
+
 STE_FOLD = R(
     "ste_fold",
     Op.make(
         "add",
         "x",
-        Op.make(
-            "detach", Op.make("sub", "y", "x")
-        ),
+        Op.make("detach", Op.make("sub", "y", "x")),
     ),
     "y",
     law="x + (y − x).detach() = y — the straight-through "
     "estimator's value idiom (the quant STE: w + (ŵ−w).detach() "
-    "evaluates to ŵ).",
+    "evaluates to ŵ) — guarded to the no-broadcast corner.",
+    cond=_COND_STE,
     tags=_PA_SIM,
 )
 
@@ -2326,13 +2388,12 @@ STE_FOLD_L = R(
     "ste_fold_l",
     Op.make(
         "add",
-        Op.make(
-            "detach", Op.make("sub", "y", "x")
-        ),
+        Op.make("detach", Op.make("sub", "y", "x")),
         "x",
     ),
     "y",
     law="The operand-swapped STE spelling.",
+    cond=_COND_STE,
     tags=_PA_SIM,
 )
 
@@ -2344,9 +2405,7 @@ LINEAR_OUT_CHANNEL = R(
     Op.make(
         "linear",
         "x",
-        Op.make(
-            "mul", "W", Op.make("reshape", "c", shape="CV")
-        ),
+        Op.make("mul", "W", Op.make("reshape", "c", shape="CV")),
     ),
     law="c·(xWᵀ) = x(W∘ĉ)ᵀ with ĉ = c viewed (o,1) — the "
     "per-output-channel scale folds into the weight (the AWQ/"
@@ -2368,9 +2427,7 @@ LINEAR_OUT_CHANNEL_REV = R(
     Op.make(
         "linear",
         "x",
-        Op.make(
-            "mul", "W", Op.make("reshape", "c", shape="CV")
-        ),
+        Op.make("mul", "W", Op.make("reshape", "c", shape="CV")),
     ),
     Op.make("mul", Op.make("linear", "x", "W"), "c"),
     law="Reverse: unfold the folded channel scale back to a "
@@ -2394,9 +2451,7 @@ LINEAR_OUT_CHANNEL_REV = R(
 
 ADALN_ONE_PLUS = R(
     "adaln_one_plus",
-    Op.make(
-        "mul", "u", Op.make("add", Const(1), "s")
-    ),
+    Op.make("mul", "u", Op.make("add", Const(1), "s")),
     Op.make("add", "u", Op.make("mul", "u", "s")),
     law="u·(1+s) = u + u·s — the AdaLN-Zero ``1 + scale`` idiom "
     "spelled as distributivity (derivable through the pointwise "
@@ -2426,12 +2481,18 @@ ONEHOT_MATMUL_EMBED = R(
     "onehot_matmul_embed",
     Op.make(
         "matmul",
-        Op.make("one_hot", "i", num_classes="N"),
+        Op.make(
+            "double",
+            Op.make("one_hot", "i", num_classes="N"),
+        ),
         "W",
     ),
     Op.make("embedding", "W", "i"),
-    law="one_hot(i, N) @ W = embedding(W, i) — the one-hot matmul "
-    "IS a row gather (TASO/vocab-projection fold).",
+    law="to(dtype)(one_hot(i, N)) @ W = embedding(W, i) — the "
+    "one-hot matmul IS a row gather (TASO/vocab-projection fold; "
+    "the cast is the exported spelling — one_hot emits int64 which "
+    "cannot contract a float weight; spelled ``double`` to ride "
+    "the fp64 eval path).",
     cond=(
         "and",
         ("rank", "W", "==", 2),
@@ -2460,11 +2521,8 @@ ADDCDIV_EXPAND = R(
 LERP_EXPAND = R(
     "lerp_expand",
     Op.make("lerp", "x", "y", "w"),
-    Op.make(
-        "add", "x", Op.make("mul", "w", Op.make("sub", "y", "x"))
-    ),
-    law="lerp(x, y, w) = x + w·(y−x) — the interpolation's "
-    "definition.",
+    Op.make("add", "x", Op.make("mul", "w", Op.make("sub", "y", "x"))),
+    law="lerp(x, y, w) = x + w·(y−x) — the interpolation's definition.",
     tags=_PA_SIM,
 )
 
@@ -2555,7 +2613,6 @@ PRIOR_ART_RULES: list[Rewrite] = [
     # -- TASO: index-view distributions/bridges
     *SELECT_PULL_RULES,
     UNBIND_SELECT,
-    GETITEM_SELECT,
     SELECT_TO_SLICE,
     SLICE_TO_SELECT,
     # -- no-op elimination
@@ -2631,8 +2688,6 @@ PRIOR_ART_RULES: list[Rewrite] = [
     ABS_NEG,
     SQRT_SQUARE,
     RSQRT_SQUARE,
-    WHERE_SAME,
-    LOGICAL_NOT_INV,
     MAXIMUM_IDEM,
     MINIMUM_IDEM,
     TANH_NEG,

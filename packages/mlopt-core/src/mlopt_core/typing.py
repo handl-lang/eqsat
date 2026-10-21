@@ -116,7 +116,16 @@ def _shape_of(
     elif isinstance(term, Const):
         out = ()
     elif isinstance(term, Op):
-        out = _infer_op_shape(term, memo)
+        try:
+            out = _infer_op_shape(term, memo)
+        except (TypeError, IndexError):
+            # A pattern fragment reached inference — a metavar attr
+            # (``dim="D"``, ``index="I"``) or a derived shape attr a
+            # rule can't resolve.  Same contract as the rank-0 case
+            # above: report ``None`` (unknown) — guards/derives
+            # decline on it rather than fabricate — never crash the
+            # ``d % len(base)`` arithmetic on a symbolic axis.
+            out = None
     else:
         out = None
     if memo is not None:

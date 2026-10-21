@@ -155,9 +155,6 @@ from mlopt_core.laws.layout import (  # noqa: F401
     _is_swap,
     _linear_shapes_ok,
 )
-from mlopt_core.laws.priorart import (  # noqa: F401
-    PRIOR_ART_RULES,
-)
 from mlopt_core.laws.pairing import (  # noqa: F401
     _CONV_ATTR_KEYS,
     _pair_shared_input,
@@ -167,6 +164,9 @@ from mlopt_core.laws.pairing import (  # noqa: F401
     pair_shared_input_linears,
     share_duplicate_param_slices,
     share_duplicate_params,
+)
+from mlopt_core.laws.priorart import (
+    PRIOR_ART_RULES,
 )
 from mlopt_core.laws.provenance import (
     MACHINE_LAWS,
