@@ -1225,14 +1225,32 @@ def _validate_candidate(
         if not _replays(cand, r1, r2, t0, tout):
             return False if fatal_replay else None
         if numeric:
+            if _concrete_eval is None:
+                # No backend registered — the numeric leg degrades
+                # to structural-only, never a verdict.
+                return True
             try:
                 env = _tensor_env(subst)
                 a = _eval_term(t0, env)
-                b = _eval_term(tout, env)
+            except KeyError:
+                # Ops or leaves without backend bindings — the
+                # instance is unevaluable, so the check degrades to
+                # structural only.
+                return True
             except Exception:
-                return (
-                    True  # ops without torch bindings: structural only
-                )
+                # The bound instance itself cannot denote — a vetoed
+                # instantiation, not a verdict on the rule.
+                return None
+            try:
+                b = _eval_term(tout, env)
+            except KeyError:
+                return True  # unbound op/leaf: structural only
+            except Exception:
+                # The claimed output cannot denote on an instance
+                # whose input evaluates — a measured ill-typed-RHS
+                # counterexample (the oracle's rhs-err signal), not
+                # "ops without bindings".
+                return False
             return _eval_allclose(a, b)
         return True
 

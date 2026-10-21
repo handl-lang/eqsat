@@ -766,6 +766,163 @@ def test_provenance_registry_and_parents_attr():
     finally:
         del meta.SYNTH_PARENTS["x"]
 
+class _StubEval:
+    """A ``ConcreteEval`` stub over scalars — torch-free tri-state.
+
+    ``make_env`` hands each typed leaf a small float; ``eval_term``
+    evaluates ``add``/``mul``/``neg`` arithmetically, raises
+    ``KeyError`` for an op in *unbound* (the "no backend binding"
+    signal) and ``RuntimeError`` for an op in *broken* (a term that
+    cannot denote — the oracle's rhs-err analogue).  ``extra`` maps
+    further op names to evaluators so a test can mint a working
+    custom op.
+    """
+
+    def __init__(self, unbound=(), broken=(), extra=None):
+        self.unbound = set(unbound)
+        self.broken = set(broken)
+        self.extra = dict(extra or {})
+
+    def make_env(self, leaf_shapes):
+        return {
+            leaf: float(i + 1)
+            for i, leaf in enumerate(sorted(leaf_shapes, key=repr))
+        }
+
+    def eval_term(self, term, env):
+        if isinstance(term, Op):
+            if term.op in self.unbound:
+                raise KeyError(term.op)
+            if term.op in self.broken:
+                raise RuntimeError(f"{term.op} cannot denote")
+            args = [self.eval_term(a, env) for a in term.args]
+            if term.op in self.extra:
+                return self.extra[term.op](*args)
+            fn = {
+                "add": lambda a, b: a + b,
+                "mul": lambda a, b: a * b,
+                "neg": lambda a: -a,
+            }[term.op]
+            return fn(*args)
+        if isinstance(term, Const):
+            return term.value
+        return env[term]
+
+    def allclose(self, a, b, tol):
+        return abs(a - b) <= tol
+
+
+def _with_eval(monkeypatch, backend):
+    """Install *backend* as the concrete-eval backend (auto-restored)."""
+    monkeypatch.setattr(meta, "_concrete_eval", backend)
+
+
+def test_validate_candidate_numeric_eval_failures(monkeypatch):
+    """The numeric leg's tri-state: eval failures are measured, not skipped.
+
+    An eval error is not "ops without bindings": a bound LHS instance
+    that cannot denote vetoes only that instantiation, while the
+    claimed OUTPUT failing on a live instance is a measured
+    counterexample — the ill-typed-RHS signal the emit gate must
+    honour.  ``KeyError`` stays the structural-only escape.
+    """
+    x, y = Var("x", _T()), Var("y", _T())
+    w = {"x": x, "y": y}
+    comm = Rewrite("cm", Op.make("add", "a", "b"), Op.make("add", "b", "a"))
+    swap = Rewrite("sw", Op.make("add", "a", "b"), Op.make("mul", "a", "b"))
+    idm = Rewrite("id", Op.make("mul", "a", "b"), Op.make("mul", "a", "b"))
+    cand = Rewrite("c", Op.make("add", "x", "y"), Op.make("mul", "x", "y"))
+
+    # the claimed output cannot denote on a live instance → reject
+    _with_eval(monkeypatch, _StubEval(broken={"mul"}))
+    assert not meta._validate_candidate(
+        cand, swap, idm, numeric=True, witness=w
+    )
+    # ...but an UNBOUND op degrades to structural-only, as before
+    _with_eval(monkeypatch, _StubEval(unbound={"mul"}))
+    assert meta._validate_candidate(
+        cand, swap, idm, numeric=True, witness=w
+    )
+    # the bound LHS instance itself cannot denote → vetoed, not emitted
+    _with_eval(monkeypatch, _StubEval(broken={"add"}))
+    assert not meta._validate_candidate(
+        cand, swap, idm, numeric=True, witness=w
+    )
+    # an unbound LHS op is the same structural-only escape
+    _with_eval(monkeypatch, _StubEval(unbound={"add"}))
+    assert meta._validate_candidate(
+        cand, swap, idm, numeric=True, witness=w
+    )
+    # both sides denote but differ → allclose still rejects
+    _with_eval(monkeypatch, _StubEval())
+    assert not meta._validate_candidate(
+        cand, swap, idm, numeric=True, witness=w
+    )
+    # and a true composite (comm twice returns to start) passes the
+    # whole leg
+    ident = Rewrite(
+        "ok", Op.make("add", "x", "y"), Op.make("add", "x", "y")
+    )
+    assert meta._validate_candidate(
+        ident, comm, comm, numeric=True, witness=w
+    )
+
+
+def test_validate_candidate_numeric_no_backend():
+    """No registered backend: the numeric leg stays structural-only."""
+    x, y = Var("x", _T()), Var("y", _T())
+    comm = Rewrite("cm", Op.make("add", "a", "b"), Op.make("add", "b", "a"))
+    ident = Rewrite(
+        "ok", Op.make("add", "x", "y"), Op.make("add", "x", "y")
+    )
+    assert meta._concrete_eval is None  # eqsat is torch-free
+    assert meta._validate_candidate(
+        ident, comm, comm, numeric=True, witness={"x": x, "y": y}
+    )
+
+
+def test_synthesize_drops_ill_typed_composite(monkeypatch):
+    """End-to-end: a composite whose RHS errors on the witness never emits.
+
+    ``negid`` then ``weird`` on ``add(neg(neg(x)), y)`` mints
+    ``add(neg(neg(v0)), v1) -> weird(v0, v1)`` — the derivation
+    honestly replays, but with a ``weird`` that cannot denote on the
+    seed binding the emitted composite would be ill-typed (the
+    oracle's rhs-err signal), so the emit gate refuses it.  The same
+    pair with a working ``weird`` mints normally.
+    """
+    x, y = Var("x", _T()), Var("y", _T())
+    seed = Op.make("add", Op.make("neg", Op.make("neg", x)), y)
+    negid = Rewrite("nn", Op.make("neg", Op.make("neg", "a")), "a")
+    weird = Rewrite(
+        "wd", Op.make("add", "a", "b"), Op.make("weird", "a", "b")
+    )
+    rules = [negid, weird]
+
+    _with_eval(monkeypatch, _StubEval(broken={"weird"}))
+    out = meta.synthesize_rules(rules, [seed], fuel=400)
+    assert all(
+        "weird" not in {t.op for t in _walk_ops(d.rhs)} for d in out
+    )
+
+    _with_eval(
+        monkeypatch,
+        _StubEval(extra={"weird": lambda a, b: a + b}),
+    )
+    out = meta.synthesize_rules(rules, [seed], fuel=400)
+    assert any(
+        "weird" in {t.op for t in _walk_ops(d.rhs)} for d in out
+    )
+
+
+def _walk_ops(t):
+    """Yield every Op node inside *t* (test-local term walk)."""
+    if isinstance(t, Op):
+        yield t
+        for a in t.args:
+            yield from _walk_ops(a)
+
+
 def test_defensive_branch_inventory():
     """Documents (and lightly probes) branches we believe unreachable
     by construction — candidates for ``pragma: no cover``:
