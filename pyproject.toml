@@ -1,0 +1,181 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eqsat"
+version = "0.1.0dev"
+description = "The eqsat substrate for the mlopt game — term IR, e-graph engine, certificates, the law bank + machinery, cost algebra, ports, the backend-neutral orchestrator, and the optional Rust engine.  Meta distribution over the packages in packages/; extracted from handl-lang/graphopt (plan 0032 phase 4)."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "mlopt-core",
+    "mlopt-orchestrator",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=5.0",
+    "pytest-xdist>=3.0",
+    "ruff>=0.6",
+    "coverage>=7.0",
+    # Pinned to the parent's locked version: ty 0.0.90 newly flags
+    # mlopt-native's `_classes` property override
+    # (invalid-property-type-override) — a real finding to fix, then
+    # unpin (phase-5 follow-up).
+    "ty==0.0.84",
+    "vulture>=2.16",
+    "import-linter>=2.15",
+    "hypothesis>=6.168.1",
+]
+
+# The root project is a pure meta distribution — nothing under the
+# repo root is shipped; the packages live in packages/.
+[tool.setuptools]
+packages = []
+
+# --- uv workspace ---------------------------------------------------
+[tool.uv.workspace]
+members = ["packages/*"]
+# mlopt-native is an OPTIONAL distribution built with maturin/cargo —
+# excluded from the uv workspace so ``uv sync``/``uv lock`` never need
+# a Rust toolchain.  Build it explicitly:
+#   maturin develop --release   (from packages/mlopt-native)
+exclude = ["packages/mlopt-native"]
+
+[tool.uv.sources]
+mlopt-core = { workspace = true }
+mlopt-orchestrator = { workspace = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "requires_cuda: test allocates CUDA tensors; skipped at setup when CUDA is absent or OOMs on a probe allocation",
+    "slow: minutes-scale test (saturation at large budgets); iterate with -m \"not slow\", run the full suite before committing",
+    "e2e: crosses an external engine boundary (module-level marker, tagged on boundary-purpose files only)",
+]
+
+# --- dead-code + architecture linting (dev tooling) ----------------
+[tool.vulture]
+min_confidence = 80
+paths = ["packages", "tests"]
+# Port-signature parameters: named for the contract (callers pass them
+# as kwargs from domain repos), exercised in-repo only via the moved
+# domain-bound tests — kept for the frozen port surface.
+ignore_names = [
+    "ref_out",
+    "example_inputs",
+    "predicate",
+    "runnable",
+    "timeout_s",
+]
+
+# import-linter: the hexagonal-boundary ratchet, pruned to the
+# intra-repo contracts (plan 0032 phase 4).  The key contract stays
+# "core is torch-free" — mlopt-core is the zero-dependency engine.
+[tool.importlinter]
+root_packages = [
+    "mlopt_core",
+    "mlopt_orchestrator",
+]
+# `mlopt_native` is deliberately NOT a root package: it is an optional
+# maturin/cargo build outside the uv workspace, so `uv sync` (and CI)
+# uninstall it — a missing root package is a hard import-linter error.
+# It is listed as an *optional* layer below, so it is checked when
+# present and skipped when absent.
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "core is torch-free (and substrate-top)"
+type = "forbidden"
+source_modules = ["mlopt_core"]
+forbidden_modules = [
+    "mlopt_orchestrator",
+    "mlopt_native",
+    "torch",
+    "numpy",
+]
+
+[[tool.importlinter.contracts]]
+name = "orchestrator imports no backend"
+type = "forbidden"
+source_modules = ["mlopt_orchestrator"]
+forbidden_modules = ["torch", "mlopt_torch", "mlopt_cuda", "mlopt_onnx"]
+# The backend packages may never be imported directly — backend
+# specifics live behind the Composer/Meter/Runner/ExecutorSpec ports.
+# Indirect reach is fine: the orchestrator lazily resolves carrier
+# machinery through the ``register_carriers`` seam.
+allow_indirect_imports = true
+
+# The dependency *layers*: the graph must be acyclic.
+# `mlopt_orchestrator` sits above core (it reads core internals).
+# `mlopt_native` is a peer of core (it implements the Engine port
+# over the same IR) and is checked to stay above core only.
+[[tool.importlinter.contracts]]
+name = "dependency layers"
+type = "layers"
+layers = [
+    "mlopt_orchestrator",
+    "(mlopt_native)",
+    "mlopt_core",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 72
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF", "D"]
+ignore = [
+    "E501",     # line length — math/notation lines exceed 72 legitimately
+    "B008",     # function-call in default arg — used for cost-fn defaults
+    "SIM108",   # ternary suggestion — if/else often clearer here
+]
+
+# The docstring gate applies to shipped code only: tests are
+# example/measurement code, not a public API surface.
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
+
+# --- typecheck (ty) -------------------------------------------------
+[tool.ty.environment]
+python-version = "3.13"
+extra-paths = [
+    "packages/mlopt-core/src",
+    "packages/mlopt-orchestrator/src",
+    # mlopt-native is optional (maturin-built); its `python/` source
+    # dir holds the adapter plus the `_native.pyi` stub ty resolves
+    # against the compiled extension.
+    "packages/mlopt-native/python",
+]
+
+[tool.ty.src]
+include = ["packages"]
+exclude = []
+
+[tool.ty.terminal]
+error-on-warning = false
+
+[tool.coverage.run]
+source = ["mlopt_core", "mlopt_orchestrator"]
+branch = true
+omit = ["*/tests/*"]
+
+[tool.coverage.report]
+# Re-measured at the phase-4 extraction (2026-10): 56% on this repo's
+# suite.  The parent's 100% was a whole-monorepo property — most
+# substrate lines are exercised by domain-bound tests (torch
+# backends, discovery, carriers) that cannot run here.  The ratchet
+# is pinned at the measured value for this repo's suite; tighten,
+# never lower.  Cross-repo merged coverage is a phase-5 follow-up.
+fail_under = 56
+show_missing = true
+exclude_also = [
+    "if __name__ == ['\"]__main__['\"]:",
+    "if TYPE_CHECKING:",
+    "def __repr__",
+    "raise NotImplementedError",
+    "@overload",
+    "return NotImplemented",
+]

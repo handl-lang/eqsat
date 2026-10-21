@@ -463,7 +463,7 @@ def test_fingerprint_covers_dspec_data():
 
 
 def test_every_shipped_dspec_roundtrips_through_json():
-    """All 22 spec-carrying rules' dspecs survive the store wire format."""
+    """All 23 spec-carrying rules' dspecs survive the store wire format."""
     seen = 0
     for rule in [*ALL_RULES, *SCAN_DIAG_LAWS]:
         if rule.dspec is None:
@@ -479,7 +479,7 @@ def test_every_shipped_dspec_roundtrips_through_json():
             dspec=json.loads(blob),
         )
         assert rebuilt.dspec == rule.dspec
-    assert seen == 22
+    assert seen == 23
 
 
 def test_migrated_alias_partials_are_the_same_data():
@@ -761,116 +761,8 @@ def test_attr_cmp_and_attr_ints_predicates():
 # ---------------------------------------------------------------------------
 
 
-def test_migrated_carrier_rules_carry_dspec():
-    """Every migrated carrier derive is now declarative data.
-
-    ``missing_hooks`` must not report ``"derive"`` — the folded hook
-    is the spec-only closure — and the spec must survive the
-    law-record JSON hop minting identical attrs.
-    """
-    from mlopt_carriers import decode_geom, decode_laws, om, trace
-    from mlopt_core.laws.serialize import (
-        law_from_data,
-        law_to_data,
-        missing_hooks,
-    )
-
-    migrated = [
-        trace.TR_VANISH_SPLIT,
-        trace.TR_VANISH_MERGE,
-        trace.TR_SUPERPOSE_REV,
-        trace.TR_SLIDE,
-        trace.TR_SLIDE_REV,
-        trace.TR_EXPAND,
-        om.SPLIT_TRANSPOSE,
-        om.DECAY_BLOCK_DIAG,
-        om.DECAY_BLOCK_CROSS,
-        decode_laws.INDEX_SELECT_DEDUP,
-        decode_geom.CAT_NARROW_MERGE,
-    ]
-    for rule in migrated:
-        assert rule.dspec is not None, rule.name
-        assert "derive" not in missing_hooks(rule), rule.name
-        blob = json.dumps(derive_to_data(rule.dspec))
-        assert (
-            derive_from_data(json.loads(blob)) == rule.dspec
-        ), rule.name
-        rebuilt = law_from_data(
-            json.loads(json.dumps(law_to_data(rule)))
-        )
-        assert rebuilt.dspec == rule.dspec, rule.name
 
 
-def test_migrated_carrier_derives_mint_identically():
-    """The specs produce the same attr maps the Python hooks did."""
-    from mlopt_carriers import decode_geom, decode_laws, om, trace
-
-    v = lambda n, *s: Var(n, TensorType(tuple(s)))  # noqa: E731
-    # tr_vanish_split: usize (u,v) → two int dims
-    assert trace.TR_VANISH_SPLIT.derive(
-        {"f": v("f", 8, 8), "$attr:UV": (3, 2)}
-    ) == {"$attr:DU": 3, "$attr:DV": 2}
-    assert trace.TR_VANISH_SPLIT.derive({"$attr:UV": (3, 2, 1)}) is None
-    # tr_slide / tr_slide_rev: the widened block axis
-    g = v("g", 5, 7)
-    assert trace.TR_SLIDE.derive({"g": g, "$attr:DU": 3}) == {
-        "$attr:DY": 2
-    }
-    assert trace.TR_SLIDE.derive({"g": v("g2", 3, 7), "$attr:DU": 3}) is None
-    assert trace.TR_SLIDE.derive({"g": v("g3", None, 7), "$attr:DU": 3}) is None
-    assert trace.TR_SLIDE_REV.derive(
-        {"g": v("g4", 7, 5), "$attr:DU": 3}
-    ) == {"$attr:DX": 2}
-    # tr_expand: (du, f_i − du) per axis
-    assert trace.TR_EXPAND.derive({"f": v("f", 6, 8), "$attr:DU": 4}) == {
-        "$attr:RS": (4, 2),
-        "$attr:CS": (4, 4),
-    }
-    assert trace.TR_EXPAND.derive(
-        {"f": v("f", 6, 8), "$attr:DU": 0}
-    ) is None
-    # tr_vanish_merge / tr_superpose_rev: the fused product size
-    b = {"$attr:DU": 4, "$attr:DV": 2}
-    assert trace.TR_VANISH_MERGE.derive(b) == {"$attr:UV": (4, 2)}
-    assert trace.TR_SUPERPOSE_REV.derive(b) == {"$attr:UV": (4, 2)}
-    # split_transpose: the pre-transpose axis pick
-    dims = {"$attr:SD": -2, "$attr:D0": -2, "$attr:D1": -1}
-    assert om.SPLIT_TRANSPOSE.derive(dims) == {"$attr:DP": -1}
-    assert om.SPLIT_TRANSPOSE.derive(
-        {**dims, "$attr:SD": -1}
-    ) == {"$attr:DP": -2}
-    assert om.SPLIT_TRANSPOSE.derive({**dims, "$attr:SD": 0}) == {
-        "$attr:DP": 0
-    }
-    assert (
-        om.SPLIT_TRANSPOSE.derive({**dims, "$attr:SD": "x"}) is None
-    )
-    # decay_block_diag: TC = SZ[I] on the (i,i) block
-    ok = {"$attr:SZ": (8, 8), "$attr:I": 1, "$attr:T": 16}
-    assert om.DECAY_BLOCK_DIAG.derive(ok) == {"$attr:TC": 8}
-    assert om.DECAY_BLOCK_DIAG.derive({**ok, "$attr:I": 5}) is None
-    assert om.DECAY_BLOCK_DIAG.derive({**ok, "$attr:SZ": (8, "x")}) is None
-    assert om.DECAY_BLOCK_DIAG.derive({**ok, "$attr:T": 12}) is None
-    # decay_block_cross: extents + the strict-lower offset
-    ok2 = {"$attr:SZ": (4, 5), "$attr:T": 9, "$attr:I": 1, "$attr:J": 0}
-    assert om.DECAY_BLOCK_CROSS.derive(ok2) == {
-        "$attr:TI": 5,
-        "$attr:TJ": 4,
-        "$attr:OD": 4,
-    }
-    assert om.DECAY_BLOCK_CROSS.derive({**ok2, "$attr:J": 1}) is None
-    assert om.DECAY_BLOCK_CROSS.derive({**ok2, "$attr:T": 8}) is None
-    # index_select_dedup: uniques + position map
-    assert decode_laws.INDEX_SELECT_DEDUP.derive(
-        {"$attr:I": (7, 3, 7, 0, 3)}
-    ) == {"$attr:U": (7, 3, 0), "$attr:VI": (0, 1, 0, 2, 1)}
-    # cat_narrow_merge: the merged extent
-    assert decode_geom.CAT_NARROW_MERGE.derive(
-        {"$attr:L1": 2, "$attr:L2": 4}
-    ) == {"$attr:LT": 6}
-    assert (
-        decode_geom.CAT_NARROW_MERGE.derive({"$attr:L1": "2"}) is None
-    )
 
 
 # ---------------------------------------------------------------------------

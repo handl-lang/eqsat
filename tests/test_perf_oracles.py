@@ -564,26 +564,6 @@ def test_improving_stall_breaks_early():
     assert stats["iterations"] == 3
 
 
-def test_search_plumbs_stop_and_patience():
-    """``search(..., stop="improving", patience=..)`` reaches eg.run."""
-    import torch
-    import torch.nn as nn
-    from mlopt_orchestrator import search
-    from mlopt_torch.adapters import TorchSource
-
-    torch.manual_seed(0)
-    m = nn.Linear(8, 8, bias=False).double()
-    x = torch.randn(2, 8, dtype=torch.float64)
-    res = search(
-        m,
-        x,
-        source=TorchSource(),
-        stop="improving",
-        patience=1,
-        max_iterations=10,
-    )
-    assert res.stats["stop"] in ("improving", "fixed_point")
-    assert "improved" in res.stats
 
 
 def test_fixed_point_is_default_and_identical():

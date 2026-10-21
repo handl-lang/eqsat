@@ -38,7 +38,6 @@ from mlopt_core.laws.tensor import (
 
 pytest.importorskip("mlopt_native")
 from mlopt_native import NativeEngine
-from mlopt_native import contraction as _ncon
 from mlopt_native import dag_cost as native_dag_cost
 
 _SYMMETRY = [COMM_ADD, ASSOC_ADD, COMM_MUL, DISTRIBUTE_MUL, FACTOR_MUL]
@@ -267,32 +266,5 @@ def _ref_greedy(
     return total
 
 
-def test_native_contraction_parity() -> None:
-    """greedy/cost_of_order identical on seeded bond networks."""
-    from mlopt_torch.contraction_policy import random_bond_network
-
-    for n in (3, 8, 16, 24, 40):
-        tensors, sizes = random_bond_network(n, seed=n * 31)
-        assert _ncon.greedy(tensors, sizes) == _ref_greedy(
-            tensors, sizes
-        )
-        # Randomised arm: identical draws -> identical cost.
-        r1, r2 = random.Random(9), random.Random(9)
-        assert _ncon.greedy(
-            tensors, sizes, rng=r1, top_k=4
-        ) == _ref_greedy(tensors, sizes, rng=r2, top_k=4)
-        order, total = _ncon.greedy_order(tensors, sizes)
-        assert _ncon.cost_of_order(tensors, sizes, order) == total
 
 
-def test_native_contraction_shipped_fns() -> None:
-    """``contraction_policy`` delegates to the native core when built."""
-    from mlopt_torch import contraction_policy as cp
-
-    tensors, sizes = cp.random_bond_network(12, seed=5)
-    assert cp.greedy(tensors, sizes) == _ref_greedy(tensors, sizes)
-    ts = [frozenset(t) for t in tensors]
-    assert cp.pair_cost(ts[0], ts[1], sizes) == _ncon.pair_cost(
-        ts[0], ts[1], sizes
-    )
-    assert cp.merge_tensors(ts, 0, 1) == _ncon.merge_tensors(ts, 0, 1)

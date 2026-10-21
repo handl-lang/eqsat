@@ -203,39 +203,3 @@ def test_materialize_intermediate_rebuilds_with_guard():
 # ---------------------------------------------------------------------------
 
 
-def test_shipped_object_restores_through_the_store():
-    """store → admit rebuilds the transported hooks; fires identically."""
-    from mlopt_core.laws.serialize import alpha_key
-    from mlopt_discovery import evidence as ev
-
-    lib = {r.name: r for r in [*BATCH_NORM_RULES, *CONV_FOLD_RULES]}
-    conn = ev.connect(":memory:")
-    try:
-        # the full premise closure as store rows — leaf parents plus
-        # each materialized ``syn_*`` intermediate
-        for nm in (
-            "batch_norm_expand",
-            "conv_channel_shift_sub_sp",
-            "conv_channel_scale_sp",
-            "conv_channel_scale_l_sp",
-            "conv_channel_shift_sp",
-        ):
-            ev.store_object(conn, lib[nm], kind="law", cert=None)
-        for nm in minted._RECORDS:
-            ev.store_object(
-                conn,
-                minted.materialize(nm, lib),
-                kind="abstraction",
-                cert=None,
-            )
-        key = repr(alpha_key(CONV_BN_FOLD.lhs, CONV_BN_FOLD.rhs))
-        got = ev.admit_object(conn, key)
-        assert got is not None
-        rebuilt, rec = got
-        assert sorted(rec["transported"]) == ["check", "derive"]
-        term = _spelled()
-        assert op_repr(
-            meta.apply_rewrite_at(rebuilt, term, ())
-        ) == op_repr(meta.apply_rewrite_at(CONV_BN_FOLD, term, ()))
-    finally:
-        conn.close()

@@ -28,7 +28,6 @@ import subprocess
 import sys
 
 import mlopt_core.meta as meta
-import mlopt_core.ops as ops_mod
 import pytest
 from mlopt_core.ops import OpTable
 
@@ -157,26 +156,8 @@ def test_core_imports_without_torch():
 # ---------------------------------------------------------------------------
 
 
-def test_register_core_bindings_is_idempotent():
-    """Re-registering the same table object does not duplicate it."""
-    from mlopt_torch.torch_bridge import _CORE_TORCH_BINDINGS
-
-    before = len(ops_mod._CORE_BINDING_TABLES)
-    ops_mod.register_core_bindings(_CORE_TORCH_BINDINGS)
-    assert len(ops_mod._CORE_BINDING_TABLES) == before
-    # ... and the core table is unaffected.
-    assert "matmul" in OpTable.core().torch_bindings
 
 
-def test_full_without_ambient_returns_private_table(monkeypatch):
-    """With no backend ambient dict registered (mlopt-core alone)
-    ``full()`` returns a private composed table rather than raising."""
-    monkeypatch.setattr(ops_mod, "_AMBIENT_BINDINGS", None)
-    t = OpTable.full()
-    # A plain dict (not the ambient subclass) — nothing to seat on.
-    assert type(t.torch_bindings) is dict
-    # Carrier ops still compose in (carriers are installed here).
-    assert "omd_elem" in t.torch_bindings
 
 
 def test_meta_hooks_degrade_without_backend(monkeypatch):
@@ -189,31 +170,5 @@ def test_meta_hooks_degrade_without_backend(monkeypatch):
     assert meta._tensor_env({"x": object()}) == {}
 
 
-def test_concrete_eval_backend_is_registered():
-    """Importing the torch adapter registers the backend; core reads it
-    only through the injected object."""
-    import mlopt_torch.meta_eval  # noqa: F401
-
-    assert meta._concrete_eval is not None
-    assert hasattr(meta._concrete_eval, "eval_term")
 
 
-def test_pairing_exact_equal_is_value_agnostic():
-    """The sharing passes' comparator is duck-typed: shape mismatch is
-    never equal, and equal-shape values compare elementwise (NaN != NaN,
-    -0.0 == +0.0 — ``torch.equal`` semantics, no torch import)."""
-    import torch
-    from mlopt_core.laws.pairing import _exact_equal, _is_tensor
-
-    a = torch.zeros(2, 3)
-    assert _exact_equal(a, a.clone())
-    # different shapes never compare equal
-    assert not _exact_equal(a, torch.zeros(3, 2))
-    assert not _exact_equal(torch.zeros(2), torch.zeros(3))
-    # torch.equal parity: NaN != NaN, -0.0 == +0.0
-    nan = torch.tensor([float("nan")])
-    assert not _exact_equal(nan, nan.clone())
-    assert _exact_equal(torch.tensor([0.0]), torch.tensor([-0.0]))
-    # the duck-typed tensor check rejects non-tensors
-    assert _is_tensor(a)
-    assert not _is_tensor("not-a-tensor")

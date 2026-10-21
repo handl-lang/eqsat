@@ -553,24 +553,6 @@ def test_shim_modules_are_gone():
             importlib.import_module(mod)
 
 
-def test_torch_package_delegations():
-    import mlopt_torch
-    from mlopt_torch.autotune import TORCH_BUILDERS
-    from mlopt_torch.backend import TorchBackend
-    from mlopt_torch.runners import TorchCompileRunner
-
-    assert mlopt_torch.TorchBackend is TorchBackend
-    assert mlopt_torch.TorchCompileRunner is TorchCompileRunner
-    assert mlopt_torch.TORCH_BUILDERS is TORCH_BUILDERS
-    for gone in (
-        "optimize_model",
-        "optimize_compositional",
-        "optimize_model_autotuned",
-    ):
-        with pytest.raises(AttributeError):
-            getattr(mlopt_torch, gone)
-    with pytest.raises(AttributeError):
-        _ = mlopt_torch.bogus_name
 
 
 # ---------------------------------------------------------------------------
@@ -605,59 +587,10 @@ def test_frontier_build_without_dispatch(monkeypatch):
         frontier.build()
 
 
-def test_torch_sink_executors_degrade_without_carriers(monkeypatch):
-    """Blocked carrier imports leave the trace+generic routing table."""
-    import sys as _sys
-
-    from mlopt_torch.adapters import TorchSink
-
-    monkeypatch.setitem(
-        _sys.modules, "mlopt_carriers.scan_lower", None
-    )
-    monkeypatch.setitem(_sys.modules, "mlopt_carriers.om_lower", None)
-    monkeypatch.setitem(_sys.modules, "mlopt_carriers.omd_lower", None)
-    monkeypatch.setitem(
-        _sys.modules, "mlopt_carriers.om_streaming", None
-    )
-    sink = TorchSink()
-    sink._executors = None  # rebuild under the blocked names
-    table = sink.executors
-    assert set(table) == {"trace", "generic"}
 
 
-def test_build_egraph_accepts_explicit_source():
-    import torch
-    import torch.nn as nn
-    from mlopt_torch.adapters import TorchSource
-    from mlopt_torch.regime import build_egraph
-
-    m = nn.Linear(4, 4).eval()
-    x = torch.randn(2, 4)
-    eg, _root, ir, _src, _stats = build_egraph(
-        m, x, source=TorchSource(), rules=[], xc=False
-    )
-    assert eg is not None and ir is not None
 
 
-def test_torch_builder_requires_ir():
-    from mlopt_orchestrator.autotune import AutotuneContext, CandidateUnavailableError
-
-
-    from mlopt_torch.autotune import TORCH_BUILDERS
-
-    ctx = AutotuneContext(
-        model=None,
-        example_input=None,
-        ir=None,
-        term=None,
-        param_values={},
-        sink=None,
-        delivered=None,
-        lowering="generic",
-    )
-    for name in ("torch_compile", "torch_compile_generic"):
-        with pytest.raises(CandidateUnavailableError):
-            TORCH_BUILDERS[name](ctx)
 
 
 def test_runner_candidate_requires_ir():
@@ -768,38 +701,5 @@ def test_lower_extracted_empty_executor_table():
 # ---------------------------------------------------------------------------
 
 
-def test_torch_backend_value():
-    from mlopt_torch.backend import TorchBackend
-
-    b = TorchBackend()
-    assert isinstance(b, Backend)
-    from mlopt_torch.adapters import TorchSink, TorchSource
-
-    assert isinstance(b.source, TorchSource)
-    assert isinstance(b.sink, TorchSink)
-    with pytest.raises(FrozenInstanceError):
-        b.meter = None  # type: ignore[misc]
 
 
-def test_torch_backend_optimizes_end_to_end():
-    import torch
-    import torch.nn as nn
-    from mlopt_torch.backend import TorchBackend
-
-    torch.manual_seed(0)
-
-    class M(nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.w = nn.Linear(8, 8)
-
-        def forward(self, x):
-            return torch.relu(self.w(x))
-
-    m = M()
-    x = torch.randn(4, 8)
-    lr = Optimizer(backend=TorchBackend()).optimize(
-        m, x, max_iterations=2, verbose=False
-    )
-    with torch.no_grad():
-        assert torch.allclose(lr.module(x), m(x), atol=1e-5)

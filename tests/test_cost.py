@@ -159,25 +159,6 @@ def test_param_bytes_dedups_shared_names():
     assert param_bytes_cost(t2) == 64 * 64
 
 
-def test_param_bytes_source_tensors():
-    """source_tensors is authoritative for numel; TensorType is fallback."""
-    import torch
-
-    x = Var("x", TensorType((4, 8)))
-    W = Param(
-        "W", TensorType((None, None))
-    )  # shape unknown at type level
-    t = Op.make("linear", x, W)
-    src = {"W": torch.zeros(8, 16)}
-    assert param_bytes_cost(t, src) == 8 * 16
-    # names absent from source_tensors fall back to the TensorType
-    U = Param("U", TensorType((3, 5)))
-    t2 = Op.make(
-        "add", Op.make("linear", x, W), Op.make("linear", x, U)
-    )
-    assert param_bytes_cost(t2, src) == 8 * 16 + 3 * 5
-    # the bound-closure form prices identically
-    assert param_bytes_cost_for(src)(t2) == 8 * 16 + 3 * 5
 
 
 def test_param_bytes_factorised_cheaper():

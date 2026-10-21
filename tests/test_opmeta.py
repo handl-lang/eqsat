@@ -105,81 +105,10 @@ def test_generator_view_is_a_relayout_subset():
     assert om.VIEWISH_OPS <= om.RELAYOUT_OPS
 
 
-def test_view_sets_agree_across_modules():
-    """``pipeline._VIEW_OPS`` and ``signature._VIEW_OPS`` are the same
-    *source*, and the generator's alphabet is a subset of it — the
-    measured inconsistency the registry removes."""
-    from mlopt_discovery import pipeline as pl
-    from mlopt_orchestrator.morphisms import signature as sig
-
-    assert set(pl._VIEW_OPS) <= set(sig._VIEW_OPS)
-    assert set(pl._VIEW_OPS) == set(om.GENERATOR_VIEW_OPS)
-    assert set(sig._VIEW_OPS) == set(om.RELAYOUT_OPS)
 
 
-def test_consumers_read_the_registry_object():
-    """Each consumer set *is* the registry projection — identity, not
-    a copy, so a twin cannot drift."""
-    from mlopt_core import typing as ty
-    from mlopt_core.cost import basic as cost_basic
-    from mlopt_core.laws import layout
-    from mlopt_discovery import oracle as orc
-    from mlopt_discovery import pipeline as pl
-    from mlopt_orchestrator.morphisms import signature as sig
-
-    assert cost_basic._VIEW_OPS is om.COST_VIEW_OPS
-    assert ty._COMMUTATIVE_BROADCAST is om.COMMUTATIVE_OPS
-    assert sig._VIEW_OPS is om.RELAYOUT_OPS
-    assert sig._POINTWISE_OPS is om.POINTWISE_OPS
-    assert sig._ACT_OPS is om.ACTIVATION_OPS
-    assert sig._MUT_OPS is om.WRITE_OPS
-    assert sig._TABLE_OPS is om.TABLE_OPS
-    assert orc._VIEWISH is om.VIEWISH_OPS
-    assert orc._REDUCTION_DIM_OPS is om.REDUCE_DIM_OPS
-    assert set(layout._POINTWISE_UNARY) == set(om.POINTWISE_UNARY_OPS)
-    assert set(layout._POINTWISE_BINARY) == set(om.POINTWISE_BINARY_OPS)
-    assert set(pl._POINTWISE) == set(om.POINTWISE_BINARY_OPS)
 
 
-def test_fold_alphabet_is_single_sourced():
-    """The lowerer's fold gate, the cost fold predicate and the
-    extraction param-only discount all read ``FOLD_OPS`` — the one
-    table — so a subtree the lowering folds is exactly the subtree
-    the cost model prices at zero marginal.  The conv+BN weight-fold
-    drift (``rsqrt`` folded at lowering but absent from the cost
-    side's 13-op subset) is what this pins."""
-    from mlopt_core.cost import params as cost_params
-    from mlopt_core.egraph import extract as ex
-    from mlopt_torch import torch_bridge as tb
-
-    assert ex._FOLDABLE_OPS is om.FOLD_OPS
-    assert tb.FOLD_OPS is om.FOLD_OPS
-    # matmul/concat keep their tighter real-operand rule at the
-    # predicate; the shallow-eval residue is the rest of the set.
-    assert cost_params._FOLD_EVAL_OPS | {"matmul", "concat"} == (
-        om.FOLD_OPS
-    )
-    # The declined slice/extraction family stays runtime.
-    assert not (
-        om.FOLD_OPS
-        & {
-            "select",
-            "index_select",
-            "slice",
-            "narrow",
-            "unbind",
-            "getitem",
-            "tensor_split",
-            "expand",
-            "broadcast_to",
-            "repeat",
-            "expand_as",
-            "unfold",
-            "stack",
-            "index",
-            "gather",
-        }
-    )
 
 
 def test_defining_property_arities_hold():
@@ -210,19 +139,6 @@ def test_commutative_ops_are_broadcast_symmetric():
 # ---------------------------------------------------------------------------
 
 
-def test_aten_alias_map_mints_only_registered_ops():
-    """Every IR op the exporter can mint has registry metadata.
-
-    The alias map legitimately lives in the adapter (core is
-    torch-free); this is the check that keeps it honest.
-    """
-    from mlopt_torch.torch_bridge import (
-        _ATEN_TO_IR,
-        _IR_TO_TORCH_EXTRA,
-    )
-
-    merged = {**_ATEN_TO_IR, **_IR_TO_TORCH_EXTRA}
-    assert om.validate_aten_map(merged) == []
 
 
 def test_validate_aten_map_reports_offenders():
