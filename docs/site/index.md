@@ -41,7 +41,10 @@ uv sync --group dev
   that is the claim.
 - [The ports](./explanation/ports) — `Source`/`Sink`/`Engine`: how
   backends plug into a substrate that never imports them.
-- [The frozen API slice](./reference/frozen-api) — the substrate rows of
+- Reference: [the e-graph](./reference/egraph) ·
+  [the cost algebra](./reference/cost) ·
+  [the ports](./reference/ports) ·
+  [the frozen API slice](./reference/frozen-api) — the substrate rows of
   the phase-1 contract.
 - The whole-system account stays with graphopt:
   [how mlopt works](/graphopt/explanation/mechanism).

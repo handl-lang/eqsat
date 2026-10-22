@@ -1,5 +1,5 @@
 ::: warning Vendored slice — do not edit here
-Synced from `graphopt:docs/public_api.md` @ `fb00089` — the phase-1
+Synced from `graphopt:docs/public_api.md` @ `ed89ead` — the phase-1
 frozen manifest (`API_VERSION = "0.1.0"`). This page is the **eqsat
 slice**: the substrate rows of the contract, landed at the plan-0032
 phase-4 split. The manifest upstream carries all three slices; the
