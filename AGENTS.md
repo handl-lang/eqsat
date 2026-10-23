@@ -20,7 +20,7 @@ downstream `uv sync`, so the frozen surface in
   `pipeline` later; name kept for now.
 - `packages/mlopt-native` — the optional Rust engine behind
   `engine=` (maturin/PyO3; excluded from the uv workspace).
-- `tests/` — the substrate suite (the 39 files whose imports stay
+- `tests/` — the substrate suite (121 test files whose imports stay
   inside the substrate + hypothesis; domain-bound test functions were
   carved back into `graphopt:tests/test_substrate_domain_edges.py`).
   `tests/test_ported_<stem>.py` are the substrate-pure functions
