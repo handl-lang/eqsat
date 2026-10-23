@@ -25,12 +25,15 @@ from mlopt_core.laws.provenance import (
 
 
 def test_prior_art_count():
-    # Scoped at ~50-150 by design; 187 encoded (where_same /
+    # Scoped at ~50-150 by design; 189 encoded (where_same /
     # logical_not_inv dropped as honest dtype misses — see the
     # "Dropped" note in priorart.py; +2 for the instance_norm /
     # group_norm definitional expands promoted from graphopt's
-    # fusion-schema premise closures).
-    assert len(PRIOR_ART_RULES) == 187
+    # fusion-schema premise closures; +2 for the review-queue
+    # demotions — softsign_expand (the composite-free kernel
+    # denotation) and mul_unsq_rev (XLA's broadcast-sink
+    # direction of the shipped mul_unsq_nat)).
+    assert len(PRIOR_ART_RULES) == 189
 
 
 def test_prior_art_names_unique():

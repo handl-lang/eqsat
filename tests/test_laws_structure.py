@@ -219,13 +219,16 @@ def test_laws_exports_every_rewrite():
     # the conv_channel_scale/shift anchor family of the conv+BN fold)
     # + 1 machine-minted verbatim composite (conv_bn_fold — the
     # conv+BN fold, shipped via mlopt_core.laws.minted)
-    # + 187 prior-art bank rules (opt-in PRIOR_ART_RULES — the
+    # + 189 prior-art bank rules (opt-in PRIOR_ART_RULES — the
     # TASO/Inductor-XLA/corpus-family transforms, held out of the
     # default set; where_same / logical_not_inv dropped as honest
     # dtype misses; the instance_norm / group_norm definitional
-    # expands carry the norm-kernel denotations)
+    # expands carry the norm-kernel denotations; softsign_expand
+    # is the composite-free kernel denotation and mul_unsq_rev the
+    # broadcast-sink inverse of the shipped mul_unsq_nat — the two
+    # review-queue demotions)
     # rewrites.
-    assert len(found) == 482
+    assert len(found) == 484
 
 
 def test_all_rules_count_unchanged():

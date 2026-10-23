@@ -1033,6 +1033,65 @@ SLICE_TO_SELECT = R(
 )
 
 
+#: ``unsq(mul(u, v), d) = mul(unsq(u, d), unsq(v, d))`` — the
+#: push-in direction of the two-sided size-1-axis naturality.
+#: This is the broadcast-sink/elementwise commutation the graph
+#: compilers own: XLA's algebraic simplifier
+#: (``TryToSinkBroadcastAfterElementwiseOps`` — the
+#: ``multiply(broadcast a, broadcast b) → broadcast(multiply a b)``
+#: sink) and the TASO-class elementwise×view distributions (the
+#: ``select_*`` pulls above are the index-pick instance).  The
+#: shipped ``mul_unsq_nat`` carries the pull direction; this rule
+#: is the inverse spelling the derivable gate keeps as premise.
+#: In this IR's implicit-broadcast semantics the equation is
+#: conditional — the same ``flat-map-unsq`` region the shipped law
+#: was sweep-measured exact on (equal ranks always qualify;
+#: unequal ranks only when the insert lands in the pad).
+#:
+#: The rev direction needs one clause the pull gets for free:
+#: ``UD`` literal-in-range for EACH operand's ``unsq``.  The pull's
+#: ill-typed LHS can never be an e-graph member; here the LHS
+#: ``unsq(mul(u,v), d)`` is well-typed whenever ``d`` fits the
+#: *product* rank — e.g. ``u=(3,), v=(2,3), d=2`` — while the
+#: minted ``unsq(u, 2)`` is out of range for ``u`` (the prior-art
+#: verify sweep's rhs-err site).  ``flat-map-unsq`` normalizes
+#: ``UD mod (rank+1)`` and never sees the literal-range miss, so
+#: the four ``attr-cmp`` clauses carry it.
+MUL_UNSQ_REV = R(
+    "mul_unsq_rev",
+    Op.make("unsqueeze", Op.make("mul", "u", "v"), dim="UD"),
+    Op.make(
+        "mul",
+        Op.make("unsqueeze", "u", dim="UD"),
+        Op.make("unsqueeze", "v", dim="UD"),
+    ),
+    law="unsq(u·v, d) = unsq(u, d)·unsq(v, d) — the size-1-axis "
+    "insert distributes over elementwise mul: XLA's "
+    "broadcast-sink direction, guarded to the flat-map-unsq "
+    "region AND UD literal-in-range for both operand unsqs "
+    "(the implicit-broadcast soundness envelope).",
+    cond=(
+        "and",
+        ("flat-map-unsq", "u", "UD", "v", ("unsq-out", "v", "UD")),
+        (
+            "attr-cmp",
+            "UD",
+            ">=",
+            ("neg", ("add", ("len", ("shape", "u")), 1)),
+        ),
+        ("attr-cmp", "UD", "<=", ("len", ("shape", "u"))),
+        (
+            "attr-cmp",
+            "UD",
+            ">=",
+            ("neg", ("add", ("len", ("shape", "v")), 1)),
+        ),
+        ("attr-cmp", "UD", "<=", ("len", ("shape", "v"))),
+    ),
+    tags=_PA_CAT,
+)
+
+
 # ---------------------------------------------------------------------------
 #  §2 — Inductor/XLA: no-op elimination
 # ---------------------------------------------------------------------------
@@ -1768,6 +1827,25 @@ LEAKY_RELU_EXPAND = R(
     Op.make("maximum", "x", Op.make("mul", "x", Const(0.01))),
     law="leaky_relu(x) = max(x, 0.01x) at the default slope 0.01.",
     tags=_PA_EXP,
+)
+
+#: ``softsign`` is composite-free in ATen — no registered
+#: decomposition (unlike sigmoid/tanh): the fused kernel computes
+#: the manual spelling ``x/(|x|+1)`` directly.  That makes this
+#: expand a kernel denotation, the same class as
+#: ``instance_norm_expand`` / ``group_norm_expand`` — hence
+#: ``_PA_FUS`` (not ``_PA_EXP`` like its pointwise-decomp
+#: neighbours): the tag keeps it in the novelty sieve's
+#: FUSION/CATEGORICAL floor so a minted ``softsign_fold`` demotes
+#: to ``known`` instead of queueing for review.
+SOFTSIGN_EXPAND = R(
+    "softsign_expand",
+    Op.make("softsign", "x"),
+    Op.make("div", "x", Op.make("add", Op.make("abs", "x"), Const(1))),
+    law="softsign(x) = x/(|x|+1) — the bounded rational map's "
+    "definition, expanded: the fused ATen kernel's denotation "
+    "(composite-free — the kernel IS the manual spelling).",
+    tags=_PA_FUS,
 )
 
 RELU_FOLD_MAX_R = R(
@@ -2820,6 +2898,7 @@ PRIOR_ART_RULES: list[Rewrite] = [
     UNBIND_SELECT,
     SELECT_TO_SLICE,
     SLICE_TO_SELECT,
+    MUL_UNSQ_REV,
     # -- no-op elimination
     CONTIGUOUS_ID,
     CLONE_ID,
@@ -2879,6 +2958,7 @@ PRIOR_ART_RULES: list[Rewrite] = [
     SOFTPLUS_FOLD,
     ELU_EXPAND,
     LEAKY_RELU_EXPAND,
+    SOFTSIGN_EXPAND,
     RELU_FOLD_MAX_R,
     RELU_FOLD_MAX_L,
     RELU_FOLD_CLAMP,
