@@ -21,8 +21,10 @@ sections appear:
    rotate-half ↔ Llama cat-pair rotary equivalence, the quant
    STE value idiom, per-channel (de)quant scale migration into a
    weight, the AdaLN-Zero ``1+s`` idiom, eval-mode dropout strips,
-   the one-hot → embedding gather fold, and the layer_norm
-   decomposition.
+   the one-hot → embedding gather fold, the layer_norm
+   decomposition, and the ``instance_norm``/``group_norm``
+   definitional expands (the fused norm ops' manual spellings —
+   oneDNN's fused-norm kernels, Inductor's group_norm fusion).
 
 What is deliberately NOT here — the honest miss list (see
 ``docs/results_prior_art_bank.md`` for the per-law account):
@@ -35,8 +37,10 @@ What is deliberately NOT here — the honest miss list (see
   unsound at ``x = 0`` (``xlogy`` pins 0, the product NaNs).
 * ``view``-headed laws (no eval binding), ``max``/``min`` dim-forms
   (tuple-valued — a different typing class), ``narrow`` (binding is
-  broken upstream), ``group_norm``/``conv`` kernel-shape merges that
-  need a rank-changing pad the pattern language cannot mint.
+  broken upstream), ``conv`` kernel-shape merges that need a
+  rank-changing pad the pattern language cannot mint (the
+  ``group_norm`` decomp *is* carried — its reshape target is
+  attr-derived off the bound leaves, not pattern-minted).
 
 Every rule is tagged :data:`mlopt_core.laws.tags.PRIOR_ART` and held
 out of ``ALL_RULES``/``DEFAULT`` — the bank composes through the
@@ -51,6 +55,7 @@ classify ``"human"`` by registry default.
 # ruff: noqa: RUF001 RUF002 RUF003 -- law strings use math notation
 # (σ, ⊙, ↔, ŝ) deliberately; ASCII would misstate it.
 
+import math
 from typing import Any
 
 from mlopt_core.egraph import Rewrite
@@ -2581,6 +2586,206 @@ LAYER_NORM_EXPAND_AFFINE = R(
 
 
 # ---------------------------------------------------------------------------
+#  Norm-kernel denotations — the fused norm ops' manual spellings
+#
+#  The expand direction is the honest prior-art statement: the fold
+#  (manual chain -> fused op) is each ``fold:`` candidate's own
+#  alpha-sibling in the novelty sieve's premise cut, while the
+#  denotation is the transform the kernel libraries already own —
+#  oneDNN's ``_MklFusedInstanceNorm`` and Inductor's group_norm
+#  fusion.  ``FUSION``-tagged like the kernel bank's fused-kernel
+#  denotations (``mlopt_kernel.priorart``): the tag is what the
+#  sieve's ``known_bank`` floor admits, so a minted "fold to the
+#  fused norm" re-derives through the bridge and classifies
+#  ``known`` rather than machine-original.  Promoted from the
+#  graphopt fusion-schema premise closures (``pipeline._INORM_EXPAND``
+#  / ``_GNORM_EXPAND``), whose declared premises they remain.
+# ---------------------------------------------------------------------------
+
+
+def _check_norm_affine(bound: dict) -> bool:
+    """Require the affine pair rank-1 per-channel — the fused ops' only form.
+
+    Guards the expand bridges so the definitional spelling mints
+    only where ``W``/``B`` are ``(C,)`` vectors over ``U``'s channel
+    axis (and ``U`` has a channel axis at all).
+    """
+    us = _shape_of(bound.get("U"))
+    ws = _shape_of(bound.get("W"))
+    bs = _shape_of(bound.get("B"))
+    return (
+        isinstance(us, tuple)
+        and len(us) >= 3
+        and isinstance(us[1], int)
+        and ws == bs == (us[1],)
+    )
+
+
+def _derive_inorm_expand(bound: dict) -> dict | None:
+    """Instance-norm's manual spelling, computed off the bound leaves.
+
+    ``MD`` reduces every axis past ``(n, c)`` — the per-sample-channel
+    statistics; ``K1``/``K2`` are the two ``unsqueeze`` re-broadcasts;
+    ``WS``/``BS`` spell the ``(1, C, 1, 1, …)`` affine reshapes;
+    ``EPS`` mints the ``Const`` leaf the fused op carries as a float
+    attr.
+    """
+    us = _shape_of(bound.get("U"))
+    eps = _aval(bound, "EP")
+    if not (
+        isinstance(us, tuple)
+        and len(us) >= 3
+        and isinstance(us[1], int)
+        and isinstance(eps, (int, float))
+    ):
+        return None
+    pad = (1,) * (len(us) - 2)
+    return {
+        "EPS": Const(float(eps)),
+        "$attr:MD": tuple(range(2, len(us))),
+        "$attr:K1": -1,
+        "$attr:K2": -1,
+        "$attr:WS": (1, us[1], *pad),
+        "$attr:BS": (1, us[1], *pad),
+    }
+
+
+def _derive_gnorm_expand(bound: dict) -> dict | None:
+    """Group-norm's manual spelling — the reshape-to-``(n, G, ·)`` fold.
+
+    ``US`` is the group-view target; the reduce is its trailing axis
+    (``MD=(-1,)``, ``MK=True``); ``RS`` restores the input shape and
+    ``WS``/``BS`` spell the affine broadcast.  A channel block not
+    divisible by the group count has no group fold — vetoed, never
+    approximated.
+    """
+    us = _shape_of(bound.get("U"))
+    g, eps = _aval(bound, "G"), _aval(bound, "EP")
+    if not (
+        isinstance(us, tuple)
+        and len(us) >= 3
+        and all(isinstance(d, int) for d in us)
+        and isinstance(g, int)
+        and isinstance(eps, (int, float))
+    ):
+        return None
+    n, c, rest = us[0], us[1], us[2:]
+    inner = c * math.prod(rest)
+    if g <= 0 or inner % g:
+        return None
+    pad = (1,) * len(rest)
+    return {
+        "EPS": Const(float(eps)),
+        "$attr:US": (n, g, inner // g),
+        "$attr:MD": (-1,),
+        "$attr:MK": True,
+        "$attr:RS": us,
+        "$attr:WS": (1, c, *pad),
+        "$attr:BS": (1, c, *pad),
+    }
+
+
+def _inorm_manual() -> Op:
+    """``(u−μ)·rsqrt(σ²+ε)·w+b`` — the manual instance-norm chain.
+
+    Per-(n, c) statistics broadcast by ``unsqueeze`` rather than
+    ``keepdim`` (``dim=MD`` shared between the mean/var branches, the
+    broadcast dims ``K1``/``K2`` likewise), ``σ² = E[(u−μ)²]``, the
+    channel affine spelled ``reshape``-broadcast — the
+    ``InstanceNormBroadcast`` export verbatim.
+    """
+    d = Op.make(
+        "sub",
+        "U",
+        Op.make(
+            "unsqueeze",
+            Op.make(
+                "unsqueeze", Op.make("mean", "U", dim="MD"), dim="K1"
+            ),
+            dim="K2",
+        ),
+    )
+    v = Op.make(
+        "unsqueeze",
+        Op.make(
+            "unsqueeze",
+            Op.make("mean", Op.make("mul", d, d), dim="MD"),
+            dim="K1",
+        ),
+        dim="K2",
+    )
+    return Op.make(
+        "add",
+        Op.make(
+            "mul",
+            Op.make(
+                "mul",
+                d,
+                Op.make("rsqrt", Op.make("add", v, "EPS")),
+            ),
+            Op.make("reshape", "W", shape="WS"),
+        ),
+        Op.make("reshape", "B", shape="BS"),
+    )
+
+
+def _gnorm_manual() -> Op:
+    """``reshape((u'−μ)·rsqrt(E[(u'−μ)²]+ε))·w+b`` — manual group-norm.
+
+    The group fold: ``u' = reshape(u, (n, G, ·))`` so the per-(n, g)
+    reduce is a plain trailing ``mean`` — the ``ManualGroupNorm``
+    export's spelling.
+    """
+    ru = Op.make("reshape", "U", shape="US")
+    d = Op.make("sub", ru, Op.make("mean", ru, dim="MD", keepdim="MK"))
+    v = Op.make("mean", Op.make("mul", d, d), dim="MD", keepdim="MK")
+    return Op.make(
+        "add",
+        Op.make(
+            "mul",
+            Op.make(
+                "reshape",
+                Op.make(
+                    "mul", d, Op.make("rsqrt", Op.make("add", v, "EPS"))
+                ),
+                shape="RS",
+            ),
+            Op.make("reshape", "W", shape="WS"),
+        ),
+        Op.make("reshape", "B", shape="BS"),
+    )
+
+
+INSTANCE_NORM_EXPAND = R(
+    "instance_norm_expand",
+    Op.make("instance_norm", "U", "W", "B", eps="EP"),
+    _inorm_manual(),
+    law="instance_norm(u, w, b, eps) IS (u−μ)·rsqrt(σ²+ε)·w+b — "
+    "per-(n,c) statistics broadcast by unsqueeze, σ²=E[(u−μ)²], "
+    "the affine spelled reshape-broadcast (oneDNN's "
+    "``_MklFusedInstanceNorm`` denotation — the manual "
+    "InstanceNormBroadcast chain the fused kernel computes).",
+    check=_check_norm_affine,
+    derive=_derive_inorm_expand,
+    tags=_PA_FUS,
+)
+
+GROUP_NORM_EXPAND = R(
+    "group_norm_expand",
+    Op.make("group_norm", "U", "W", "B", num_groups="G", eps="EP"),
+    _gnorm_manual(),
+    law="group_norm(u, w, b, G, eps) IS the reshape-to-(n,G,·) "
+    "manual chain — u'=reshape(u,(n,G,·)), normalize the trailing "
+    "axis, reshape back, affine — Inductor's group_norm "
+    "decomposition (the ManualGroupNorm spelling the fused kernel "
+    "denotes; a channel block indivisible by G vetoes the derive).",
+    check=_check_norm_affine,
+    derive=_derive_gnorm_expand,
+    tags=_PA_FUS,
+)
+
+
+# ---------------------------------------------------------------------------
 #  The bank
 # ---------------------------------------------------------------------------
 
@@ -2745,4 +2950,6 @@ PRIOR_ART_RULES: list[Rewrite] = [
     LERP_EXPAND,
     LAYER_NORM_EXPAND_PLAIN,
     LAYER_NORM_EXPAND_AFFINE,
+    INSTANCE_NORM_EXPAND,
+    GROUP_NORM_EXPAND,
 ]
