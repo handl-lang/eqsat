@@ -62,6 +62,25 @@ supply the semantics, like every op already works.  The op
 *declaration* (:func:`~mlopt_core.ir.op_def`) is torch-free and DOES
 travel: materializing the folds registers the ``synop_*`` generators,
 making them first-class IR citizens wherever the laws are.
+
+The third embedded family — :data:`_PRIM2_RECORDS` — is the same
+channel one loop deeper: the ``--prim-bootstrap`` mint's 2 admitted
+``prim:synop2_*`` folds (graphopt ``bench/drivers/overnight.py
+--prim-bootstrap``; ``docs/reports/results_overnight_prim_bootstrap.json``).
+Each fold's LHS is a *synop-carrying skeleton* — a manual shape
+spelled through a shipped ``synop_*`` op — and the record therefore
+embeds one more verbatim ``law_to_data`` row the depth-1 family does
+not need: the definitional ``synop2_*.expand`` premise itself.  For a
+depth-1 fold the premise is just ``fold.rhs -> fold.lhs``; for a
+depth-2 fold the mint's premise is ``synop2_*(args) -> xpat`` where
+``xpat`` is the skeleton *fully re-expanded to manual ops* — the
+anchored cert derivation then completes ``rhs -> lhs`` in two steps:
+the premise unfolds the call to its manual denotation and the shipped
+depth-1 ``prim:synop_*`` fold re-folds the embedded shape to the
+skeleton.  The minted ``alpha``/``alpha_fold`` pair records both
+faces; the two minted folds share one expanded ``alpha`` (they are
+two distinct placements of ``synop_bb8c54c201`` in the same add/mul
+tree — different fold paths, hence different laws).
 """
 
 from __future__ import annotations
@@ -77,9 +96,13 @@ from mlopt_core.laws.serialize import object_from_data
 from mlopt_core.rulecache import _dec_binding
 
 __all__ = [
+    "SYNOP2_SHIPPED",
     "SYNOP_SHIPPED",
     "expand_name",
     "materialize",
+    "prim2_folds",
+    "prim2_premises",
+    "prim2_records",
     "prim_fold",
     "prim_folds",
     "prim_premises",
@@ -7615,8 +7638,1549 @@ _PRIM_RECORDS: dict[str, Any] = json.loads(
 }"""
 )
 
-#: The minted op names the prim family ships (``synop_<sha256[:10]>``).
-SYNOP_SHIPPED: frozenset[str] = frozenset(_PRIM_RECORDS)
+#: The ``--prim-bootstrap`` mint's depth-2 records — the 2 admitted
+#: ``prim:synop2_*`` folds, verbatim (graphopt
+#: ``docs/reports/results_overnight_prim_bootstrap.json``'s
+#: ``prim_ops`` rows plus their ``law_to_data`` rows).  Same shape as
+#: :data:`_PRIM_RECORDS` plus three depth-2 fields: ``alpha_fold``
+#: (the synop-carrying skeleton's alpha-normal key — the fold LHS's
+#: spelling, distinct from ``alpha`` which is the fully-expanded
+#: manual denotation), ``embeds_shipped`` (the shipped depth-1 ops the
+#: skeleton composes over) / ``embeds`` (the pool's loop-closure
+#: provenance), and ``expand`` — the definitional premise's own
+#: record, embedded because ``expand.rhs`` is the *expanded* manual
+#: denotation, not the fold's LHS skeleton.
+_PRIM2_RECORDS: dict[str, Any] = json.loads(
+    r"""{
+ "synop2_35bbd03301": {
+  "alpha": "(add (mul 'v0', (add (mul 'v1', (add (mul 'v2', (add (mul 'v3', 'v4'), (mul 'v5', 'v6'))), (mul 'v7', 'v8'))), (mul 'v9', 'v10'))), (mul 'v11', 'v12'))",
+  "alpha_fold": "(add (mul 'v0', (add (mul 'v1', (synop_bb8c54c201 'v2', (add (mul 'v3', 'v4'), (mul 'v5', 'v6')), 'v7', 'v8')), (mul 'v9', 'v10'))), (mul 'v11', 'v12'))",
+  "embeds": [
+   "synop_077a84bd18"
+  ],
+  "embeds_shipped": [
+   "synop_bb8c54c201"
+  ],
+  "equal_sites": 16,
+  "expand": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "synop2_35bbd03301 unfolds to its mined denotation \u2014 the definitional premise the cert leg anchors on",
+   "lhs": {
+    "args": [
+     {
+      "mvar": "v485"
+     },
+     {
+      "mvar": "v834"
+     },
+     {
+      "mvar": "v1066"
+     },
+     {
+      "mvar": "v4809"
+     },
+     {
+      "mvar": "v4810"
+     },
+     {
+      "mvar": "v4873"
+     },
+     {
+      "mvar": "v4874"
+     },
+     {
+      "mvar": "v1068"
+     },
+     {
+      "mvar": "v1069"
+     },
+     {
+      "mvar": "v886"
+     },
+     {
+      "mvar": "v887"
+     },
+     {
+      "mvar": "v477"
+     },
+     {
+      "mvar": "v478"
+     }
+    ],
+    "attrs": {},
+    "op": "synop2_35bbd03301"
+   },
+   "missing_hooks": [],
+   "name": "synop2_35bbd03301.expand",
+   "rhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v485"
+       },
+       {
+        "args": [
+         {
+          "args": [
+           {
+            "mvar": "v834"
+           },
+           {
+            "args": [
+             {
+              "args": [
+               {
+                "mvar": "v1066"
+               },
+               {
+                "args": [
+                 {
+                  "args": [
+                   {
+                    "mvar": "v4809"
+                   },
+                   {
+                    "mvar": "v4810"
+                   }
+                  ],
+                  "attrs": {},
+                  "op": "mul"
+                 },
+                 {
+                  "args": [
+                   {
+                    "mvar": "v4873"
+                   },
+                   {
+                    "mvar": "v4874"
+                   }
+                  ],
+                  "attrs": {},
+                  "op": "mul"
+                 }
+                ],
+                "attrs": {},
+                "op": "add"
+               }
+              ],
+              "attrs": {},
+              "op": "mul"
+             },
+             {
+              "args": [
+               {
+                "mvar": "v1068"
+               },
+               {
+                "mvar": "v1069"
+               }
+              ],
+              "attrs": {},
+              "op": "mul"
+             }
+            ],
+            "attrs": {},
+            "op": "add"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         },
+         {
+          "args": [
+           {
+            "mvar": "v886"
+           },
+           {
+            "mvar": "v887"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "args": [
+       {
+        "mvar": "v477"
+       },
+       {
+        "mvar": "v478"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v485"
+       },
+       {
+        "args": [
+         {
+          "args": [
+           {
+            "mvar": "v834"
+           },
+           {
+            "args": [
+             {
+              "mvar": "v1066"
+             },
+             {
+              "args": [
+               {
+                "args": [
+                 {
+                  "mvar": "v4809"
+                 },
+                 {
+                  "mvar": "v4810"
+                 }
+                ],
+                "attrs": {},
+                "op": "mul"
+               },
+               {
+                "args": [
+                 {
+                  "mvar": "v4873"
+                 },
+                 {
+                  "mvar": "v4874"
+                 }
+                ],
+                "attrs": {},
+                "op": "mul"
+               }
+              ],
+              "attrs": {},
+              "op": "add"
+             },
+             {
+              "mvar": "v1068"
+             },
+             {
+              "mvar": "v1069"
+             }
+            ],
+            "attrs": {},
+            "op": "synop_bb8c54c201"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         },
+         {
+          "args": [
+           {
+            "mvar": "v886"
+           },
+           {
+            "mvar": "v887"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "args": [
+       {
+        "mvar": "v477"
+       },
+       {
+        "mvar": "v478"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop2_35bbd03301",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v485"
+     },
+     {
+      "mvar": "v834"
+     },
+     {
+      "mvar": "v1066"
+     },
+     {
+      "mvar": "v4809"
+     },
+     {
+      "mvar": "v4810"
+     },
+     {
+      "mvar": "v4873"
+     },
+     {
+      "mvar": "v4874"
+     },
+     {
+      "mvar": "v1068"
+     },
+     {
+      "mvar": "v1069"
+     },
+     {
+      "mvar": "v886"
+     },
+     {
+      "mvar": "v887"
+     },
+     {
+      "mvar": "v477"
+     },
+     {
+      "mvar": "v478"
+     }
+    ],
+    "attrs": {},
+    "op": "synop2_35bbd03301"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v485",
+     "v834",
+     "v1066",
+     "v4809",
+     "v4810",
+     "v4873",
+     "v4874",
+     "v1068",
+     "v1069",
+     "v886",
+     "v887",
+     "v477",
+     "v478"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "add",
+      [
+       "mul",
+       "v485",
+       [
+        "add",
+        [
+         "mul",
+         "v834",
+         [
+          "add",
+          [
+           "mul",
+           "v1066",
+           [
+            "add",
+            [
+             "mul",
+             "v4809",
+             "v4810"
+            ],
+            [
+             "mul",
+             "v4873",
+             "v4874"
+            ]
+           ]
+          ],
+          [
+           "mul",
+           "v1068",
+           "v1069"
+          ]
+         ]
+        ],
+        [
+         "mul",
+         "v886",
+         "v887"
+        ]
+       ]
+      ],
+      [
+       "mul",
+       "v477",
+       "v478"
+      ]
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "add",
+     [
+      "mul",
+      "v485",
+      [
+       "add",
+       [
+        "mul",
+        "v834",
+        [
+         "add",
+         [
+          "mul",
+          "v1066",
+          [
+           "add",
+           [
+            "mul",
+            "v4809",
+            "v4810"
+           ],
+           [
+            "mul",
+            "v4873",
+            "v4874"
+           ]
+          ]
+         ],
+         [
+          "mul",
+          "v1068",
+          "v1069"
+         ]
+        ]
+       ],
+       [
+        "mul",
+        "v886",
+        "v887"
+       ]
+      ]
+     ],
+     [
+      "mul",
+      "v477",
+      "v478"
+     ]
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 2048,
+     "domain": [
+      {
+       "v1066": [
+        2,
+        16,
+        4
+       ],
+       "v1068": [
+        2,
+        16,
+        1
+       ],
+       "v1069": [
+        2,
+        1,
+        4
+       ],
+       "v477": [
+        2,
+        16,
+        1
+       ],
+       "v478": [
+        2,
+        1,
+        4
+       ],
+       "v4809": [
+        2,
+        16,
+        4
+       ],
+       "v4810": [
+        2,
+        16,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ],
+       "v4873": [
+        2,
+        16,
+        1
+       ],
+       "v4874": [
+        2,
+        1,
+        4
+       ],
+       "v834": [
+        2,
+        16,
+        4
+       ],
+       "v886": [
+        2,
+        16,
+        1
+       ],
+       "v887": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v1066": [
+        2,
+        16,
+        4
+       ],
+       "v1068": [
+        2,
+        16,
+        1
+       ],
+       "v1069": [
+        2,
+        1,
+        4
+       ],
+       "v477": [
+        2,
+        16,
+        1
+       ],
+       "v478": [
+        2,
+        1,
+        4
+       ],
+       "v4809": [
+        2,
+        16,
+        4
+       ],
+       "v4810": [
+        2,
+        16,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ],
+       "v4873": [
+        2,
+        16,
+        1
+       ],
+       "v4874": [
+        2,
+        1,
+        4
+       ],
+       "v834": [
+        2,
+        16,
+        4
+       ],
+       "v886": [
+        2,
+        16,
+        1
+       ],
+       "v887": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v1066": [
+        2,
+        16,
+        4
+       ],
+       "v1068": [
+        2,
+        16,
+        1
+       ],
+       "v1069": [
+        2,
+        1,
+        4
+       ],
+       "v477": [
+        2,
+        16,
+        1
+       ],
+       "v478": [
+        2,
+        1,
+        4
+       ],
+       "v4809": [
+        2,
+        16,
+        4
+       ],
+       "v4810": [
+        2,
+        16,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ],
+       "v4873": [
+        2,
+        16,
+        1
+       ],
+       "v4874": [
+        2,
+        1,
+        4
+       ],
+       "v834": [
+        2,
+        16,
+        4
+       ],
+       "v886": [
+        2,
+        16,
+        1
+       ],
+       "v887": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v1066": [
+        2,
+        16,
+        4
+       ],
+       "v1068": [
+        2,
+        16,
+        1
+       ],
+       "v1069": [
+        2,
+        1,
+        4
+       ],
+       "v477": [
+        2,
+        16,
+        1
+       ],
+       "v478": [
+        2,
+        1,
+        4
+       ],
+       "v4809": [
+        2,
+        16,
+        4
+       ],
+       "v4810": [
+        2,
+        16,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ],
+       "v4873": [
+        2,
+        16,
+        1
+       ],
+       "v4874": [
+        2,
+        1,
+        4
+       ],
+       "v834": [
+        2,
+        16,
+        4
+       ],
+       "v886": [
+        2,
+        16,
+        1
+       ],
+       "v887": [
+        2,
+        1,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v5",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ },
+ "synop2_d46808a970": {
+  "alpha": "(add (mul 'v0', (add (mul 'v1', (add (mul 'v2', (add (mul 'v3', 'v4'), (mul 'v5', 'v6'))), (mul 'v7', 'v8'))), (mul 'v9', 'v10'))), (mul 'v11', 'v12'))",
+  "alpha_fold": "(add (mul 'v0', (add (mul 'v1', (add (mul 'v2', (synop_bb8c54c201 'v3', 'v4', 'v5', 'v6')), (mul 'v7', 'v8'))), (mul 'v9', 'v10'))), (mul 'v11', 'v12'))",
+  "embeds": [
+   "synop_077a84bd18"
+  ],
+  "embeds_shipped": [
+   "synop_bb8c54c201"
+  ],
+  "equal_sites": 16,
+  "expand": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "synop2_d46808a970 unfolds to its mined denotation \u2014 the definitional premise the cert leg anchors on",
+   "lhs": {
+    "args": [
+     {
+      "mvar": "v485"
+     },
+     {
+      "mvar": "v834"
+     },
+     {
+      "mvar": "v1114"
+     },
+     {
+      "mvar": "v1364"
+     },
+     {
+      "mvar": "v1365"
+     },
+     {
+      "mvar": "v1366"
+     },
+     {
+      "mvar": "v1367"
+     },
+     {
+      "mvar": "v1175"
+     },
+     {
+      "mvar": "v1176"
+     },
+     {
+      "mvar": "v886"
+     },
+     {
+      "mvar": "v887"
+     },
+     {
+      "mvar": "v477"
+     },
+     {
+      "mvar": "v478"
+     }
+    ],
+    "attrs": {},
+    "op": "synop2_d46808a970"
+   },
+   "missing_hooks": [],
+   "name": "synop2_d46808a970.expand",
+   "rhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v485"
+       },
+       {
+        "args": [
+         {
+          "args": [
+           {
+            "mvar": "v834"
+           },
+           {
+            "args": [
+             {
+              "args": [
+               {
+                "mvar": "v1114"
+               },
+               {
+                "args": [
+                 {
+                  "args": [
+                   {
+                    "mvar": "v1364"
+                   },
+                   {
+                    "mvar": "v1365"
+                   }
+                  ],
+                  "attrs": {},
+                  "op": "mul"
+                 },
+                 {
+                  "args": [
+                   {
+                    "mvar": "v1366"
+                   },
+                   {
+                    "mvar": "v1367"
+                   }
+                  ],
+                  "attrs": {},
+                  "op": "mul"
+                 }
+                ],
+                "attrs": {},
+                "op": "add"
+               }
+              ],
+              "attrs": {},
+              "op": "mul"
+             },
+             {
+              "args": [
+               {
+                "mvar": "v1175"
+               },
+               {
+                "mvar": "v1176"
+               }
+              ],
+              "attrs": {},
+              "op": "mul"
+             }
+            ],
+            "attrs": {},
+            "op": "add"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         },
+         {
+          "args": [
+           {
+            "mvar": "v886"
+           },
+           {
+            "mvar": "v887"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "args": [
+       {
+        "mvar": "v477"
+       },
+       {
+        "mvar": "v478"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v485"
+       },
+       {
+        "args": [
+         {
+          "args": [
+           {
+            "mvar": "v834"
+           },
+           {
+            "args": [
+             {
+              "args": [
+               {
+                "mvar": "v1114"
+               },
+               {
+                "args": [
+                 {
+                  "mvar": "v1364"
+                 },
+                 {
+                  "mvar": "v1365"
+                 },
+                 {
+                  "mvar": "v1366"
+                 },
+                 {
+                  "mvar": "v1367"
+                 }
+                ],
+                "attrs": {},
+                "op": "synop_bb8c54c201"
+               }
+              ],
+              "attrs": {},
+              "op": "mul"
+             },
+             {
+              "args": [
+               {
+                "mvar": "v1175"
+               },
+               {
+                "mvar": "v1176"
+               }
+              ],
+              "attrs": {},
+              "op": "mul"
+             }
+            ],
+            "attrs": {},
+            "op": "add"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         },
+         {
+          "args": [
+           {
+            "mvar": "v886"
+           },
+           {
+            "mvar": "v887"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "args": [
+       {
+        "mvar": "v477"
+       },
+       {
+        "mvar": "v478"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop2_d46808a970",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v485"
+     },
+     {
+      "mvar": "v834"
+     },
+     {
+      "mvar": "v1114"
+     },
+     {
+      "mvar": "v1364"
+     },
+     {
+      "mvar": "v1365"
+     },
+     {
+      "mvar": "v1366"
+     },
+     {
+      "mvar": "v1367"
+     },
+     {
+      "mvar": "v1175"
+     },
+     {
+      "mvar": "v1176"
+     },
+     {
+      "mvar": "v886"
+     },
+     {
+      "mvar": "v887"
+     },
+     {
+      "mvar": "v477"
+     },
+     {
+      "mvar": "v478"
+     }
+    ],
+    "attrs": {},
+    "op": "synop2_d46808a970"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v485",
+     "v834",
+     "v1114",
+     "v1364",
+     "v1365",
+     "v1366",
+     "v1367",
+     "v1175",
+     "v1176",
+     "v886",
+     "v887",
+     "v477",
+     "v478"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "add",
+      [
+       "mul",
+       "v485",
+       [
+        "add",
+        [
+         "mul",
+         "v834",
+         [
+          "add",
+          [
+           "mul",
+           "v1114",
+           [
+            "add",
+            [
+             "mul",
+             "v1364",
+             "v1365"
+            ],
+            [
+             "mul",
+             "v1366",
+             "v1367"
+            ]
+           ]
+          ],
+          [
+           "mul",
+           "v1175",
+           "v1176"
+          ]
+         ]
+        ],
+        [
+         "mul",
+         "v886",
+         "v887"
+        ]
+       ]
+      ],
+      [
+       "mul",
+       "v477",
+       "v478"
+      ]
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "add",
+     [
+      "mul",
+      "v485",
+      [
+       "add",
+       [
+        "mul",
+        "v834",
+        [
+         "add",
+         [
+          "mul",
+          "v1114",
+          [
+           "add",
+           [
+            "mul",
+            "v1364",
+            "v1365"
+           ],
+           [
+            "mul",
+            "v1366",
+            "v1367"
+           ]
+          ]
+         ],
+         [
+          "mul",
+          "v1175",
+          "v1176"
+         ]
+        ]
+       ],
+       [
+        "mul",
+        "v886",
+        "v887"
+       ]
+      ]
+     ],
+     [
+      "mul",
+      "v477",
+      "v478"
+     ]
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 2048,
+     "domain": [
+      {
+       "v1114": [
+        2,
+        16,
+        4
+       ],
+       "v1175": [
+        2,
+        16,
+        1
+       ],
+       "v1176": [
+        2,
+        1,
+        4
+       ],
+       "v1364": [
+        2,
+        16,
+        4
+       ],
+       "v1365": [
+        2,
+        16,
+        4
+       ],
+       "v1366": [
+        2,
+        16,
+        1
+       ],
+       "v1367": [
+        2,
+        1,
+        4
+       ],
+       "v477": [
+        2,
+        16,
+        1
+       ],
+       "v478": [
+        2,
+        1,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ],
+       "v834": [
+        2,
+        16,
+        4
+       ],
+       "v886": [
+        2,
+        16,
+        1
+       ],
+       "v887": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v1114": [
+        2,
+        16,
+        4
+       ],
+       "v1175": [
+        2,
+        16,
+        1
+       ],
+       "v1176": [
+        2,
+        1,
+        4
+       ],
+       "v1364": [
+        2,
+        16,
+        4
+       ],
+       "v1365": [
+        2,
+        16,
+        4
+       ],
+       "v1366": [
+        2,
+        16,
+        1
+       ],
+       "v1367": [
+        2,
+        1,
+        4
+       ],
+       "v477": [
+        2,
+        16,
+        1
+       ],
+       "v478": [
+        2,
+        1,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ],
+       "v834": [
+        2,
+        16,
+        4
+       ],
+       "v886": [
+        2,
+        16,
+        1
+       ],
+       "v887": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v1114": [
+        2,
+        16,
+        4
+       ],
+       "v1175": [
+        2,
+        16,
+        1
+       ],
+       "v1176": [
+        2,
+        1,
+        4
+       ],
+       "v1364": [
+        2,
+        16,
+        4
+       ],
+       "v1365": [
+        2,
+        16,
+        4
+       ],
+       "v1366": [
+        2,
+        16,
+        1
+       ],
+       "v1367": [
+        2,
+        1,
+        4
+       ],
+       "v477": [
+        2,
+        16,
+        1
+       ],
+       "v478": [
+        2,
+        1,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ],
+       "v834": [
+        2,
+        16,
+        4
+       ],
+       "v886": [
+        2,
+        16,
+        1
+       ],
+       "v887": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v1114": [
+        2,
+        16,
+        4
+       ],
+       "v1175": [
+        2,
+        16,
+        1
+       ],
+       "v1176": [
+        2,
+        1,
+        4
+       ],
+       "v1364": [
+        2,
+        16,
+        4
+       ],
+       "v1365": [
+        2,
+        16,
+        4
+       ],
+       "v1366": [
+        2,
+        16,
+        1
+       ],
+       "v1367": [
+        2,
+        1,
+        4
+       ],
+       "v477": [
+        2,
+        16,
+        1
+       ],
+       "v478": [
+        2,
+        1,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ],
+       "v834": [
+        2,
+        16,
+        4
+       ],
+       "v886": [
+        2,
+        16,
+        1
+       ],
+       "v887": [
+        2,
+        1,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v5",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ }
+}"""
+)
+
+#: The minted op names the prim family ships — both depths:
+#: ``synop_<sha256[:10]>`` (the zoo-prim mint) and the depth-2
+#: ``synop2_<sha256[:10]>`` (the vocabulary-bootstrap mint).  A
+#: ``synop_*`` op name means "a shipped machine-minted primitive"
+#: wherever this set is consulted — expansion, denotation lookup,
+#: provenance.
+SYNOP_SHIPPED: frozenset[str] = frozenset(_PRIM_RECORDS) | frozenset(
+    _PRIM2_RECORDS
+)
+
+#: The depth-2 subset — the bootstrap mint's ``synop2_*`` ops.
+SYNOP2_SHIPPED: frozenset[str] = frozenset(_PRIM2_RECORDS)
 
 #: Law text for the fold rules — a structural fold collapsing a
 #: consumer pattern into one kernel, same class as ``conv_bn_fold``.
@@ -7646,8 +9210,18 @@ def expand_name(synop: str) -> str:
 
 
 def prim_records() -> dict[str, Any]:
-    """Return the embedded prim records — the frozen mint artifacts."""
-    return _PRIM_RECORDS
+    """Return the embedded prim records — the frozen mint artifacts.
+
+    Both depths, merged: the 21 depth-1 ``synop_*`` records plus the
+    2 depth-2 ``synop2_*`` records (the latter additionally carry
+    ``alpha_fold`` / ``embeds_shipped`` / ``embeds`` / ``expand``).
+    """
+    return {**_PRIM_RECORDS, **_PRIM2_RECORDS}
+
+
+def prim2_records() -> dict[str, Any]:
+    """Return the embedded depth-2 records — the bootstrap mint's."""
+    return _PRIM2_RECORDS
 
 
 _PRIM_MATERIALIZED: dict[str, tuple[Rewrite, Rewrite]] = {}
@@ -7665,15 +9239,43 @@ def prim_fold(synop: str) -> tuple[Rewrite, Rewrite]:
     (the generator entry is torch-free — the *denotation* is the
     domain-side piece).  Interned: the same objects come back on
     every call.
+
+    *synop* resolves across both tables — a ``synop2_*`` name
+    materializes its depth-2 record.  The depth-2 record embeds the
+    definitional premise verbatim (``rec["expand"]``): its RHS is the
+    skeleton *re-expanded to manual ops*, NOT the fold's LHS — the
+    cert leg's anchored derivation then re-folds through the shipped
+    depth-1 ``prim:synop_*`` (a 2-step anchored derivation; the
+    depth-1 fold is a bank member, not a second premise).  A record
+    whose embedded premise does not start at the fold's own call
+    raises rather than materializing a mismatched axiom.
     """
     if synop in _PRIM_MATERIALIZED:
         return _PRIM_MATERIALIZED[synop]
-    rec = _PRIM_RECORDS[synop]
+    if synop in _PRIM_RECORDS:
+        rec = _PRIM_RECORDS[synop]
+    elif synop in _PRIM2_RECORDS:
+        rec = _PRIM2_RECORDS[synop]
+    else:
+        raise KeyError(synop)
     fold = object_from_data(rec["fold"])
+    if "expand" in rec:
+        # depth-2: the premise's RHS is the full manual denotation —
+        # verbatim from the mint, not rebuildable as ``rhs -> lhs``.
+        ex = object_from_data(rec["expand"])
+        if ex.lhs != fold.rhs:
+            raise ValueError(
+                f"prim record {synop!r} embeds an expand premise "
+                f"whose LHS is not the fold's own call — a "
+                f"mismatched axiom would anchor nothing"
+            )
+        denotation = ex.rhs
+    else:
+        denotation = fold.lhs
     expand = Rewrite(
         expand_name(synop),
         fold.rhs,
-        fold.lhs,
+        denotation,
         law=_PRIM_EXPAND_LAW.format(synop=synop),
         tags=frozenset({tags.SIMPLIFICATION}),
     )
@@ -7704,8 +9306,19 @@ def prim_fold(synop: str) -> tuple[Rewrite, Rewrite]:
 
 
 def prim_folds() -> tuple[Rewrite, ...]:
-    """Return the 21 shipped fold laws — ``pattern -> synop_*(args)``."""
-    return tuple(prim_fold(n)[0] for n in _PRIM_RECORDS)
+    """Return the shipped fold laws — ``pattern -> synop_*(args)``.
+
+    Both depths: the 21 ``prim:synop_*`` folds then the 2 depth-2
+    ``prim:synop2_*`` folds (skeleton -> ``synop2_*(args)``).
+    """
+    return tuple(
+        prim_fold(n)[0] for n in (*_PRIM_RECORDS, *_PRIM2_RECORDS)
+    )
+
+
+def prim2_folds() -> tuple[Rewrite, ...]:
+    """Return the 2 depth-2 fold laws — the bootstrap mint's slice."""
+    return tuple(prim_fold(n)[0] for n in _PRIM2_RECORDS)
 
 
 def prim_premises() -> tuple[Rewrite, ...]:
@@ -7715,9 +9328,19 @@ def prim_premises() -> tuple[Rewrite, ...]:
     search would re-add the unfolded spelling the fold collapses.
     These are the anchored-derivation axioms a cert/verify leg unions
     into its axiom set; each fold also carries its own premise as
-    ``rule.premises``.
+    ``rule.premises``.  Both depths — a depth-2 premise's RHS is the
+    skeleton's *expanded* manual denotation (the embedded
+    ``expand`` record), so its anchored derivation still closes
+    through the shipped depth-1 fold.
     """
-    return tuple(prim_fold(n)[1] for n in _PRIM_RECORDS)
+    return tuple(
+        prim_fold(n)[1] for n in (*_PRIM_RECORDS, *_PRIM2_RECORDS)
+    )
+
+
+def prim2_premises() -> tuple[Rewrite, ...]:
+    """Return the depth-2 ``synop2_*.expand`` premises — cert axioms."""
+    return tuple(prim_fold(n)[1] for n in _PRIM2_RECORDS)
 
 
 def _resolve(name: str, lib: dict[str, Rewrite], seen: frozenset[str]):

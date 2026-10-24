@@ -169,7 +169,7 @@ def test_alpha_key_canonicalizer_branches():
     assert k5 == k5  # self-evident; the repr fallback ran
 
 def test_serializability_census_of_shipped_library():
-    """Pin the honest partition of the 106 shipped laws."""
+    """Pin the honest partition of the 108 shipped laws."""
     full, need_derive, need_check, transported = [], [], [], []
     for rule in ALL_RULES:
         missing = missing_hooks(rule)
@@ -185,7 +185,7 @@ def test_serializability_census_of_shipped_library():
             need_derive.append(rule.name)
         else:
             need_check.append((rule.name, missing))
-    assert len(ALL_RULES) == 107
+    assert len(ALL_RULES) == 109
     # the authored library stays full-data: the four stragglers went
     # declarative in stage 0 of plan 0017 — glu_fold's parity on a
     # dim-mod predicate, the rms pair's trailing block on the
@@ -197,8 +197,9 @@ def test_serializability_census_of_shipped_library():
     # the *bare* record cannot carry; the stored guard spec carries it
     # (project/retros/minted-composite-default.md).  The 21
     # ``prim:synop_*`` folds join the full-data majority — pure
-    # pattern records, no hooks at all.
-    assert len(full) == 106
+    # pattern records, no hooks at all; the 2 depth-2
+    # ``prim:synop2_*`` folds are the same class.
+    assert len(full) == 108
     assert transported == ["conv_bn_fold"]
     assert need_derive == []
     assert need_check == []
@@ -270,9 +271,10 @@ def test_law_record_roundtrip_rewrite_equality_unguarded():
             rebuilt = law_from_data(_json_roundtrip(law_to_data(rule)))
             assert rebuilt == rule, rule.name
             n += 1
-    # 47 = 26 hook-free bank laws + the 21 ``prim:synop_*`` folds
-    # (pure pattern records — no check/derive anywhere in the family)
-    assert n == 47
+    # 49 = 26 hook-free bank laws + the 21 ``prim:synop_*`` folds +
+    # the 2 depth-2 ``prim:synop2_*`` folds (pure pattern records —
+    # no check/derive anywhere in the family)
+    assert n == 49
 
 def test_law_record_flagged_hooks_drop_on_rebuild():
     """A check/derive law stores pattern+cond, flagged honestly."""

@@ -26,6 +26,8 @@ from mlopt_core.laws import (
     DEFAULT,
     FUSION,
     MINTED_RULES,
+    PRIM2_FOLDS,
+    PRIM2_PREMISES,
     PRIM_FOLDS,
     PRIM_PREMISES,
     law_provenance,
@@ -232,9 +234,9 @@ def _prim_bound(fold: Any) -> Any:
 
 def test_prim_records_are_frozen_and_honest():
     recs = minted.prim_records()
-    assert len(recs) == 21 == len(minted.SYNOP_SHIPPED)
+    assert len(recs) == 23 == len(minted.SYNOP_SHIPPED)
     for name, rec in recs.items():
-        assert name.startswith("synop_")
+        assert name.startswith(("synop_", "synop2_"))
         assert rec["fold"]["name"] == f"prim:{name}"
         # the mint's own measurements ride the record — all sites
         # equal on the fp64 denotation check, >=2 bound modules
@@ -242,14 +244,24 @@ def test_prim_records_are_frozen_and_honest():
         assert len(rec["mods"]) >= 2
         assert rec["alpha"].startswith("(")
         assert rec["handler"]["verdict"] in ("minted", "refused")
+        if name.startswith("synop2_"):
+            # a depth-2 record: the fold LHS is a synop-carrying
+            # skeleton (``alpha_fold``) whose expanded manual
+            # denotation is ``alpha`` — and the definitional premise
+            # embeds verbatim since its RHS is NOT the fold LHS.
+            assert name in minted.SYNOP2_SHIPPED
+            assert "synop_" in rec["alpha_fold"]
+            assert "synop" not in rec["alpha"]
+            assert rec["embeds_shipped"]
+            assert rec["expand"]["name"] == f"{name}.expand"
 
 
 def test_prim_folds_ship_in_default_and_classify_machine():
-    assert len(PRIM_FOLDS) == 21
+    assert len(PRIM_FOLDS) == 23
     by_op = {f.rhs.op: f for f in PRIM_FOLDS}
     assert set(by_op) == set(minted.SYNOP_SHIPPED)
     for f in PRIM_FOLDS:
-        assert f.name.startswith("prim:synop_")
+        assert f.name.startswith("prim:synop")
         assert f in DEFAULT.rules and f in FUSION.rules
         assert f in ALL_RULES
         assert law_provenance(f) == "machine"
@@ -260,13 +272,64 @@ def test_prim_folds_ship_in_default_and_classify_machine():
         assert f.derivation == ()  # axiom by convention
         premise = getattr(f, "premises", ())
         assert len(premise) == 1
-        assert premise[0].lhs == f.rhs and premise[0].rhs == f.lhs
+        assert premise[0].lhs == f.rhs
+        # depth-1: premise RHS IS the fold LHS; depth-2: the
+        # skeleton's full manual expansion (not the skeleton itself).
+        if f.rhs.op in minted.SYNOP2_SHIPPED:
+            assert premise[0].rhs != f.lhs
+            assert "synop" not in {
+                n.op
+                for n in _walk_ops(premise[0].rhs)
+            }
+        else:
+            assert premise[0].rhs == f.lhs
     # the premises are cert axioms, never saturation rules
-    assert len(PRIM_PREMISES) == 21
+    assert len(PRIM_PREMISES) == 23
     for p in PRIM_PREMISES:
         assert p.name.endswith(".expand")
         assert p not in DEFAULT.rules and p not in ALL_RULES
         assert tags.SIMPLIFICATION in p.tags
+
+
+def _walk_ops(t: Any):
+    """Yield the ``Op`` nodes of a term, root-last-order irrelevant."""
+    if isinstance(t, Op):
+        yield t
+        for a in t.args:
+            yield from _walk_ops(a)
+
+
+def test_prim2_folds_anchored_derivation_replays():
+    """The depth-2 premise anchors a 2-step rhs->lhs derivation.
+
+    ``synop2_*(args) -> xpat`` (the embedded ``expand`` premise —
+    the skeleton fully re-expanded to manual ops) then the shipped
+    depth-1 ``prim:synop_*`` fold re-folds the embedded shape back to
+    the skeleton — the cert leg's anchored channel over the embedded
+    record, replayed here on spelled instances.
+    """
+    from mlopt_core.meta import instantiate_pattern, pattern_metavars
+
+    assert {f.rhs.op for f in PRIM2_FOLDS} == set(minted.SYNOP2_SHIPPED)
+    assert {p.name for p in PRIM2_PREMISES} == {
+        f"{n}.expand" for n in minted.SYNOP2_SHIPPED
+    }
+    for f in PRIM2_FOLDS:
+        subst = {
+            mv: (-1 if mv.startswith("$attr:") else Var(mv, _T(2, 4)))
+            for mv in pattern_metavars(f.rhs)
+        }
+        call = instantiate_pattern(f.rhs, subst)
+        skeleton = instantiate_pattern(f.lhs, subst)
+        eg = EGraph()
+        root = eg.add_term(call)
+        # step 1: the premise unfolds the call to manual ops …
+        eg.run(list(f.premises), root, max_iterations=4,
+               max_nodes=50_000)
+        # step 2: … and the shipped depth-1 fold re-folds it.
+        eg.run(PRIM_FOLDS, root, max_iterations=4, max_nodes=50_000)
+        nid = eg.add_term(skeleton)
+        assert eg.find(nid) == eg.find(root), f.name
 
 
 def test_prim_folds_are_interned_and_declare_ops():

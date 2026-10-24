@@ -66,9 +66,12 @@ __all__ = [
 #: The ``prim:synop_*`` family is the third: the ``zoo-prim`` mint's
 #: 21 admitted folds, promoted verbatim out of the domain-side
 #: registry into ``DEFAULT`` — torch-free pattern data whose op
-#: denotations stay sink-side.  The 21 ``synop_*.expand`` names are
-#: their shipped definitional premises: machine-admitted axioms the
-#: folds carry as ``rule.premises`` — shipped in the bank but NOT in
+#: denotations stay sink-side — plus the ``--prim-bootstrap`` mint's
+#: 2 depth-2 ``prim:synop2_*`` folds composing over the shipped
+#: ``synop_*`` vocabulary.  The 23 ``synop_*.expand`` /
+#: ``synop2_*.expand`` names are their shipped definitional
+#: premises: machine-admitted axioms the folds carry as
+#: ``rule.premises`` — shipped in the bank but NOT in
 #: ``ALL_RULES`` (expanding the primitive would re-add the unfolded
 #: spelling), so this set is not quite ``ALL_RULES``-bounded.
 MACHINE_SHIPPED: frozenset[str] = frozenset(
@@ -131,6 +134,14 @@ MACHINE_SHIPPED: frozenset[str] = frozenset(
         "synop_d5b128282a.expand",
         "synop_f08a53f9a0.expand",
         "synop_f3290a1163.expand",
+        # -- the vocabulary-bootstrap mint: 2 depth-2 folds + their
+        # definitional premises (synop2_*.expand unfolds to the FULL
+        # manual denotation — the anchored derivation closes through
+        # the shipped prim:synop_bb8c54c201)
+        "prim:synop2_35bbd03301",
+        "prim:synop2_d46808a970",
+        "synop2_35bbd03301.expand",
+        "synop2_d46808a970.expand",
     }
 )
 
