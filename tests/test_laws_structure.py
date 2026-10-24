@@ -219,6 +219,10 @@ def test_laws_exports_every_rewrite():
     # the conv_channel_scale/shift anchor family of the conv+BN fold)
     # + 1 machine-minted verbatim composite (conv_bn_fold — the
     # conv+BN fold, shipped via mlopt_core.laws.minted)
+    # + 21 prim:synop_* folds + 21 synop_*.expand definitional
+    # premises (the zoo-prim mint's admitted set, promoted into
+    # DEFAULT laws-only — the premises ship as cert-leg axioms,
+    # never saturation rules, via mlopt_core.laws.minted)
     # + 189 prior-art bank rules (opt-in PRIOR_ART_RULES — the
     # TASO/Inductor-XLA/corpus-family transforms, held out of the
     # default set; where_same / logical_not_inv dropped as honest
@@ -228,26 +232,22 @@ def test_laws_exports_every_rewrite():
     # broadcast-sink inverse of the shipped mul_unsq_nat — the two
     # review-queue demotions)
     # rewrites.
-    assert len(found) == 484
+    assert len(found) == 526
 
 
 def test_all_rules_count_unchanged():
     # The default set excludes LAYOUT_RULES (opt-in — closure-cost
     # regression documented in laws.tensor); WITH_LAYOUT = default + 77.
-    # 86 = the verbatim-minted ``conv_bn_fold`` composite
-    # (MACHINE_SHIPPED 11->12, project/retros/minted-composite-default.md)
-    # on top of the previous 83, plus ``sdpa_fold_mul_nomask`` — the
-    # mask-free fold family's third scale row and the mediating
-    # refold of the opt-in ``sdpa_expand`` family — plus
-    # ``add_unsq_pad_r`` (MACHINE_SHIPPED 12->13 — the auto-cond
-    # candidate admitted off the real-corpus funnel,
-    # docs/results_realcorpus.md).
-    assert len(laws.all_rules()) == 86
+    # 107 = 86 (the previous bank) + the 21 ``prim:synop_*`` folds —
+    # the zoo-prim mint's admitted set, promoted default-on out of
+    # the domain registry (their ``synop_*.expand`` premises ship
+    # attached, never as saturation rules).
+    assert len(laws.all_rules()) == 107
     assert laws.all_rules() == laws.ALL_RULES
     assert len(laws.ALL_RULES) == (
         len(laws.SIMPLIFICATION_RULES) + len(laws.CATEGORICAL_RULES)
     )
-    assert len(laws.ALL_RULES_WITH_LAYOUT) == 163
+    assert len(laws.ALL_RULES_WITH_LAYOUT) == 184
     # each call returns a fresh list, not the shared ALL_RULES object
     assert laws.all_rules() is not laws.ALL_RULES
 
@@ -258,10 +258,11 @@ def test_collections_split_by_domain():
     # SIMPLIFICATION_RULES — + ``add_unsq_pad_r`` (the real-corpus
     # auto-cond admission, docs/results_realcorpus.md).
     assert len(laws.SIMPLIFICATION_RULES) == 35
-    # 51 = 49 + the machine-minted ``conv_bn_fold`` composite
+    # 72 = 49 + the machine-minted ``conv_bn_fold`` composite
     # (MINTED_RULES — project/retros/minted-composite-default.md)
-    # + ``sdpa_fold_mul_nomask`` (the sdpa_expand pair's refold).
-    assert len(laws.CATEGORICAL_RULES) == 51
+    # + ``sdpa_fold_mul_nomask`` (the sdpa_expand pair's refold)
+    # + the 21 ``prim:synop_*`` folds (the zoo-prim mint, MINTED_RULES).
+    assert len(laws.CATEGORICAL_RULES) == 72
     assert len(laws.SCAN_LAWS) == 6
     assert len(laws.SCAN_DIAG_LAWS) == 16
     # layout: 12 unary + 4 binary pointwise commutations x 2 spellings
@@ -376,7 +377,7 @@ def test_axiom_lemma_marker_covers_all_rules():
                     r.name,
                     premise,
                 )
-    # 62 = 59 + ``conv_bn_fold``: the minted composite is an axiom by
+    # 83 = 59 + ``conv_bn_fold``: the minted composite is an axiom by
     # annotation — its derivation runs through unshipped ``syn_*``
     # intermediates the shipped-names field cannot express (the
     # premise check above requires every recorded name to resolve
@@ -386,7 +387,10 @@ def test_axiom_lemma_marker_covers_all_rules():
     # ``sdpa_expand*``, is opt-in and cannot be named a premise here).
     # + ``add_unsq_pad_r``: the real-corpus auto-cond admission carries
     # no derivation — an axiom like the other pad strips.
-    assert len(kinds["axiom"]) == 62
+    # + the 21 ``prim:synop_*`` folds: axioms by the same convention —
+    # each carries its ``synop_*.expand`` definitional premise as
+    # ``rule.premises``, not a shipped ``derivation``.
+    assert len(kinds["axiom"]) == 83
     assert len(kinds["lemma"]) == 22
     assert len(kinds["redundant"]) == 2
     # the redundant kind rides on the tags.REDUNDANT constant

@@ -11,6 +11,8 @@ into a weaker admit.
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from mlopt_core import meta
 from mlopt_core.cost import count_cost, dag_cost
@@ -24,8 +26,11 @@ from mlopt_core.laws import (
     DEFAULT,
     FUSION,
     MINTED_RULES,
+    PRIM_FOLDS,
+    PRIM_PREMISES,
     law_provenance,
     minted,
+    tags,
 )
 from mlopt_core.laws.serialize import alpha_key, missing_hooks
 
@@ -65,7 +70,7 @@ def _spelled(cout: int = 6, bn_c: int | None = None) -> Op:
 
 def test_conv_bn_fold_ships_in_default_and_classifies_machine():
     assert CONV_BN_FOLD in ALL_RULES
-    assert MINTED_RULES == [CONV_BN_FOLD]
+    assert [CONV_BN_FOLD, *PRIM_FOLDS] == MINTED_RULES
     assert CONV_BN_FOLD in DEFAULT.rules
     assert CONV_BN_FOLD in FUSION.rules
     assert law_provenance(CONV_BN_FOLD) == "machine"
@@ -203,3 +208,119 @@ def test_materialize_intermediate_rebuilds_with_guard():
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+#  the prim family — ``prim:synop_*`` folds, laws-only in DEFAULT
+# ---------------------------------------------------------------------------
+
+
+def _prim_bound(fold: Any) -> Any:
+    """Instantiate a prim fold's LHS pattern with concrete leaves.
+
+    Bind every leaf metavar to a same-shaped ``Var`` and every
+    ``$attr:`` metavar to a concrete ``-1`` — a spelled site the fold
+    can fire on (torch-free: the pattern IS the data; the folds carry
+    no check/derive hooks to veto it).
+    """
+    from mlopt_core.meta import instantiate_pattern, pattern_metavars
+
+    subst = {
+        mv: (-1 if mv.startswith("$attr:") else Var(mv, _T(2, 4)))
+        for mv in pattern_metavars(fold.lhs)
+    }
+    return instantiate_pattern(fold.lhs, subst)
+
+
+def test_prim_records_are_frozen_and_honest():
+    recs = minted.prim_records()
+    assert len(recs) == 21 == len(minted.SYNOP_SHIPPED)
+    for name, rec in recs.items():
+        assert name.startswith("synop_")
+        assert rec["fold"]["name"] == f"prim:{name}"
+        # the mint's own measurements ride the record — all sites
+        # equal on the fp64 denotation check, >=2 bound modules
+        assert rec["sites"] == rec["equal_sites"] >= 1
+        assert len(rec["mods"]) >= 2
+        assert rec["alpha"].startswith("(")
+        assert rec["handler"]["verdict"] in ("minted", "refused")
+
+
+def test_prim_folds_ship_in_default_and_classify_machine():
+    assert len(PRIM_FOLDS) == 21
+    by_op = {f.rhs.op: f for f in PRIM_FOLDS}
+    assert set(by_op) == set(minted.SYNOP_SHIPPED)
+    for f in PRIM_FOLDS:
+        assert f.name.startswith("prim:synop_")
+        assert f in DEFAULT.rules and f in FUSION.rules
+        assert f in ALL_RULES
+        assert law_provenance(f) == "machine"
+        assert law_provenance(minted.expand_name(f.rhs.op)) == "machine"
+        assert tags.FUSION in f.tags
+        # pure pattern data — the full-data census majority
+        assert missing_hooks(f) == ()
+        assert f.derivation == ()  # axiom by convention
+        premise = getattr(f, "premises", ())
+        assert len(premise) == 1
+        assert premise[0].lhs == f.rhs and premise[0].rhs == f.lhs
+    # the premises are cert axioms, never saturation rules
+    assert len(PRIM_PREMISES) == 21
+    for p in PRIM_PREMISES:
+        assert p.name.endswith(".expand")
+        assert p not in DEFAULT.rules and p not in ALL_RULES
+        assert tags.SIMPLIFICATION in p.tags
+
+
+def test_prim_folds_are_interned_and_declare_ops():
+    from mlopt_core.ir import generator
+
+    assert minted.prim_folds()[0] is minted.prim_folds()[0]
+    for f in PRIM_FOLDS:
+        g = generator(f.rhs.op)
+        assert g is not None
+        assert g.n_in == len(f.rhs.args) and g.n_out == 1
+        assert "synthesized primitive" in g.law
+
+
+def test_prim_fold_fires_and_extracts_on_spelled_site():
+    """A spelled site folds to the ``synop_*`` call and it wins."""
+    from mlopt_core.egraph.terms import _term_match
+
+    for fold in PRIM_FOLDS:
+        site = _prim_bound(fold)
+        m = _term_match(fold.lhs, site)
+        assert m is not None, fold.name
+        eg = EGraph()
+        root = eg.add_term(site)
+        eg.run([fold], root, max_iterations=4, max_nodes=20_000)
+        ops = {n.op for ec in eg._classes.values() for n in ec.nodes}
+        assert fold.rhs.op in ops, fold.name
+        best = eg.extract_best(root, count_cost)
+        ops_best = set()
+        stack = [best]
+        while stack:
+            t = stack.pop()
+            if isinstance(t, Op):
+                ops_best.add(t.op)
+                stack.extend(t.args)
+        assert fold.rhs.op in ops_best, fold.name
+        assert dag_cost(best, count_cost) <= dag_cost(site, count_cost)
+
+
+def test_prim_extraction_honesty_unknown_op_pricing():
+    """The ``synop_*`` member prices mid-range — never 0, never +inf
+    by default — and the ``supported_ops`` bound gates delivery."""
+    from mlopt_core.cost.backend import backend_cost
+    from mlopt_core.cost.basic import flops_cost
+
+    fold = PRIM_FOLDS[0]
+    call = Op.make(
+        fold.rhs.op,
+        *[Var(f"v{i}", _T(2, 4)) for i in range(len(fold.rhs.args))],
+    )
+    # an unknown-to-the-sink op can never be committed to (+inf);
+    # a supported one prices like one fused elementwise kernel —
+    # the honest middle, not 0 and not unreachable.
+    unbound = backend_cost(count_cost, frozenset())
+    bound = backend_cost(count_cost, {fold.rhs.op})
+    assert unbound(call) == float("inf")
+    assert bound(call) == 1.0
+    assert flops_cost(call) > 0.0

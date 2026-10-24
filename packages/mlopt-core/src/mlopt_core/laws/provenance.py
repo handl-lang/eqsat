@@ -45,8 +45,9 @@ __all__ = [
     "law_provenance",
 ]
 
-#: The thirteen machine-admitted objects promoted into the shipped
-#: ``ALL_RULES`` (``promoted-laws.md`` — the promotion table's shipped
+#: The machine-admitted objects promoted into the shipped bank —
+#: the thirteen in ``ALL_RULES`` proper (``promoted-laws.md`` — the
+#: promotion table's shipped
 #: names, including the two objects that shipped as the strictly more
 #: general view identities ``transpose_noop`` / ``chunk_single``, and
 #: ``mul_unsq_nat`` — the census-minted two-sided unsqueeze naturality
@@ -61,6 +62,15 @@ __all__ = [
 #: :mod:`mlopt_core.laws.minted` and its transported guard rebuilds at
 #: import rather than being transcribed to ``cond``/``dspec``
 #: (``project/retros/minted-composite-default.md``).
+#:
+#: The ``prim:synop_*`` family is the third: the ``zoo-prim`` mint's
+#: 21 admitted folds, promoted verbatim out of the domain-side
+#: registry into ``DEFAULT`` — torch-free pattern data whose op
+#: denotations stay sink-side.  The 21 ``synop_*.expand`` names are
+#: their shipped definitional premises: machine-admitted axioms the
+#: folds carry as ``rule.premises`` — shipped in the bank but NOT in
+#: ``ALL_RULES`` (expanding the primitive would re-add the unfolded
+#: spelling), so this set is not quite ``ALL_RULES``-bounded.
 MACHINE_SHIPPED: frozenset[str] = frozenset(
     {
         "softsign_fold",
@@ -76,6 +86,51 @@ MACHINE_SHIPPED: frozenset[str] = frozenset(
         "chunk_single",
         "linear_channel_to_row_scale",
         "conv_bn_fold",
+        # -- the zoo-prim mint: 21 folds + their 21 definitional
+        # premises (synop_*.expand — shipped axioms, never saturation
+        # rules)
+        "prim:synop_03889d8fe1",
+        "prim:synop_2b8cfd1c90",
+        "prim:synop_39f76b66f8",
+        "prim:synop_4c5296b3ba",
+        "prim:synop_4c657cb2c0",
+        "prim:synop_4f8fefdd38",
+        "prim:synop_5147826430",
+        "prim:synop_571fb768b0",
+        "prim:synop_5e58f26875",
+        "prim:synop_629f9ef13b",
+        "prim:synop_62d36aefdb",
+        "prim:synop_6c709f774a",
+        "prim:synop_889d740672",
+        "prim:synop_93e57c595e",
+        "prim:synop_976f9836d7",
+        "prim:synop_98a002d64b",
+        "prim:synop_b246dcb838",
+        "prim:synop_bb8c54c201",
+        "prim:synop_d5b128282a",
+        "prim:synop_f08a53f9a0",
+        "prim:synop_f3290a1163",
+        "synop_03889d8fe1.expand",
+        "synop_2b8cfd1c90.expand",
+        "synop_39f76b66f8.expand",
+        "synop_4c5296b3ba.expand",
+        "synop_4c657cb2c0.expand",
+        "synop_4f8fefdd38.expand",
+        "synop_5147826430.expand",
+        "synop_571fb768b0.expand",
+        "synop_5e58f26875.expand",
+        "synop_629f9ef13b.expand",
+        "synop_62d36aefdb.expand",
+        "synop_6c709f774a.expand",
+        "synop_889d740672.expand",
+        "synop_93e57c595e.expand",
+        "synop_976f9836d7.expand",
+        "synop_98a002d64b.expand",
+        "synop_b246dcb838.expand",
+        "synop_bb8c54c201.expand",
+        "synop_d5b128282a.expand",
+        "synop_f08a53f9a0.expand",
+        "synop_f3290a1163.expand",
     }
 )
 

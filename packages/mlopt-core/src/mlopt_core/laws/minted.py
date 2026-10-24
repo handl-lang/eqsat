@@ -43,6 +43,25 @@ intermediates (``bench/drivers/probes/conv_fold_premise_pay_probe.py`` mint;
 ``project/retros/minted-composite-default.md`` records the admission
 account).  They are frozen artifacts: the composite's guard names them
 by minted name, and they are scaffolding — they do not ship as rules.
+
+The second embedded family — :data:`_PRIM_RECORDS` — is a different
+minting channel at a different shipping boundary: the
+``zoo-prim`` mint's 21 admitted ``prim:synop_*`` folds (graphopt
+``bench/drivers/overnight.py --corpus zoo-prim``;
+``docs/reports/results_overnight_prim_v2.json``), promoted verbatim
+out of the domain-side registry into ``DEFAULT``.  The records are
+pattern data only — a ``synop_*`` call is a *name* to core, and the
+fold needs nothing more to fire, extract and serialize honestly:
+``missing_hooks`` is empty on all 21 (``serializable: true`` —
+the plain-record majority, not the transported class).  What does
+NOT travel is the denotation: a ``synop_*`` op's meaning is the torch
+binding that evaluates the spelled subgraph, and that binding lives
+domain-side (``mlopt_discovery.shipped_primitives.register()`` seats
+it on the ambient executor table) — core knows the patterns; sinks
+supply the semantics, like every op already works.  The op
+*declaration* (:func:`~mlopt_core.ir.op_def`) is torch-free and DOES
+travel: materializing the folds registers the ``synop_*`` generators,
+making them first-class IR citizens wherever the laws are.
 """
 
 from __future__ import annotations
@@ -52,10 +71,21 @@ from typing import Any
 
 from mlopt_core import meta
 from mlopt_core.egraph import Rewrite
+from mlopt_core.ir import op_def
+from mlopt_core.laws import tags
 from mlopt_core.laws.serialize import object_from_data
 from mlopt_core.rulecache import _dec_binding
 
-__all__ = ["materialize"]
+__all__ = [
+    "SYNOP_SHIPPED",
+    "expand_name",
+    "materialize",
+    "prim_fold",
+    "prim_folds",
+    "prim_premises",
+    "prim_records",
+    "synop_name",
+]
 
 #: The verbatim ``law_json`` records of the minted intermediates the
 #: shipped composites descend from, keyed by minted (``syn_*``) name.
@@ -1880,6 +1910,5814 @@ _RECORDS: dict[str, Any] = json.loads(
  }
 }"""
 )
+
+
+# ---------------------------------------------------------------------------
+#  The prim family — ``prim:synop_*`` folds, shipped laws-only
+# ---------------------------------------------------------------------------
+
+#: The verbatim records of the 21 admitted ``prim:synop_*`` folds —
+#: the ``zoo-prim`` mint's shipped set (graphopt
+#: ``bench/drivers/overnight.py --corpus zoo-prim``, protocol
+#: ``seed=0``/``xbind=2``: 24 minted, 21 admitted by the full
+#: gauntlet, all ``machine-original`` —
+#: ``docs/reports/results_overnight_prim_v2.json``), promoted
+#: verbatim out of the domain-side registry
+#: (``mlopt_discovery.shipped_primitives``) into the core bank.
+#: Keyed by the minted ``synop_*`` op name — ``sha256(alpha-normal
+#: pattern)[:10]``, a content hash, not a coined label.  Each record
+#: carries the fold's ``law_to_data`` row (``fold``) plus the mint's
+#: own measurements: ``alpha`` (the content the op name hashes),
+#: ``mods`` (the ≥2 bound-module gate), ``sites`` / ``equal_sites``
+#: (the fp64 denotation check the arm ran — equal everywhere) and
+#: ``handler`` (the grammar minter's verdict — ``"minted"`` where a
+#: handler body verified, ``"refused"`` where the primitive ships on
+#: its definitional denotation alone).  Frozen artifacts: a
+#: deterministic re-mint of the pool reproduces them
+#: byte-identically.
+_PRIM_RECORDS: dict[str, Any] = json.loads(
+    r"""{
+ "synop_03889d8fe1": {
+  "alpha": "(add (mul 'v0', (add (mul 'v1', (add 'v2', 'v3')), 'v4')), 'v5')",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v201"
+       },
+       {
+        "args": [
+         {
+          "args": [
+           {
+            "mvar": "v472"
+           },
+           {
+            "args": [
+             {
+              "mvar": "v484"
+             },
+             {
+              "mvar": "v485"
+             }
+            ],
+            "attrs": {},
+            "op": "add"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         },
+         {
+          "mvar": "v307"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "mvar": "v14"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_03889d8fe1",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v201"
+     },
+     {
+      "mvar": "v472"
+     },
+     {
+      "mvar": "v484"
+     },
+     {
+      "mvar": "v485"
+     },
+     {
+      "mvar": "v307"
+     },
+     {
+      "mvar": "v14"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_03889d8fe1"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v201",
+     "v472",
+     "v484",
+     "v485",
+     "v307",
+     "v14"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "add",
+      [
+       "mul",
+       "v201",
+       [
+        "add",
+        [
+         "mul",
+         "v472",
+         [
+          "add",
+          "v484",
+          "v485"
+         ]
+        ],
+        "v307"
+       ]
+      ],
+      "v14"
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "add",
+     [
+      "mul",
+      "v201",
+      [
+       "add",
+       [
+        "mul",
+        "v472",
+        [
+         "add",
+         "v484",
+         "v485"
+        ]
+       ],
+       "v307"
+      ]
+     ],
+     "v14"
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v307": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v484": [
+        2,
+        16,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v307": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v484": [
+        2,
+        16,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v307": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v484": [
+        2,
+        16,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v307": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v484": [
+        2,
+        16,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ },
+ "synop_2b8cfd1c90": {
+  "alpha": "(add (mul 'v0', (add 'v1', (mul 'v2', 'v3'))), (mul 'v4', 'v5'))",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v223"
+       },
+       {
+        "args": [
+         {
+          "mvar": "v267"
+         },
+         {
+          "args": [
+           {
+            "mvar": "v347"
+           },
+           {
+            "mvar": "v348"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "args": [
+       {
+        "mvar": "v215"
+       },
+       {
+        "mvar": "v216"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_2b8cfd1c90",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v223"
+     },
+     {
+      "mvar": "v267"
+     },
+     {
+      "mvar": "v347"
+     },
+     {
+      "mvar": "v348"
+     },
+     {
+      "mvar": "v215"
+     },
+     {
+      "mvar": "v216"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_2b8cfd1c90"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v223",
+     "v267",
+     "v347",
+     "v348",
+     "v215",
+     "v216"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "add",
+      [
+       "mul",
+       "v223",
+       [
+        "add",
+        "v267",
+        [
+         "mul",
+         "v347",
+         "v348"
+        ]
+       ]
+      ],
+      [
+       "mul",
+       "v215",
+       "v216"
+      ]
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "add",
+     [
+      "mul",
+      "v223",
+      [
+       "add",
+       "v267",
+       [
+        "mul",
+        "v347",
+        "v348"
+       ]
+      ]
+     ],
+     [
+      "mul",
+      "v215",
+      "v216"
+     ]
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v267": [
+        2,
+        16,
+        4
+       ],
+       "v347": [
+        2,
+        16,
+        1
+       ],
+       "v348": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v267": [
+        2,
+        16,
+        4
+       ],
+       "v347": [
+        2,
+        16,
+        1
+       ],
+       "v348": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v267": [
+        2,
+        16,
+        4
+       ],
+       "v347": [
+        2,
+        16,
+        1
+       ],
+       "v348": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v267": [
+        2,
+        16,
+        4
+       ],
+       "v347": [
+        2,
+        16,
+        1
+       ],
+       "v348": [
+        2,
+        1,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ },
+ "synop_39f76b66f8": {
+  "alpha": "(add (mul 'v0', (add (mul 'v1', (add (mul 'v2', 'v3'), 'v4')), 'v5')), 'v6')",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v201"
+       },
+       {
+        "args": [
+         {
+          "args": [
+           {
+            "mvar": "v472"
+           },
+           {
+            "args": [
+             {
+              "args": [
+               {
+                "mvar": "v509"
+               },
+               {
+                "mvar": "v510"
+               }
+              ],
+              "attrs": {},
+              "op": "mul"
+             },
+             {
+              "mvar": "v485"
+             }
+            ],
+            "attrs": {},
+            "op": "add"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         },
+         {
+          "mvar": "v307"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "mvar": "v14"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_39f76b66f8",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v201"
+     },
+     {
+      "mvar": "v472"
+     },
+     {
+      "mvar": "v509"
+     },
+     {
+      "mvar": "v510"
+     },
+     {
+      "mvar": "v485"
+     },
+     {
+      "mvar": "v307"
+     },
+     {
+      "mvar": "v14"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_39f76b66f8"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v201",
+     "v472",
+     "v509",
+     "v510",
+     "v485",
+     "v307",
+     "v14"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "add",
+      [
+       "mul",
+       "v201",
+       [
+        "add",
+        [
+         "mul",
+         "v472",
+         [
+          "add",
+          [
+           "mul",
+           "v509",
+           "v510"
+          ],
+          "v485"
+         ]
+        ],
+        "v307"
+       ]
+      ],
+      "v14"
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "add",
+     [
+      "mul",
+      "v201",
+      [
+       "add",
+       [
+        "mul",
+        "v472",
+        [
+         "add",
+         [
+          "mul",
+          "v509",
+          "v510"
+         ],
+         "v485"
+        ]
+       ],
+       "v307"
+      ]
+     ],
+     "v14"
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v307": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ],
+       "v509": [
+        2,
+        16,
+        4
+       ],
+       "v510": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v307": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ],
+       "v509": [
+        2,
+        16,
+        4
+       ],
+       "v510": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v307": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ],
+       "v509": [
+        2,
+        16,
+        4
+       ],
+       "v510": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v307": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v485": [
+        2,
+        16,
+        4
+       ],
+       "v509": [
+        2,
+        16,
+        4
+       ],
+       "v510": [
+        2,
+        16,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ },
+ "synop_4c5296b3ba": {
+  "alpha": "(add (mul 'v0', (add (mul 'v1', 'v2'), 'v3')), (mul 'v4', (unsqueeze 'v5', dim=a0)))",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v223"
+       },
+       {
+        "args": [
+         {
+          "args": [
+           {
+            "mvar": "v345"
+           },
+           {
+            "mvar": "v346"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         },
+         {
+          "mvar": "v268"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "args": [
+       {
+        "mvar": "v215"
+       },
+       {
+        "args": [
+         {
+          "mvar": "v355"
+         }
+        ],
+        "attrs": {
+         "dim": "a97"
+        },
+        "op": "unsqueeze"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_4c5296b3ba",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v223"
+     },
+     {
+      "mvar": "v345"
+     },
+     {
+      "mvar": "v346"
+     },
+     {
+      "mvar": "v268"
+     },
+     {
+      "mvar": "v215"
+     },
+     {
+      "mvar": "v355"
+     }
+    ],
+    "attrs": {
+     "a97": "a97"
+    },
+    "op": "synop_4c5296b3ba"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "note": "no candidate verified within budget=256",
+   "tried": 256,
+   "verdict": "refused"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan"
+  ],
+  "sites": 16
+ },
+ "synop_4c657cb2c0": {
+  "alpha": "(add 'v0', (mul (unsqueeze 'v1', dim=-1), (unsqueeze (select (linear 'v2', 'v3', 'v4'), dim=1, index=a1), dim=a0)))",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "mvar": "v13"
+     },
+     {
+      "args": [
+       {
+        "args": [
+         {
+          "mvar": "v419"
+         }
+        ],
+        "attrs": {
+         "dim": -1
+        },
+        "op": "unsqueeze"
+       },
+       {
+        "args": [
+         {
+          "args": [
+           {
+            "args": [
+             {
+              "mvar": "v633"
+             },
+             {
+              "mvar": "v634"
+             },
+             {
+              "mvar": "v635"
+             }
+            ],
+            "attrs": {},
+            "op": "linear"
+           }
+          ],
+          "attrs": {
+           "dim": 1,
+           "index": "a155"
+          },
+          "op": "select"
+         }
+        ],
+        "attrs": {
+         "dim": "a75"
+        },
+        "op": "unsqueeze"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_4c657cb2c0",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v13"
+     },
+     {
+      "mvar": "v419"
+     },
+     {
+      "mvar": "v633"
+     },
+     {
+      "mvar": "v634"
+     },
+     {
+      "mvar": "v635"
+     }
+    ],
+    "attrs": {
+     "a155": "a155",
+     "a75": "a75"
+    },
+    "op": "synop_4c657cb2c0"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "note": "no candidate verified within budget=256",
+   "tried": 256,
+   "verdict": "refused"
+  },
+  "mods": [
+   "GatedLinearAttention",
+   "MambaSelectiveScan"
+  ],
+  "sites": 16
+ },
+ "synop_4f8fefdd38": {
+  "alpha": "(add (mul 'v0', (add (mul 'v1', (add 'v2', 'v3')), 'v4')), (mul 'v5', 'v6'))",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v223"
+       },
+       {
+        "args": [
+         {
+          "args": [
+           {
+            "mvar": "v345"
+           },
+           {
+            "args": [
+             {
+              "mvar": "v362"
+             },
+             {
+              "mvar": "v363"
+             }
+            ],
+            "attrs": {},
+            "op": "add"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         },
+         {
+          "mvar": "v268"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "args": [
+       {
+        "mvar": "v215"
+       },
+       {
+        "mvar": "v216"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_4f8fefdd38",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v223"
+     },
+     {
+      "mvar": "v345"
+     },
+     {
+      "mvar": "v362"
+     },
+     {
+      "mvar": "v363"
+     },
+     {
+      "mvar": "v268"
+     },
+     {
+      "mvar": "v215"
+     },
+     {
+      "mvar": "v216"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_4f8fefdd38"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v223",
+     "v345",
+     "v362",
+     "v363",
+     "v268",
+     "v215",
+     "v216"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "add",
+      [
+       "mul",
+       "v223",
+       [
+        "add",
+        [
+         "mul",
+         "v345",
+         [
+          "add",
+          "v362",
+          "v363"
+         ]
+        ],
+        "v268"
+       ]
+      ],
+      [
+       "mul",
+       "v215",
+       "v216"
+      ]
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "add",
+     [
+      "mul",
+      "v223",
+      [
+       "add",
+       [
+        "mul",
+        "v345",
+        [
+         "add",
+         "v362",
+         "v363"
+        ]
+       ],
+       "v268"
+      ]
+     ],
+     [
+      "mul",
+      "v215",
+      "v216"
+     ]
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v268": [
+        2,
+        16,
+        4
+       ],
+       "v345": [
+        2,
+        16,
+        4
+       ],
+       "v362": [
+        2,
+        16,
+        4
+       ],
+       "v363": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v268": [
+        2,
+        16,
+        4
+       ],
+       "v345": [
+        2,
+        16,
+        4
+       ],
+       "v362": [
+        2,
+        16,
+        4
+       ],
+       "v363": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v268": [
+        2,
+        16,
+        4
+       ],
+       "v345": [
+        2,
+        16,
+        4
+       ],
+       "v362": [
+        2,
+        16,
+        4
+       ],
+       "v363": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v268": [
+        2,
+        16,
+        4
+       ],
+       "v345": [
+        2,
+        16,
+        4
+       ],
+       "v362": [
+        2,
+        16,
+        4
+       ],
+       "v363": [
+        2,
+        16,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ },
+ "synop_5147826430": {
+  "alpha": "(add (mul 'v0', (add (mul 'v1', (add 'v2', 'v3')), (mul 'v4', 'v5'))), 'v6')",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v201"
+       },
+       {
+        "args": [
+         {
+          "args": [
+           {
+            "mvar": "v472"
+           },
+           {
+            "args": [
+             {
+              "mvar": "v492"
+             },
+             {
+              "mvar": "v493"
+             }
+            ],
+            "attrs": {},
+            "op": "add"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         },
+         {
+          "args": [
+           {
+            "mvar": "v480"
+           },
+           {
+            "mvar": "v481"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "mvar": "v14"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_5147826430",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v201"
+     },
+     {
+      "mvar": "v472"
+     },
+     {
+      "mvar": "v492"
+     },
+     {
+      "mvar": "v493"
+     },
+     {
+      "mvar": "v480"
+     },
+     {
+      "mvar": "v481"
+     },
+     {
+      "mvar": "v14"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_5147826430"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v201",
+     "v472",
+     "v492",
+     "v493",
+     "v480",
+     "v481",
+     "v14"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "add",
+      [
+       "mul",
+       "v201",
+       [
+        "add",
+        [
+         "mul",
+         "v472",
+         [
+          "add",
+          "v492",
+          "v493"
+         ]
+        ],
+        [
+         "mul",
+         "v480",
+         "v481"
+        ]
+       ]
+      ],
+      "v14"
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "add",
+     [
+      "mul",
+      "v201",
+      [
+       "add",
+       [
+        "mul",
+        "v472",
+        [
+         "add",
+         "v492",
+         "v493"
+        ]
+       ],
+       [
+        "mul",
+        "v480",
+        "v481"
+       ]
+      ]
+     ],
+     "v14"
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v480": [
+        2,
+        16,
+        1
+       ],
+       "v481": [
+        2,
+        1,
+        4
+       ],
+       "v492": [
+        2,
+        16,
+        4
+       ],
+       "v493": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v480": [
+        2,
+        16,
+        1
+       ],
+       "v481": [
+        2,
+        1,
+        4
+       ],
+       "v492": [
+        2,
+        16,
+        4
+       ],
+       "v493": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v480": [
+        2,
+        16,
+        1
+       ],
+       "v481": [
+        2,
+        1,
+        4
+       ],
+       "v492": [
+        2,
+        16,
+        4
+       ],
+       "v493": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v480": [
+        2,
+        16,
+        1
+       ],
+       "v481": [
+        2,
+        1,
+        4
+       ],
+       "v492": [
+        2,
+        16,
+        4
+       ],
+       "v493": [
+        2,
+        16,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ },
+ "synop_571fb768b0": {
+  "alpha": "(mul 'v0', (add (mul 'v1', (add 'v2', (mul 'v3', 'v4'))), (mul 'v5', 'v6')))",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "mvar": "v10"
+     },
+     {
+      "args": [
+       {
+        "args": [
+         {
+          "mvar": "v733"
+         },
+         {
+          "args": [
+           {
+            "mvar": "v749"
+           },
+           {
+            "args": [
+             {
+              "mvar": "v771"
+             },
+             {
+              "mvar": "v772"
+             }
+            ],
+            "attrs": {},
+            "op": "mul"
+           }
+          ],
+          "attrs": {},
+          "op": "add"
+         }
+        ],
+        "attrs": {},
+        "op": "mul"
+       },
+       {
+        "args": [
+         {
+          "mvar": "v739"
+         },
+         {
+          "mvar": "v740"
+         }
+        ],
+        "attrs": {},
+        "op": "mul"
+       }
+      ],
+      "attrs": {},
+      "op": "add"
+     }
+    ],
+    "attrs": {},
+    "op": "mul"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_571fb768b0",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v10"
+     },
+     {
+      "mvar": "v733"
+     },
+     {
+      "mvar": "v749"
+     },
+     {
+      "mvar": "v771"
+     },
+     {
+      "mvar": "v772"
+     },
+     {
+      "mvar": "v739"
+     },
+     {
+      "mvar": "v740"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_571fb768b0"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v10",
+     "v733",
+     "v749",
+     "v771",
+     "v772",
+     "v739",
+     "v740"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "mul",
+      "v10",
+      [
+       "add",
+       [
+        "mul",
+        "v733",
+        [
+         "add",
+         "v749",
+         [
+          "mul",
+          "v771",
+          "v772"
+         ]
+        ]
+       ],
+       [
+        "mul",
+        "v739",
+        "v740"
+       ]
+      ]
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "mul",
+     "v10",
+     [
+      "add",
+      [
+       "mul",
+       "v733",
+       [
+        "add",
+        "v749",
+        [
+         "mul",
+         "v771",
+         "v772"
+        ]
+       ]
+      ],
+      [
+       "mul",
+       "v739",
+       "v740"
+      ]
+     ]
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v739": [
+        2,
+        16,
+        1
+       ],
+       "v740": [
+        2,
+        1,
+        4
+       ],
+       "v749": [
+        2,
+        16,
+        4
+       ],
+       "v771": [
+        2,
+        16,
+        1
+       ],
+       "v772": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v739": [
+        2,
+        16,
+        1
+       ],
+       "v740": [
+        2,
+        1,
+        4
+       ],
+       "v749": [
+        2,
+        16,
+        4
+       ],
+       "v771": [
+        2,
+        16,
+        1
+       ],
+       "v772": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v739": [
+        2,
+        16,
+        1
+       ],
+       "v740": [
+        2,
+        1,
+        4
+       ],
+       "v749": [
+        2,
+        16,
+        4
+       ],
+       "v771": [
+        2,
+        16,
+        1
+       ],
+       "v772": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v739": [
+        2,
+        16,
+        1
+       ],
+       "v740": [
+        2,
+        1,
+        4
+       ],
+       "v749": [
+        2,
+        16,
+        4
+       ],
+       "v771": [
+        2,
+        16,
+        1
+       ],
+       "v772": [
+        2,
+        1,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ },
+ "synop_5e58f26875": {
+  "alpha": "(add (mul 'v0', (add (mul 'v1', 'v2'), (mul 'v3', 'v4'))), (mul 'v5', 'v6'))",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v223"
+       },
+       {
+        "args": [
+         {
+          "args": [
+           {
+            "mvar": "v345"
+           },
+           {
+            "mvar": "v346"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         },
+         {
+          "args": [
+           {
+            "mvar": "v358"
+           },
+           {
+            "mvar": "v359"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "args": [
+       {
+        "mvar": "v215"
+       },
+       {
+        "mvar": "v216"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_5e58f26875",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v223"
+     },
+     {
+      "mvar": "v345"
+     },
+     {
+      "mvar": "v346"
+     },
+     {
+      "mvar": "v358"
+     },
+     {
+      "mvar": "v359"
+     },
+     {
+      "mvar": "v215"
+     },
+     {
+      "mvar": "v216"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_5e58f26875"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v223",
+     "v345",
+     "v346",
+     "v358",
+     "v359",
+     "v215",
+     "v216"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "add",
+      [
+       "mul",
+       "v223",
+       [
+        "add",
+        [
+         "mul",
+         "v345",
+         "v346"
+        ],
+        [
+         "mul",
+         "v358",
+         "v359"
+        ]
+       ]
+      ],
+      [
+       "mul",
+       "v215",
+       "v216"
+      ]
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "add",
+     [
+      "mul",
+      "v223",
+      [
+       "add",
+       [
+        "mul",
+        "v345",
+        "v346"
+       ],
+       [
+        "mul",
+        "v358",
+        "v359"
+       ]
+      ]
+     ],
+     [
+      "mul",
+      "v215",
+      "v216"
+     ]
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v345": [
+        2,
+        16,
+        4
+       ],
+       "v346": [
+        2,
+        16,
+        4
+       ],
+       "v358": [
+        2,
+        16,
+        1
+       ],
+       "v359": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v345": [
+        2,
+        16,
+        4
+       ],
+       "v346": [
+        2,
+        16,
+        4
+       ],
+       "v358": [
+        2,
+        16,
+        1
+       ],
+       "v359": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v345": [
+        2,
+        16,
+        4
+       ],
+       "v346": [
+        2,
+        16,
+        4
+       ],
+       "v358": [
+        2,
+        16,
+        1
+       ],
+       "v359": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v345": [
+        2,
+        16,
+        4
+       ],
+       "v346": [
+        2,
+        16,
+        4
+       ],
+       "v358": [
+        2,
+        16,
+        1
+       ],
+       "v359": [
+        2,
+        1,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ },
+ "synop_629f9ef13b": {
+  "alpha": "(mul 'v0', (add (mul 'v1', (add (mul 'v2', 'v3'), (mul 'v4', 'v5'))), 'v6'))",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "mvar": "v10"
+     },
+     {
+      "args": [
+       {
+        "args": [
+         {
+          "mvar": "v733"
+         },
+         {
+          "args": [
+           {
+            "args": [
+             {
+              "mvar": "v791"
+             },
+             {
+              "mvar": "v792"
+             }
+            ],
+            "attrs": {},
+            "op": "mul"
+           },
+           {
+            "args": [
+             {
+              "mvar": "v801"
+             },
+             {
+              "mvar": "v802"
+             }
+            ],
+            "attrs": {},
+            "op": "mul"
+           }
+          ],
+          "attrs": {},
+          "op": "add"
+         }
+        ],
+        "attrs": {},
+        "op": "mul"
+       },
+       {
+        "mvar": "v138"
+       }
+      ],
+      "attrs": {},
+      "op": "add"
+     }
+    ],
+    "attrs": {},
+    "op": "mul"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_629f9ef13b",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v10"
+     },
+     {
+      "mvar": "v733"
+     },
+     {
+      "mvar": "v791"
+     },
+     {
+      "mvar": "v792"
+     },
+     {
+      "mvar": "v801"
+     },
+     {
+      "mvar": "v802"
+     },
+     {
+      "mvar": "v138"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_629f9ef13b"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v10",
+     "v733",
+     "v791",
+     "v792",
+     "v801",
+     "v802",
+     "v138"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "mul",
+      "v10",
+      [
+       "add",
+       [
+        "mul",
+        "v733",
+        [
+         "add",
+         [
+          "mul",
+          "v791",
+          "v792"
+         ],
+         [
+          "mul",
+          "v801",
+          "v802"
+         ]
+        ]
+       ],
+       "v138"
+      ]
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "mul",
+     "v10",
+     [
+      "add",
+      [
+       "mul",
+       "v733",
+       [
+        "add",
+        [
+         "mul",
+         "v791",
+         "v792"
+        ],
+        [
+         "mul",
+         "v801",
+         "v802"
+        ]
+       ]
+      ],
+      "v138"
+     ]
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v138": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v791": [
+        2,
+        16,
+        4
+       ],
+       "v792": [
+        2,
+        16,
+        4
+       ],
+       "v801": [
+        2,
+        16,
+        1
+       ],
+       "v802": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v138": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v791": [
+        2,
+        16,
+        4
+       ],
+       "v792": [
+        2,
+        16,
+        4
+       ],
+       "v801": [
+        2,
+        16,
+        1
+       ],
+       "v802": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v138": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v791": [
+        2,
+        16,
+        4
+       ],
+       "v792": [
+        2,
+        16,
+        4
+       ],
+       "v801": [
+        2,
+        16,
+        1
+       ],
+       "v802": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v138": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v791": [
+        2,
+        16,
+        4
+       ],
+       "v792": [
+        2,
+        16,
+        4
+       ],
+       "v801": [
+        2,
+        16,
+        1
+       ],
+       "v802": [
+        2,
+        1,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ },
+ "synop_62d36aefdb": {
+  "alpha": "(mul 'v0', (add (mul 'v1', (add (mul 'v2', 'v3'), 'v4')), (mul 'v5', 'v6')))",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "mvar": "v10"
+     },
+     {
+      "args": [
+       {
+        "args": [
+         {
+          "mvar": "v733"
+         },
+         {
+          "args": [
+           {
+            "args": [
+             {
+              "mvar": "v769"
+             },
+             {
+              "mvar": "v770"
+             }
+            ],
+            "attrs": {},
+            "op": "mul"
+           },
+           {
+            "mvar": "v750"
+           }
+          ],
+          "attrs": {},
+          "op": "add"
+         }
+        ],
+        "attrs": {},
+        "op": "mul"
+       },
+       {
+        "args": [
+         {
+          "mvar": "v739"
+         },
+         {
+          "mvar": "v740"
+         }
+        ],
+        "attrs": {},
+        "op": "mul"
+       }
+      ],
+      "attrs": {},
+      "op": "add"
+     }
+    ],
+    "attrs": {},
+    "op": "mul"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_62d36aefdb",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v10"
+     },
+     {
+      "mvar": "v733"
+     },
+     {
+      "mvar": "v769"
+     },
+     {
+      "mvar": "v770"
+     },
+     {
+      "mvar": "v750"
+     },
+     {
+      "mvar": "v739"
+     },
+     {
+      "mvar": "v740"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_62d36aefdb"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v10",
+     "v733",
+     "v769",
+     "v770",
+     "v750",
+     "v739",
+     "v740"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "mul",
+      "v10",
+      [
+       "add",
+       [
+        "mul",
+        "v733",
+        [
+         "add",
+         [
+          "mul",
+          "v769",
+          "v770"
+         ],
+         "v750"
+        ]
+       ],
+       [
+        "mul",
+        "v739",
+        "v740"
+       ]
+      ]
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "mul",
+     "v10",
+     [
+      "add",
+      [
+       "mul",
+       "v733",
+       [
+        "add",
+        [
+         "mul",
+         "v769",
+         "v770"
+        ],
+        "v750"
+       ]
+      ],
+      [
+       "mul",
+       "v739",
+       "v740"
+      ]
+     ]
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v739": [
+        2,
+        16,
+        1
+       ],
+       "v740": [
+        2,
+        1,
+        4
+       ],
+       "v750": [
+        2,
+        16,
+        4
+       ],
+       "v769": [
+        2,
+        16,
+        4
+       ],
+       "v770": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v739": [
+        2,
+        16,
+        1
+       ],
+       "v740": [
+        2,
+        1,
+        4
+       ],
+       "v750": [
+        2,
+        16,
+        4
+       ],
+       "v769": [
+        2,
+        16,
+        4
+       ],
+       "v770": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v739": [
+        2,
+        16,
+        1
+       ],
+       "v740": [
+        2,
+        1,
+        4
+       ],
+       "v750": [
+        2,
+        16,
+        4
+       ],
+       "v769": [
+        2,
+        16,
+        4
+       ],
+       "v770": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v739": [
+        2,
+        16,
+        1
+       ],
+       "v740": [
+        2,
+        1,
+        4
+       ],
+       "v750": [
+        2,
+        16,
+        4
+       ],
+       "v769": [
+        2,
+        16,
+        4
+       ],
+       "v770": [
+        2,
+        16,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ },
+ "synop_6c709f774a": {
+  "alpha": "(add (mul 'v0', (add (mul 'v1', 'v2'), (mul 'v3', 'v4'))), 'v5')",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v201"
+       },
+       {
+        "args": [
+         {
+          "args": [
+           {
+            "mvar": "v472"
+           },
+           {
+            "mvar": "v473"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         },
+         {
+          "args": [
+           {
+            "mvar": "v480"
+           },
+           {
+            "mvar": "v481"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "mvar": "v14"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_6c709f774a",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v201"
+     },
+     {
+      "mvar": "v472"
+     },
+     {
+      "mvar": "v473"
+     },
+     {
+      "mvar": "v480"
+     },
+     {
+      "mvar": "v481"
+     },
+     {
+      "mvar": "v14"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_6c709f774a"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v201",
+     "v472",
+     "v473",
+     "v480",
+     "v481",
+     "v14"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "add",
+      [
+       "mul",
+       "v201",
+       [
+        "add",
+        [
+         "mul",
+         "v472",
+         "v473"
+        ],
+        [
+         "mul",
+         "v480",
+         "v481"
+        ]
+       ]
+      ],
+      "v14"
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "add",
+     [
+      "mul",
+      "v201",
+      [
+       "add",
+       [
+        "mul",
+        "v472",
+        "v473"
+       ],
+       [
+        "mul",
+        "v480",
+        "v481"
+       ]
+      ]
+     ],
+     "v14"
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v473": [
+        2,
+        16,
+        4
+       ],
+       "v480": [
+        2,
+        16,
+        1
+       ],
+       "v481": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v473": [
+        2,
+        16,
+        4
+       ],
+       "v480": [
+        2,
+        16,
+        1
+       ],
+       "v481": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v473": [
+        2,
+        16,
+        4
+       ],
+       "v480": [
+        2,
+        16,
+        1
+       ],
+       "v481": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v473": [
+        2,
+        16,
+        4
+       ],
+       "v480": [
+        2,
+        16,
+        1
+       ],
+       "v481": [
+        2,
+        1,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ },
+ "synop_889d740672": {
+  "alpha": "(mul 'v0', (add (mul 'v1', (add 'v2', (mul 'v3', 'v4'))), 'v5'))",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "mvar": "v10"
+     },
+     {
+      "args": [
+       {
+        "args": [
+         {
+          "mvar": "v733"
+         },
+         {
+          "args": [
+           {
+            "mvar": "v743"
+           },
+           {
+            "args": [
+             {
+              "mvar": "v793"
+             },
+             {
+              "mvar": "v794"
+             }
+            ],
+            "attrs": {},
+            "op": "mul"
+           }
+          ],
+          "attrs": {},
+          "op": "add"
+         }
+        ],
+        "attrs": {},
+        "op": "mul"
+       },
+       {
+        "mvar": "v138"
+       }
+      ],
+      "attrs": {},
+      "op": "add"
+     }
+    ],
+    "attrs": {},
+    "op": "mul"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_889d740672",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v10"
+     },
+     {
+      "mvar": "v733"
+     },
+     {
+      "mvar": "v743"
+     },
+     {
+      "mvar": "v793"
+     },
+     {
+      "mvar": "v794"
+     },
+     {
+      "mvar": "v138"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_889d740672"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v10",
+     "v733",
+     "v743",
+     "v793",
+     "v794",
+     "v138"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "mul",
+      "v10",
+      [
+       "add",
+       [
+        "mul",
+        "v733",
+        [
+         "add",
+         "v743",
+         [
+          "mul",
+          "v793",
+          "v794"
+         ]
+        ]
+       ],
+       "v138"
+      ]
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "mul",
+     "v10",
+     [
+      "add",
+      [
+       "mul",
+       "v733",
+       [
+        "add",
+        "v743",
+        [
+         "mul",
+         "v793",
+         "v794"
+        ]
+       ]
+      ],
+      "v138"
+     ]
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v138": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v743": [
+        2,
+        16,
+        4
+       ],
+       "v793": [
+        2,
+        16,
+        1
+       ],
+       "v794": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v138": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v743": [
+        2,
+        16,
+        4
+       ],
+       "v793": [
+        2,
+        16,
+        1
+       ],
+       "v794": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v138": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v743": [
+        2,
+        16,
+        4
+       ],
+       "v793": [
+        2,
+        16,
+        1
+       ],
+       "v794": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v138": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v743": [
+        2,
+        16,
+        4
+       ],
+       "v793": [
+        2,
+        16,
+        1
+       ],
+       "v794": [
+        2,
+        1,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ },
+ "synop_93e57c595e": {
+  "alpha": "(mul 'v0', (add (mul 'v1', (add (mul 'v2', 'v3'), 'v4')), 'v5'))",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "mvar": "v10"
+     },
+     {
+      "args": [
+       {
+        "args": [
+         {
+          "mvar": "v733"
+         },
+         {
+          "args": [
+           {
+            "args": [
+             {
+              "mvar": "v791"
+             },
+             {
+              "mvar": "v792"
+             }
+            ],
+            "attrs": {},
+            "op": "mul"
+           },
+           {
+            "mvar": "v744"
+           }
+          ],
+          "attrs": {},
+          "op": "add"
+         }
+        ],
+        "attrs": {},
+        "op": "mul"
+       },
+       {
+        "mvar": "v138"
+       }
+      ],
+      "attrs": {},
+      "op": "add"
+     }
+    ],
+    "attrs": {},
+    "op": "mul"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_93e57c595e",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v10"
+     },
+     {
+      "mvar": "v733"
+     },
+     {
+      "mvar": "v791"
+     },
+     {
+      "mvar": "v792"
+     },
+     {
+      "mvar": "v744"
+     },
+     {
+      "mvar": "v138"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_93e57c595e"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v10",
+     "v733",
+     "v791",
+     "v792",
+     "v744",
+     "v138"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "mul",
+      "v10",
+      [
+       "add",
+       [
+        "mul",
+        "v733",
+        [
+         "add",
+         [
+          "mul",
+          "v791",
+          "v792"
+         ],
+         "v744"
+        ]
+       ],
+       "v138"
+      ]
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "mul",
+     "v10",
+     [
+      "add",
+      [
+       "mul",
+       "v733",
+       [
+        "add",
+        [
+         "mul",
+         "v791",
+         "v792"
+        ],
+        "v744"
+       ]
+      ],
+      "v138"
+     ]
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v138": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v744": [
+        2,
+        16,
+        4
+       ],
+       "v791": [
+        2,
+        16,
+        4
+       ],
+       "v792": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v138": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v744": [
+        2,
+        16,
+        4
+       ],
+       "v791": [
+        2,
+        16,
+        4
+       ],
+       "v792": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v138": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v744": [
+        2,
+        16,
+        4
+       ],
+       "v791": [
+        2,
+        16,
+        4
+       ],
+       "v792": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v138": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v744": [
+        2,
+        16,
+        4
+       ],
+       "v791": [
+        2,
+        16,
+        4
+       ],
+       "v792": [
+        2,
+        16,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ },
+ "synop_976f9836d7": {
+  "alpha": "(add (mul 'v0', (add 'v1', (mul 'v2', 'v3'))), (mul 'v4', (unsqueeze 'v5', dim=a0)))",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v223"
+       },
+       {
+        "args": [
+         {
+          "mvar": "v267"
+         },
+         {
+          "args": [
+           {
+            "mvar": "v347"
+           },
+           {
+            "mvar": "v348"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "args": [
+       {
+        "mvar": "v215"
+       },
+       {
+        "args": [
+         {
+          "mvar": "v370"
+         }
+        ],
+        "attrs": {
+         "dim": "a101"
+        },
+        "op": "unsqueeze"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_976f9836d7",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v223"
+     },
+     {
+      "mvar": "v267"
+     },
+     {
+      "mvar": "v347"
+     },
+     {
+      "mvar": "v348"
+     },
+     {
+      "mvar": "v215"
+     },
+     {
+      "mvar": "v370"
+     }
+    ],
+    "attrs": {
+     "a101": "a101"
+    },
+    "op": "synop_976f9836d7"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "note": "no candidate verified within budget=256",
+   "tried": 256,
+   "verdict": "refused"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan"
+  ],
+  "sites": 16
+ },
+ "synop_98a002d64b": {
+  "alpha": "(add (mul 'v0', (add (mul 'v1', 'v2'), (mul 'v3', (unsqueeze 'v4', dim=a0)))), 'v5')",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v201"
+       },
+       {
+        "args": [
+         {
+          "args": [
+           {
+            "mvar": "v472"
+           },
+           {
+            "mvar": "v473"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         },
+         {
+          "args": [
+           {
+            "mvar": "v480"
+           },
+           {
+            "args": [
+             {
+              "mvar": "v500"
+             }
+            ],
+            "attrs": {
+             "dim": "a128"
+            },
+            "op": "unsqueeze"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "mvar": "v14"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_98a002d64b",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v201"
+     },
+     {
+      "mvar": "v472"
+     },
+     {
+      "mvar": "v473"
+     },
+     {
+      "mvar": "v480"
+     },
+     {
+      "mvar": "v500"
+     },
+     {
+      "mvar": "v14"
+     }
+    ],
+    "attrs": {
+     "a128": "a128"
+    },
+    "op": "synop_98a002d64b"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "note": "no candidate verified within budget=256",
+   "tried": 256,
+   "verdict": "refused"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan"
+  ],
+  "sites": 16
+ },
+ "synop_b246dcb838": {
+  "alpha": "(mul 'v0', (add (mul 'v1', (add 'v2', 'v3')), (mul 'v4', 'v5')))",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "mvar": "v10"
+     },
+     {
+      "args": [
+       {
+        "args": [
+         {
+          "mvar": "v733"
+         },
+         {
+          "args": [
+           {
+            "mvar": "v749"
+           },
+           {
+            "mvar": "v750"
+           }
+          ],
+          "attrs": {},
+          "op": "add"
+         }
+        ],
+        "attrs": {},
+        "op": "mul"
+       },
+       {
+        "args": [
+         {
+          "mvar": "v739"
+         },
+         {
+          "mvar": "v740"
+         }
+        ],
+        "attrs": {},
+        "op": "mul"
+       }
+      ],
+      "attrs": {},
+      "op": "add"
+     }
+    ],
+    "attrs": {},
+    "op": "mul"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_b246dcb838",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v10"
+     },
+     {
+      "mvar": "v733"
+     },
+     {
+      "mvar": "v749"
+     },
+     {
+      "mvar": "v750"
+     },
+     {
+      "mvar": "v739"
+     },
+     {
+      "mvar": "v740"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_b246dcb838"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v10",
+     "v733",
+     "v749",
+     "v750",
+     "v739",
+     "v740"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "mul",
+      "v10",
+      [
+       "add",
+       [
+        "mul",
+        "v733",
+        [
+         "add",
+         "v749",
+         "v750"
+        ]
+       ],
+       [
+        "mul",
+        "v739",
+        "v740"
+       ]
+      ]
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "mul",
+     "v10",
+     [
+      "add",
+      [
+       "mul",
+       "v733",
+       [
+        "add",
+        "v749",
+        "v750"
+       ]
+      ],
+      [
+       "mul",
+       "v739",
+       "v740"
+      ]
+     ]
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v739": [
+        2,
+        16,
+        1
+       ],
+       "v740": [
+        2,
+        1,
+        4
+       ],
+       "v749": [
+        2,
+        16,
+        4
+       ],
+       "v750": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v739": [
+        2,
+        16,
+        1
+       ],
+       "v740": [
+        2,
+        1,
+        4
+       ],
+       "v749": [
+        2,
+        16,
+        4
+       ],
+       "v750": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v739": [
+        2,
+        16,
+        1
+       ],
+       "v740": [
+        2,
+        1,
+        4
+       ],
+       "v749": [
+        2,
+        16,
+        4
+       ],
+       "v750": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v10": [
+        2,
+        16,
+        4
+       ],
+       "v733": [
+        2,
+        16,
+        4
+       ],
+       "v739": [
+        2,
+        16,
+        1
+       ],
+       "v740": [
+        2,
+        1,
+        4
+       ],
+       "v749": [
+        2,
+        16,
+        4
+       ],
+       "v750": [
+        2,
+        16,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ },
+ "synop_bb8c54c201": {
+  "alpha": "(add (mul 'v0', 'v1'), (mul 'v2', 'v3'))",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v223"
+       },
+       {
+        "mvar": "v224"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "args": [
+       {
+        "mvar": "v215"
+       },
+       {
+        "mvar": "v216"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_bb8c54c201",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v223"
+     },
+     {
+      "mvar": "v224"
+     },
+     {
+      "mvar": "v215"
+     },
+     {
+      "mvar": "v216"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_bb8c54c201"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v223",
+     "v224",
+     "v215",
+     "v216"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "add",
+      [
+       "mul",
+       "v223",
+       "v224"
+      ],
+      [
+       "mul",
+       "v215",
+       "v216"
+      ]
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "add",
+     [
+      "mul",
+      "v223",
+      "v224"
+     ],
+     [
+      "mul",
+      "v215",
+      "v216"
+     ]
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v215": [
+        4,
+        16
+       ],
+       "v216": [
+        4,
+        16
+       ],
+       "v223": [
+        4,
+        16
+       ],
+       "v224": [
+        4,
+        16
+       ]
+      },
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v224": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v224": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v224": [
+        2,
+        16,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "BlockSparseAttention",
+   "DecoupledMLA",
+   "DilatedBlockAttention",
+   "GRUFusedGate",
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "HighwayGate",
+   "MambaSelectiveScan",
+   "PartialRotary",
+   "RWKVMixBlock",
+   "RealGatedLRU",
+   "RotaryPair",
+   "SinkWindowAttention",
+   "SlidingWindowAttention"
+  ],
+  "sites": 16
+ },
+ "synop_d5b128282a": {
+  "alpha": "(add (mul 'v0', (add (mul 'v1', (add 'v2', (mul 'v3', 'v4'))), 'v5')), 'v6')",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v201"
+       },
+       {
+        "args": [
+         {
+          "args": [
+           {
+            "mvar": "v472"
+           },
+           {
+            "args": [
+             {
+              "mvar": "v484"
+             },
+             {
+              "args": [
+               {
+                "mvar": "v511"
+               },
+               {
+                "mvar": "v512"
+               }
+              ],
+              "attrs": {},
+              "op": "mul"
+             }
+            ],
+            "attrs": {},
+            "op": "add"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         },
+         {
+          "mvar": "v307"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "mvar": "v14"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_d5b128282a",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v201"
+     },
+     {
+      "mvar": "v472"
+     },
+     {
+      "mvar": "v484"
+     },
+     {
+      "mvar": "v511"
+     },
+     {
+      "mvar": "v512"
+     },
+     {
+      "mvar": "v307"
+     },
+     {
+      "mvar": "v14"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_d5b128282a"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v201",
+     "v472",
+     "v484",
+     "v511",
+     "v512",
+     "v307",
+     "v14"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "add",
+      [
+       "mul",
+       "v201",
+       [
+        "add",
+        [
+         "mul",
+         "v472",
+         [
+          "add",
+          "v484",
+          [
+           "mul",
+           "v511",
+           "v512"
+          ]
+         ]
+        ],
+        "v307"
+       ]
+      ],
+      "v14"
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "add",
+     [
+      "mul",
+      "v201",
+      [
+       "add",
+       [
+        "mul",
+        "v472",
+        [
+         "add",
+         "v484",
+         [
+          "mul",
+          "v511",
+          "v512"
+         ]
+        ]
+       ],
+       "v307"
+      ]
+     ],
+     "v14"
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v307": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v484": [
+        2,
+        16,
+        4
+       ],
+       "v511": [
+        2,
+        16,
+        1
+       ],
+       "v512": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v307": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v484": [
+        2,
+        16,
+        4
+       ],
+       "v511": [
+        2,
+        16,
+        1
+       ],
+       "v512": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v307": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v484": [
+        2,
+        16,
+        4
+       ],
+       "v511": [
+        2,
+        16,
+        1
+       ],
+       "v512": [
+        2,
+        1,
+        4
+       ]
+      },
+      {
+       "v14": [
+        2,
+        16,
+        4
+       ],
+       "v201": [
+        2,
+        16,
+        4
+       ],
+       "v307": [
+        2,
+        16,
+        4
+       ],
+       "v472": [
+        2,
+        16,
+        4
+       ],
+       "v484": [
+        2,
+        16,
+        4
+       ],
+       "v511": [
+        2,
+        16,
+        1
+       ],
+       "v512": [
+        2,
+        1,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ },
+ "synop_f08a53f9a0": {
+  "alpha": "(add (mul 'v0', (add 'v1', (mul 'v2', (unsqueeze 'v3', dim=a0)))), (mul 'v4', 'v5'))",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v223"
+       },
+       {
+        "args": [
+         {
+          "mvar": "v267"
+         },
+         {
+          "args": [
+           {
+            "mvar": "v347"
+           },
+           {
+            "args": [
+             {
+              "mvar": "v381"
+             }
+            ],
+            "attrs": {
+             "dim": "a103"
+            },
+            "op": "unsqueeze"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "args": [
+       {
+        "mvar": "v215"
+       },
+       {
+        "mvar": "v216"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_f08a53f9a0",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v223"
+     },
+     {
+      "mvar": "v267"
+     },
+     {
+      "mvar": "v347"
+     },
+     {
+      "mvar": "v381"
+     },
+     {
+      "mvar": "v215"
+     },
+     {
+      "mvar": "v216"
+     }
+    ],
+    "attrs": {
+     "a103": "a103"
+    },
+    "op": "synop_f08a53f9a0"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "note": "no candidate verified within budget=256",
+   "tried": 256,
+   "verdict": "refused"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan"
+  ],
+  "sites": 16
+ },
+ "synop_f3290a1163": {
+  "alpha": "(add (mul 'v0', (add (mul 'v1', 'v2'), 'v3')), (mul 'v4', 'v5'))",
+  "equal_sites": 16,
+  "fold": {
+   "bound_norm": "spectral",
+   "cert": null,
+   "cond": null,
+   "derivation": [],
+   "dspec": null,
+   "error_bound": null,
+   "kind": "law",
+   "law": "",
+   "lhs": {
+    "args": [
+     {
+      "args": [
+       {
+        "mvar": "v223"
+       },
+       {
+        "args": [
+         {
+          "args": [
+           {
+            "mvar": "v345"
+           },
+           {
+            "mvar": "v346"
+           }
+          ],
+          "attrs": {},
+          "op": "mul"
+         },
+         {
+          "mvar": "v268"
+         }
+        ],
+        "attrs": {},
+        "op": "add"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     },
+     {
+      "args": [
+       {
+        "mvar": "v215"
+       },
+       {
+        "mvar": "v216"
+       }
+      ],
+      "attrs": {},
+      "op": "mul"
+     }
+    ],
+    "attrs": {},
+    "op": "add"
+   },
+   "missing_hooks": [],
+   "name": "prim:synop_f3290a1163",
+   "rhs": {
+    "args": [
+     {
+      "mvar": "v223"
+     },
+     {
+      "mvar": "v345"
+     },
+     {
+      "mvar": "v346"
+     },
+     {
+      "mvar": "v268"
+     },
+     {
+      "mvar": "v215"
+     },
+     {
+      "mvar": "v216"
+     }
+    ],
+    "attrs": {},
+    "op": "synop_f3290a1163"
+   },
+   "serializable": true,
+   "tags": [],
+   "version": 2
+  },
+  "handler": {
+   "family": "ew",
+   "max_err": 0.0,
+   "record": {
+    "args": [
+     "v223",
+     "v345",
+     "v346",
+     "v268",
+     "v215",
+     "v216"
+    ],
+    "handler_body": [
+     "ew",
+     [
+      "add",
+      [
+       "mul",
+       "v223",
+       [
+        "add",
+        [
+         "mul",
+         "v345",
+         "v346"
+        ],
+        "v268"
+       ]
+      ],
+      [
+       "mul",
+       "v215",
+       "v216"
+      ]
+     ]
+    ],
+    "kernel": "minted_0_k",
+    "kind": "handler",
+    "pattern": [
+     "add",
+     [
+      "mul",
+      "v223",
+      [
+       "add",
+       [
+        "mul",
+        "v345",
+        "v346"
+       ],
+       "v268"
+      ]
+     ],
+     [
+      "mul",
+      "v215",
+      "v216"
+     ]
+    ],
+    "provenance": {
+     "atol": 1e-12,
+     "budget": 256,
+     "domain": [
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v268": [
+        2,
+        16,
+        4
+       ],
+       "v345": [
+        2,
+        16,
+        4
+       ],
+       "v346": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v268": [
+        2,
+        16,
+        4
+       ],
+       "v345": [
+        2,
+        16,
+        4
+       ],
+       "v346": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v268": [
+        2,
+        16,
+        4
+       ],
+       "v345": [
+        2,
+        16,
+        4
+       ],
+       "v346": [
+        2,
+        16,
+        4
+       ]
+      },
+      {
+       "v215": [
+        2,
+        16,
+        1
+       ],
+       "v216": [
+        2,
+        1,
+        4
+       ],
+       "v223": [
+        2,
+        16,
+        4
+       ],
+       "v268": [
+        2,
+        16,
+        4
+       ],
+       "v345": [
+        2,
+        16,
+        4
+       ],
+       "v346": [
+        2,
+        16,
+        4
+       ]
+      }
+     ],
+     "family": "ew",
+     "grammar": "handler-grammar-v2",
+     "max_err": 0.0,
+     "n_samples": 8,
+     "origin": "minted",
+     "rtol": 1e-09,
+     "seed": 0,
+     "tried": 1
+    },
+    "tag": "minted_0"
+   },
+   "tried": 1,
+   "verdict": "minted"
+  },
+  "mods": [
+   "GatedDeltaRule",
+   "GatedLinearAttention",
+   "MambaSelectiveScan",
+   "RealGatedLRU"
+  ],
+  "sites": 16
+ }
+}"""
+)
+
+#: The minted op names the prim family ships (``synop_<sha256[:10]>``).
+SYNOP_SHIPPED: frozenset[str] = frozenset(_PRIM_RECORDS)
+
+#: Law text for the fold rules — a structural fold collapsing a
+#: consumer pattern into one kernel, same class as ``conv_bn_fold``.
+_PRIM_FOLD_LAW = (
+    "machine-minted primitive fold — the manual subgraph collapses "
+    "to the {synop} primitive (zoo-prim mint; admitted by the full "
+    "gauntlet, machine-original; denotation definitional — the op's "
+    "torch binding IS the spelled subgraph)"
+)
+
+#: Law text for the definitional premise — the cert leg's anchor.
+_PRIM_EXPAND_LAW = (
+    "{synop} unfolds to its mined denotation — the definitional "
+    "premise the cert leg's anchored derivation unions in when the "
+    "bare bank cannot derive the fold"
+)
+
+
+def synop_name(fold_name: str) -> str:
+    """Return the op a ``prim:synop_*`` fold name mints (identity otherwise)."""
+    return fold_name[5:] if fold_name.startswith("prim:") else fold_name
+
+
+def expand_name(synop: str) -> str:
+    """Return the definitional-premise law name for a ``synop_*`` op."""
+    return f"{synop_name(synop)}.expand"
+
+
+def prim_records() -> dict[str, Any]:
+    """Return the embedded prim records — the frozen mint artifacts."""
+    return _PRIM_RECORDS
+
+
+_PRIM_MATERIALIZED: dict[str, tuple[Rewrite, Rewrite]] = {}
+
+
+def prim_fold(synop: str) -> tuple[Rewrite, Rewrite]:
+    """Build ``(fold, expand)`` for one prim record — memoized.
+
+    The fold rebuilds through the shipped record codec
+    (:func:`~mlopt_core.laws.serialize.object_from_data`) — the same
+    object the mint admitted — then gets the shipped integration
+    fields (``law`` text, ``FUSION`` tag) and its premise attached,
+    exactly as ``pipeline.Proposal.as_rule`` minted it; the op's
+    :func:`~mlopt_core.ir.op_def` declaration registers with the fold
+    (the generator entry is torch-free — the *denotation* is the
+    domain-side piece).  Interned: the same objects come back on
+    every call.
+    """
+    if synop in _PRIM_MATERIALIZED:
+        return _PRIM_MATERIALIZED[synop]
+    rec = _PRIM_RECORDS[synop]
+    fold = object_from_data(rec["fold"])
+    expand = Rewrite(
+        expand_name(synop),
+        fold.rhs,
+        fold.lhs,
+        law=_PRIM_EXPAND_LAW.format(synop=synop),
+        tags=frozenset({tags.SIMPLIFICATION}),
+    )
+    out = Rewrite(
+        name=fold.name,
+        lhs=fold.lhs,
+        rhs=fold.rhs,
+        law=_PRIM_FOLD_LAW.format(synop=synop),
+        tags=frozenset({tags.FUSION}),
+        error_bound=fold.error_bound,
+        bound_norm=fold.bound_norm,
+        derivation=fold.derivation,
+        cond=fold.cond,
+        dspec=fold.dspec,
+    )
+    object.__setattr__(out, "premises", (expand,))
+    _PRIM_MATERIALIZED[synop] = (out, expand)
+    op_def(
+        synop,
+        len(fold.rhs.args),
+        1,
+        law=(
+            f"synthesized primitive — denotation is the mined manual "
+            f"subgraph {rec['alpha']}"
+        ),
+    )
+    return _PRIM_MATERIALIZED[synop]
+
+
+def prim_folds() -> tuple[Rewrite, ...]:
+    """Return the 21 shipped fold laws — ``pattern -> synop_*(args)``."""
+    return tuple(prim_fold(n)[0] for n in _PRIM_RECORDS)
+
+
+def prim_premises() -> tuple[Rewrite, ...]:
+    """Return the definitional ``synop_*.expand`` premises — cert axioms.
+
+    NOT a saturation set: expanding ``synop -> pattern`` inside a
+    search would re-add the unfolded spelling the fold collapses.
+    These are the anchored-derivation axioms a cert/verify leg unions
+    into its axiom set; each fold also carries its own premise as
+    ``rule.premises``.
+    """
+    return tuple(prim_fold(n)[1] for n in _PRIM_RECORDS)
 
 
 def _resolve(name: str, lib: dict[str, Rewrite], seen: frozenset[str]):

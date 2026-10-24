@@ -18,6 +18,7 @@ from mlopt_core.laws import (
     SCAN_LAWS,
     RuleSet,
     law_provenance,
+    minted,
 )
 
 from mlopt_orchestrator.optimize import Optimizer, default_rules
@@ -41,6 +42,16 @@ _PROMOTION_TABLE = frozenset(
     }
 )
 
+#: The zoo-prim mint's admitted folds — promoted verbatim out of the
+#: domain registry into ``DEFAULT`` (their ``synop_*.expand``
+#: definitional premises ship attached, never as saturation rules).
+_PRIM_FOLD_NAMES = frozenset(
+    f"prim:{n}" for n in minted.SYNOP_SHIPPED
+)
+_PRIM_PREMISE_NAMES = frozenset(
+    minted.expand_name(n) for n in minted.SYNOP_SHIPPED
+)
+
 def test_every_law_classifies_by_provenance():
     """The marker is total: every shipped rule resolves to a class."""
     surface = (
@@ -56,14 +67,20 @@ def test_every_law_classifies_by_provenance():
         assert law_provenance(rule.name) == law_provenance(rule)
 
 def test_machine_shipped_is_exactly_the_promotion_table():
-    """``MACHINE_SHIPPED`` pins the thirteen promoted laws, all shipped."""
-    assert MACHINE_SHIPPED == _PROMOTION_TABLE
+    """``MACHINE_SHIPPED`` pins the promoted laws plus the shipped
+    prim-fold premises — the only shipped machine names not in
+    ``ALL_RULES`` (definitional axioms are not saturation rules)."""
+    assert MACHINE_SHIPPED == (
+        _PROMOTION_TABLE | _PRIM_FOLD_NAMES | _PRIM_PREMISE_NAMES
+    )
     shipped_names = {r.name for r in ALL_RULES}
-    assert shipped_names >= MACHINE_SHIPPED
-    # 73 human-authored + 13 promoted = the 86-rule library
-    # (``add_unsq_pad_r`` — the auto-cond candidate admitted off the
-    # real-corpus funnel, docs/results_realcorpus.md).
-    assert len(ALL_RULES) == 86
+    assert shipped_names & _PRIM_FOLD_NAMES == _PRIM_FOLD_NAMES
+    assert shipped_names.isdisjoint(_PRIM_PREMISE_NAMES)
+    assert shipped_names >= MACHINE_SHIPPED - _PRIM_PREMISE_NAMES
+    # 73 human-authored + 13 promoted + 21 prim folds = the 107-rule
+    # library (``add_unsq_pad_r`` — the auto-cond candidate admitted
+    # off the real-corpus funnel, docs/results_realcorpus.md).
+    assert len(ALL_RULES) == 107
     assert len(shipped_names - MACHINE_SHIPPED) == 73
 
 def test_machine_stored_objects_are_unshipped_names():

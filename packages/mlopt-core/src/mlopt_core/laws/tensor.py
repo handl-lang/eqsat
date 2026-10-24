@@ -2898,7 +2898,30 @@ CONV_BN_FOLD = minted.materialize(
     "minted-composite-default.md); the LHS attrs are the seed's "
     "spelling — the law's region is the default-attr eval-mode fold.",
 )
-MINTED_RULES: list[Rewrite] = [CONV_BN_FOLD]
+#: The ``zoo-prim`` mint's admitted fold family — 21 ``prim:synop_*``
+#: laws promoted verbatim out of the domain-side registry
+#: (``mlopt_discovery.shipped_primitives``) into the core bank,
+#: **default-on**.  The fold records are torch-free pattern data — a
+#: ``synop_*`` call is just an op name to core — so the laws ship here
+#: while the ops' *denotation* stays domain-side (the sink binding
+#: that evaluates the spelled subgraph; ``register()`` seats it on
+#: the ambient executor table).  Materializing the family also
+#: declares the ``synop_*`` generators (:mod:`mlopt_core.laws.minted`
+#: — torch-free ``op_def`` entries), so the ops are first-class IR
+#: citizens wherever the laws are.  Extraction honesty: an unbound
+#: ``synop_*`` prices like any unknown op — the elementwise FLOP
+#: default plus launch, a fusion-region boundary singleton, never
+#: foldable-to-param so never billed 0 — and ``backend_cost``'s
+#: ``supported_ops`` bound keeps it unselectable where no sink can
+#: lower it.
+PRIM_FOLDS: list[Rewrite] = list(minted.prim_folds())
+#: The definitional ``synop_*.expand`` premises the prim folds carry
+#: (``rule.premises``) — the cert leg's anchored-derivation axioms.
+#: NOT a saturation set: expanding ``synop_*`` re-adds the unfolded
+#: spelling the fold collapses, so the premises stay out of every
+#: rule list below.
+PRIM_PREMISES: list[Rewrite] = list(minted.prim_premises())
+MINTED_RULES: list[Rewrite] = [CONV_BN_FOLD, *PRIM_FOLDS]
 
 #: Rules that implement the categorical insight: distributivity and naturality.
 CATEGORICAL_RULES: list[Rewrite] = [
@@ -2941,7 +2964,7 @@ CATEGORICAL_RULES: list[Rewrite] = [
 ]
 #: All rules combined — the default saturation set.
 #:
-#: The axiom/lemma split is declared on the rules: 60 of these 84
+#: The axiom/lemma split is declared on the rules: 83 of these 107
 #: carry no derivation — ``kind == "axiom"`` — and 24 carry a recorded
 #: ``derivation`` from the kernel (22 ``"lemma"`` — inverse twins
 #: whose direction buys reach, the emergent ``silu_mul_form``, the
@@ -2959,7 +2982,10 @@ CATEGORICAL_RULES: list[Rewrite] = [
 #: which the shipped-names ``derivation`` field cannot express; the
 #: honest lineage rides the object's ``parents`` chain and the
 #: embedded premise-closure records instead
-#: (:mod:`mlopt_core.laws.minted`).
+#: (:mod:`mlopt_core.laws.minted`).  The ``prim:synop_*`` folds are
+#: axioms by the same convention — each carries its definitional
+#: ``synop_*.expand`` premise as ``rule.premises`` (the cert leg's
+#: anchored channel), never as a shipped derivation.
 #:
 #: LAYOUT_RULES are deliberately NOT in the default: measured on the
 #: laws_effect bench they deliver runtime parity (the NT-GEMM form is
