@@ -1521,6 +1521,25 @@ class EGraph(_ExtractMixin, _ProofMixin):
                         # enode keeps the application that created it.
                         for en in created or ():
                             self._enode_app.setdefault(en, app_idx)
+                        root_en = self._inst_last_enode
+                        if root_en is not None:
+                            # The instantiated RHS *root* is a witness
+                            # even when it hash-consed onto an enode
+                            # that pre-dates the firing (an input
+                            # member, or one another application
+                            # minted first): this application still
+                            # realised it, and tagging it lets
+                            # ``_connect`` expand a target member
+                            # through the firing — the same posture
+                            # ``union``'s witness path takes when it
+                            # tags ``w_en``.  Without it a merge whose
+                            # RHS landed on a pre-existing enode (e.g.
+                            # a ``prim:synop2_*`` fold re-deriving an
+                            # already-interned call inside a deeper
+                            # anchored derivation) is invisible to the
+                            # explainer and degrades to an
+                            # ``egraph_dependent`` stub.
+                            self._enode_app.setdefault(root_en, app_idx)
                     if merged:
                         changed = True
                         self.rule_fires[rule.name] = (

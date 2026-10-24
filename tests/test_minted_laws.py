@@ -332,6 +332,84 @@ def test_prim2_folds_anchored_derivation_replays():
         assert eg.find(nid) == eg.find(root), f.name
 
 
+def test_prim_depth3_anchored_derivation_replays():
+    """A 3-level nested-op premise anchors a replayable certificate.
+
+    The depth-3 mint's shape: a candidate fold ``pat -> synop3_*(..)``
+    whose ``pat`` composes over a shipped ``synop2_*`` op, anchored by
+    ONE definitional premise ``synop3_*.expand: call -> den`` where
+    ``den`` is the full manual denotation (every tier expanded).  The
+    anchored saturation re-derives the fold lhs through the shipped
+    tiers — ``prim:synop_*`` refolds the inner manual shape, then
+    ``prim:synop2_*`` refolds the skeleton — and the certificate's
+    rhs->lhs direction must replay that chain standalone: each step's
+    recorded LHS is the term present at its path when replay reaches
+    it.  (The lhs->rhs direction stays honestly e-graph-dependent —
+    the candidate fold itself is not in the saturation bank, so the
+    compressed call cannot be re-derived.)
+    """
+    from mlopt_core.egraph import Rewrite, verify_certificate
+    from mlopt_core.meta import instantiate_pattern
+
+    name2 = next(
+        n
+        for n in sorted(minted.SYNOP2_SHIPPED)
+        if not minted.prim_fold(n)[0].rhs.attrs
+    )
+    fold2, expand2 = minted.prim_fold(name2)
+    mvars = list(fold2.rhs.args)
+
+    # The mined depth-3 shape: a 2-op skeleton over the shipped
+    # synop2, its compressed call, and the definitional premise
+    # expanding the call to the full manual denotation.
+    pat3 = Op.make("sub", Op.make(name2, *mvars), "w")
+    call3 = Op.make("synop3_test", *mvars, "w")
+    den3 = Op.make("sub", expand2.rhs, "w")
+    expand3 = Rewrite("synop3_test.expand", call3, den3)
+
+    subst = {m: Var(f"x_{m}", _T(2, 4)) for m in mvars}
+    subst["w"] = Var("g", _T(2, 4))
+    lhs_i = instantiate_pattern(pat3, subst)
+    rhs_i = instantiate_pattern(call3, subst)
+
+    rules = [*ALL_RULES, expand3]
+    lib = {r.name for r in ALL_RULES}
+    budgets = {
+        r.name: 600
+        for r in rules
+        if r.name not in lib or tags.EXPANSIVE in r.tags
+    }
+    eg = EGraph()
+    r_lhs = eg.add_term(lhs_i)
+    r_rhs = eg.add_term(rhs_i)
+    eg.run(
+        rules,
+        r_lhs,
+        max_iterations=30,
+        max_nodes=30_000,
+        rule_budgets=budgets,
+    )
+    assert eg.find(r_lhs) == eg.find(r_rhs)
+
+    cert = eg.certificate(rhs_i, lhs_i, root_eid=r_rhs)
+    assert cert.replayable, [
+        (s.rule, s.path, s.note) for s in cert.steps
+    ]
+    # the anchored chain, innermost tier first: expand the call,
+    # refold the depth-1 synop site, refold the depth-2 skeleton.
+    inner = next(
+        n.op for n in _walk_ops(fold2.lhs) if n.op in minted.SYNOP_SHIPPED
+    )
+    assert cert.rules_used == sorted(
+        {expand3.name, f"prim:{name2}", f"prim:{inner}"}
+    )
+    assert cert.steps[0].rule == expand3.name
+    assert cert.steps[0].path == ()
+    assert cert.steps[-1].rule == f"prim:{name2}"
+    assert cert.steps[-1].path == (0,)
+    assert op_repr(verify_certificate(rhs_i, cert)) == op_repr(lhs_i)
+
+
 def test_prim_folds_are_interned_and_declare_ops():
     from mlopt_core.ir import generator
 
