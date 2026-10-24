@@ -68,8 +68,10 @@ __all__ = [
 #: registry into ``DEFAULT`` — torch-free pattern data whose op
 #: denotations stay sink-side — plus the ``--prim-bootstrap`` mint's
 #: 2 depth-2 ``prim:synop2_*`` folds composing over the shipped
-#: ``synop_*`` vocabulary.  The 23 ``synop_*.expand`` /
-#: ``synop2_*.expand`` names are their shipped definitional
+#: ``synop_*`` vocabulary, plus the ``--prim-vocab`` run's 34
+#: depth-3 ``prim:synop3_*`` folds composing over both shipped
+#: tiers.  The 57 ``synop_*.expand`` / ``synop2_*.expand`` /
+#: ``synop3_*.expand`` names are their shipped definitional
 #: premises: machine-admitted axioms the folds carry as
 #: ``rule.premises`` — shipped in the bank but NOT in
 #: ``ALL_RULES`` (expanding the primitive would re-add the unfolded
@@ -142,6 +144,79 @@ MACHINE_SHIPPED: frozenset[str] = frozenset(
         "prim:synop2_d46808a970",
         "synop2_35bbd03301.expand",
         "synop2_d46808a970.expand",
+        # -- the vocab-priced bootstrap mint: 34 depth-3 folds +
+        # their definitional premises (synop3_*.expand unfolds to
+        # the FULL manual denotation — the anchored derivation
+        # closes through the shipped prim:synop*/prim:synop2_*
+        # bank folds, up to three steps)
+        "prim:synop3_04df5fd446",
+        "prim:synop3_083e9c241f",
+        "prim:synop3_0ca31bf1e5",
+        "prim:synop3_0fa19d1ff8",
+        "prim:synop3_1850a07696",
+        "prim:synop3_207ef0ddb7",
+        "prim:synop3_21b9729f32",
+        "prim:synop3_24c5153e5e",
+        "prim:synop3_2fcad5e803",
+        "prim:synop3_304457cd8d",
+        "prim:synop3_39dbcda988",
+        "prim:synop3_426efb3fb1",
+        "prim:synop3_42bb04032d",
+        "prim:synop3_42f015e162",
+        "prim:synop3_490109134e",
+        "prim:synop3_4a015e46ce",
+        "prim:synop3_4b31b4501a",
+        "prim:synop3_4cdc06b88f",
+        "prim:synop3_4cf8732640",
+        "prim:synop3_50a12a0158",
+        "prim:synop3_531bb1872b",
+        "prim:synop3_543ad6d861",
+        "prim:synop3_970223f613",
+        "prim:synop3_9b8631df70",
+        "prim:synop3_acc3c38681",
+        "prim:synop3_c79a6fe687",
+        "prim:synop3_d5452c1c56",
+        "prim:synop3_d8a399f647",
+        "prim:synop3_e8abc00db0",
+        "prim:synop3_ed5918edde",
+        "prim:synop3_efb0c0d7ce",
+        "prim:synop3_f28f7ffd1a",
+        "prim:synop3_f9c72e0a8f",
+        "prim:synop3_fbbba382fc",
+        "synop3_04df5fd446.expand",
+        "synop3_083e9c241f.expand",
+        "synop3_0ca31bf1e5.expand",
+        "synop3_0fa19d1ff8.expand",
+        "synop3_1850a07696.expand",
+        "synop3_207ef0ddb7.expand",
+        "synop3_21b9729f32.expand",
+        "synop3_24c5153e5e.expand",
+        "synop3_2fcad5e803.expand",
+        "synop3_304457cd8d.expand",
+        "synop3_39dbcda988.expand",
+        "synop3_426efb3fb1.expand",
+        "synop3_42bb04032d.expand",
+        "synop3_42f015e162.expand",
+        "synop3_490109134e.expand",
+        "synop3_4a015e46ce.expand",
+        "synop3_4b31b4501a.expand",
+        "synop3_4cdc06b88f.expand",
+        "synop3_4cf8732640.expand",
+        "synop3_50a12a0158.expand",
+        "synop3_531bb1872b.expand",
+        "synop3_543ad6d861.expand",
+        "synop3_970223f613.expand",
+        "synop3_9b8631df70.expand",
+        "synop3_acc3c38681.expand",
+        "synop3_c79a6fe687.expand",
+        "synop3_d5452c1c56.expand",
+        "synop3_d8a399f647.expand",
+        "synop3_e8abc00db0.expand",
+        "synop3_ed5918edde.expand",
+        "synop3_efb0c0d7ce.expand",
+        "synop3_f28f7ffd1a.expand",
+        "synop3_f9c72e0a8f.expand",
+        "synop3_fbbba382fc.expand",
     }
 )
 

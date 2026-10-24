@@ -2906,7 +2906,10 @@ CONV_BN_FOLD = minted.materialize(
 #: shipped ``synop_*`` vocabulary (each embeds its definitional
 #: premise verbatim — ``synop2_*.expand`` unfolds the call to the
 #: FULL manual denotation, so its anchored cert derivation closes
-#: through the shipped depth-1 fold).  The fold records are
+#: through the shipped depth-1 fold), plus the vocab-priced run's 34
+#: depth-3 ``prim:synop3_*`` folds whose skeletons compose over both
+#: shipped tiers (the anchored derivation closes through the shipped
+#: depth-1/depth-2 folds — up to three steps).  The fold records are
 #: torch-free pattern data — a ``synop_*`` call is just an op name
 #: to core — so the laws ship here while the ops' *denotation* stays
 #: domain-side (the sink binding that evaluates the spelled
@@ -2931,6 +2934,10 @@ PRIM_PREMISES: list[Rewrite] = list(minted.prim_premises())
 #: named for callers that want the bootstrap mint's own layer).
 PRIM2_FOLDS: list[Rewrite] = list(minted.prim2_folds())
 PRIM2_PREMISES: list[Rewrite] = list(minted.prim2_premises())
+#: The depth-3 slice — the 34 ``prim:synop3_*`` folds and their
+#: premises (the ``--prim-vocab`` run's mint; same subset relation).
+PRIM3_FOLDS: list[Rewrite] = list(minted.prim3_folds())
+PRIM3_PREMISES: list[Rewrite] = list(minted.prim3_premises())
 MINTED_RULES: list[Rewrite] = [CONV_BN_FOLD, *PRIM_FOLDS]
 
 #: Rules that implement the categorical insight: distributivity and naturality.
@@ -2974,7 +2981,7 @@ CATEGORICAL_RULES: list[Rewrite] = [
 ]
 #: All rules combined — the default saturation set.
 #:
-#: The axiom/lemma split is declared on the rules: 85 of these 109
+#: The axiom/lemma split is declared on the rules: 119 of these 143
 #: carry no derivation — ``kind == "axiom"`` — and 24 carry a recorded
 #: ``derivation`` from the kernel (22 ``"lemma"`` — inverse twins
 #: whose direction buys reach, the emergent ``silu_mul_form``, the
@@ -2993,10 +3000,10 @@ CATEGORICAL_RULES: list[Rewrite] = [
 #: honest lineage rides the object's ``parents`` chain and the
 #: embedded premise-closure records instead
 #: (:mod:`mlopt_core.laws.minted`).  The ``prim:synop_*`` /
-#: ``prim:synop2_*`` folds are axioms by the same convention — each
-#: carries its definitional ``synop_*.expand`` premise as
-#: ``rule.premises`` (the cert leg's anchored channel), never as a
-#: shipped derivation.
+#: ``prim:synop2_*`` / ``prim:synop3_*`` folds are axioms by the same
+#: convention — each carries its definitional ``synop*_*.expand``
+#: premise as ``rule.premises`` (the cert leg's anchored channel),
+#: never as a shipped derivation.
 #:
 #: LAYOUT_RULES are deliberately NOT in the default: measured on the
 #: laws_effect bench they deliver runtime parity (the NT-GEMM form is

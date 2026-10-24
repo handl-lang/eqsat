@@ -226,6 +226,9 @@ def test_laws_exports_every_rewrite():
     # + 2 depth-2 prim:synop2_* folds + 2 synop2_*.expand premises
     # (the --prim-bootstrap mint — skeletons spelled through the
     # shipped synop_* vocabulary)
+    # + 34 depth-3 prim:synop3_* folds + 34 synop3_*.expand premises
+    # (the --prim-vocab run — skeletons spelled through both shipped
+    # tiers)
     # + 189 prior-art bank rules (opt-in PRIOR_ART_RULES — the
     # TASO/Inductor-XLA/corpus-family transforms, held out of the
     # default set; where_same / logical_not_inv dropped as honest
@@ -235,23 +238,25 @@ def test_laws_exports_every_rewrite():
     # broadcast-sink inverse of the shipped mul_unsq_nat — the two
     # review-queue demotions)
     # rewrites.
-    assert len(found) == 530
+    assert len(found) == 598
 
 
 def test_all_rules_count_unchanged():
     # The default set excludes LAYOUT_RULES (opt-in — closure-cost
     # regression documented in laws.tensor); WITH_LAYOUT = default + 77.
-    # 109 = 86 (the previous bank) + the 21 ``prim:synop_*`` folds —
+    # 143 = 86 (the previous bank) + the 21 ``prim:synop_*`` folds —
     # the zoo-prim mint's admitted set, promoted default-on out of
     # the domain registry (their ``synop_*.expand`` premises ship
     # attached, never as saturation rules) — + the 2 depth-2
-    # ``prim:synop2_*`` folds (the ``--prim-bootstrap`` mint).
-    assert len(laws.all_rules()) == 109
+    # ``prim:synop2_*`` folds (the ``--prim-bootstrap`` mint)
+    # + the 34 depth-3 ``prim:synop3_*`` folds (the
+    # ``--prim-vocab`` run).
+    assert len(laws.all_rules()) == 143
     assert laws.all_rules() == laws.ALL_RULES
     assert len(laws.ALL_RULES) == (
         len(laws.SIMPLIFICATION_RULES) + len(laws.CATEGORICAL_RULES)
     )
-    assert len(laws.ALL_RULES_WITH_LAYOUT) == 186
+    assert len(laws.ALL_RULES_WITH_LAYOUT) == 220
     # each call returns a fresh list, not the shared ALL_RULES object
     assert laws.all_rules() is not laws.ALL_RULES
 
@@ -262,12 +267,13 @@ def test_collections_split_by_domain():
     # SIMPLIFICATION_RULES — + ``add_unsq_pad_r`` (the real-corpus
     # auto-cond admission, docs/results_realcorpus.md).
     assert len(laws.SIMPLIFICATION_RULES) == 35
-    # 74 = 49 + the machine-minted ``conv_bn_fold`` composite
+    # 108 = 49 + the machine-minted ``conv_bn_fold`` composite
     # (MINTED_RULES — project/retros/minted-composite-default.md)
     # + ``sdpa_fold_mul_nomask`` (the sdpa_expand pair's refold)
     # + the 21 ``prim:synop_*`` folds (the zoo-prim mint, MINTED_RULES)
-    # + the 2 depth-2 ``prim:synop2_*`` folds (the bootstrap mint).
-    assert len(laws.CATEGORICAL_RULES) == 74
+    # + the 2 depth-2 ``prim:synop2_*`` folds (the bootstrap mint)
+    # + the 34 depth-3 ``prim:synop3_*`` folds (the vocab run).
+    assert len(laws.CATEGORICAL_RULES) == 108
     assert len(laws.SCAN_LAWS) == 6
     assert len(laws.SCAN_DIAG_LAWS) == 16
     # layout: 12 unary + 4 binary pointwise commutations x 2 spellings
@@ -392,11 +398,11 @@ def test_axiom_lemma_marker_covers_all_rules():
     # ``sdpa_expand*``, is opt-in and cannot be named a premise here).
     # + ``add_unsq_pad_r``: the real-corpus auto-cond admission carries
     # no derivation — an axiom like the other pad strips.
-    # + the 21 ``prim:synop_*`` folds + 2 ``prim:synop2_*`` folds:
-    # axioms by the same convention — each carries its
-    # ``synop_*.expand`` definitional premise as ``rule.premises``,
-    # not a shipped ``derivation``.
-    assert len(kinds["axiom"]) == 85
+    # + the 21 ``prim:synop_*`` folds + 2 ``prim:synop2_*`` folds
+    # + 34 ``prim:synop3_*`` folds: axioms by the same convention —
+    # each carries its ``synop*_*.expand`` definitional premise as
+    # ``rule.premises``, not a shipped ``derivation``.
+    assert len(kinds["axiom"]) == 119
     assert len(kinds["lemma"]) == 22
     assert len(kinds["redundant"]) == 2
     # the redundant kind rides on the tags.REDUNDANT constant
