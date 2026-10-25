@@ -116,3 +116,47 @@ def test_query_surface() -> None:
         (row["name"],),
     )[0]["payload"]
     assert _sha(json.loads(payload)) == row["sha"]
+
+
+def test_measurements_upsert(tmp_path: Path) -> None:
+    """A measurement is a fact beside the record, replaced on re-measure."""
+    db = tmp_path / "minted.db"
+    store.emit(store.load(), db, replace=True)
+
+    rows = [
+        {
+            "name": "synop_x",
+            "metric": "pay_wall",
+            "arm": "marginal",
+            "value": 1.42,
+            "unit": "ratio",
+        },
+        {
+            "name": "synop_x",
+            "metric": "pay_wall",
+            "arm": "e2e",
+            "value": 1.31,
+            "unit": "ratio",
+        },
+    ]
+    assert store.record_measurements(rows, db, run="test") == 2
+    got = store.measurements("synop_x", db)
+    assert {r["arm"]: r["value"] for r in got} == {
+        "marginal": 1.42,
+        "e2e": 1.31,
+    }
+
+    # re-measuring updates in place — no second row, same count
+    again = [
+        {
+            "name": "synop_x",
+            "metric": "pay_wall",
+            "arm": "marginal",
+            "value": 1.05,
+            "unit": "ratio",
+        }
+    ]
+    store.record_measurements(again, db, run="test")
+    got = store.measurements("synop_x", db)
+    assert len(got) == 2
+    assert {r["arm"]: r["value"] for r in got}["marginal"] == 1.05

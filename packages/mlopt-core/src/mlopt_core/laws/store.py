@@ -44,7 +44,8 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterable, Iterator, Mapping
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -54,7 +55,9 @@ __all__ = [
     "connect",
     "emit",
     "load",
+    "measurements",
     "query",
+    "record_measurements",
     "summary",
     "tiers",
 ]
@@ -77,6 +80,20 @@ CREATE TABLE IF NOT EXISTS records (
 );
 CREATE INDEX IF NOT EXISTS records_tier_seq ON records (tier, seq);
 CREATE INDEX IF NOT EXISTS records_kind     ON records (kind);
+
+-- Measurements sit beside the records: a claim's measured pay belongs to
+-- the object that carries the claim.  Separate table so the payload stays
+-- pure data and a re-measure is an upsert, never a record edit.
+CREATE TABLE IF NOT EXISTS measurements (
+    name     TEXT NOT NULL,
+    metric   TEXT NOT NULL,
+    arm      TEXT NOT NULL,
+    run      TEXT NOT NULL,
+    value    REAL NOT NULL,
+    unit     TEXT,
+    recorded TEXT NOT NULL,
+    PRIMARY KEY (name, metric, arm, run)
+);
 """
 
 
@@ -233,5 +250,68 @@ def iter_records(
     """Stream rows (tier, name, kind, sha, payload) in store order."""
     yield from query(
         "SELECT tier, name, kind, sha, payload FROM records ORDER BY tier, seq",
+        path=path,
+    )
+
+
+def record_measurements(
+    rows: Iterable[Mapping[str, Any]],
+    path: Path | str | None = None,
+    *,
+    run: str | None = None,
+) -> int:
+    """Record measured facts about the bank — the pay leg's write path.
+
+    Each row is ``{name, metric, value, arm?, unit?, run?}`` (``arm``
+    defaults to ``"-"``, ``unit`` to ``None``, ``run`` to *run* or
+    ``"manual"``).  Upserts by ``(name, metric, arm, run)``, so
+    re-measuring a claim replaces its number instead of stacking rows.
+    Returns the rows written.
+    """
+    stamp = datetime.now(UTC).isoformat(timespec="seconds")
+    conn = connect(path, read_only=False)
+    try:
+        with conn:
+            written = 0
+            for row in rows:
+                conn.execute(
+                    "INSERT INTO measurements"
+                    " (name, metric, arm, run, value, unit, recorded)"
+                    " VALUES (?, ?, ?, ?, ?, ?, ?)"
+                    " ON CONFLICT (name, metric, arm, run) DO UPDATE SET"
+                    " value = excluded.value, unit = excluded.unit,"
+                    " recorded = excluded.recorded",
+                    (
+                        row["name"],
+                        row["metric"],
+                        row.get("arm", "-"),
+                        row.get("run") or run or "manual",
+                        float(row["value"]),
+                        row.get("unit"),
+                        stamp,
+                    ),
+                )
+                written += 1
+            return written
+    finally:
+        conn.close()
+
+
+def measurements(
+    name: str | None = None,
+    path: Path | str | None = None,
+) -> list[sqlite3.Row]:
+    """Return recorded measurements, newest last; filtered by *name*."""
+    if name is None:
+        return query(
+            "SELECT name, metric, arm, run, value, unit, recorded"
+            " FROM measurements ORDER BY recorded, name, metric",
+            path=path,
+        )
+    return query(
+        "SELECT name, metric, arm, run, value, unit, recorded"
+        " FROM measurements WHERE name = ?"
+        " ORDER BY recorded, metric, arm",
+        (name,),
         path=path,
     )
