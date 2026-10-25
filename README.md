@@ -44,3 +44,14 @@ domain test files (`tests/test_ported_*`, plus the duck-typed
 `tests/test_value_passes.py` / `tests/test_profile.py`) — tighten,
 never lower.  The suite includes two `slow`-marked e-graph
 saturations (~17 min); iterate with `-m "not slow"` (~35 s).
+
+## Documentation
+
+Published site (Diátaxis): <https://handl-lang.github.io/docs/eqsat/>
+
+- [Reference](https://handl-lang.github.io/docs/eqsat/reference/) — API and schemas
+- [How-to](https://handl-lang.github.io/docs/eqsat/how-to/) — task recipes
+- [Explanation](https://handl-lang.github.io/docs/eqsat/explanation/) — design and rationale
+
+Project docs (ADRs, backlog, design notes) ship on the `project` branch and are
+published under [`/eqsat/project/`](https://handl-lang.github.io/docs/eqsat/project/).
