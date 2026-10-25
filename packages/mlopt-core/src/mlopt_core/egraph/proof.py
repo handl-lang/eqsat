@@ -11,12 +11,13 @@ from mlopt_core.egraph.certs import (
 from mlopt_core.egraph.terms import (
     _replace_subterm,
     _subterm,
+    _term_eq,
     _term_instantiate,
     _term_match,
     _term_paths,
 )
 from mlopt_core.egraph.types import ENode, _LeafRegistry
-from mlopt_core.ir import Op, op_repr
+from mlopt_core.ir import Op
 
 if TYPE_CHECKING:
     from mlopt_core.egraph.certs import ProofEdge
@@ -40,11 +41,15 @@ class _ProofMixin:
         truncation_level: int
         _CERT_MAX_DEPTH: int
         _CERT_MAX_STEPS: int
+        _CERT_MAX_CALLS: int
 
         def find(self, eid: int) -> int: ...
 
         def _locate(
-            self, term: Any, eid: int | None = None
+            self,
+            term: Any,
+            eid: int | None = None,
+            _memo: dict | None = None,
         ) -> tuple[int | None, ENode | None]: ...
 
         def _class_of_term(
@@ -117,14 +122,16 @@ class _ProofMixin:
                 return _memo[eid]
         return None
 
-    def _app_for_member(self, term: Any):
+    def _app_for_member(self, term: Any, _cmemo: dict | None = None):
         """Return the rule application whose RHS root realises *term*'s root.
 
         Returns ``(app, enode)`` — ``app`` is ``None`` when the member
         enode is not the RHS root of any recorded application (input
-        term, internal RHS node, or pass-introduced).
+        term, internal RHS node, or pass-introduced).  ``_cmemo`` is the
+        certificate-wide ``_class_of_term`` cache shared through
+        :meth:`_locate`.
         """
-        _eid, en = self._locate(term)
+        _eid, en = self._locate(term, _memo=_cmemo)
         if en is None:
             return None, None
         ai = self._enode_app.get(en)
@@ -149,26 +156,36 @@ class _ProofMixin:
             return None, en
         return app, en
 
-    def _resolve_subst(self, subst: dict) -> dict | None:
+    def _resolve_subst(
+        self, subst: dict, _memo: dict | None = None
+    ) -> dict | None:
         """Resolve a fired binding to concrete terms.
 
         Metavariable eids map to their class's :meth:`_oldest_term`;
         ``"$attr:"`` keys carry their concrete value through.  ``None``
-        when a bound class is unresolvable (cyclic).
+        when a bound class is unresolvable (cyclic).  ``_memo`` is the
+        certificate-wide ``_oldest_term`` cache — applications re-bind
+        the same classes constantly.
         """
         out = {}
         for k, v in subst.items():
             if k.startswith("$attr:"):
                 out[k] = v
             else:
-                t = self._oldest_term(v)
+                t = self._oldest_term(v, _memo=_memo)
                 if t is None:
                     return None
                 out[k] = t
         return out
 
     def _connect(
-        self, s: Any, t: Any, pos: tuple, steps: list, depth: int
+        self,
+        s: Any,
+        t: Any,
+        pos: tuple,
+        steps: list,
+        depth: int,
+        _ctx: dict | None = None,
     ) -> bool:
         """Emit steps rewriting the subterm at ``pos`` from ``s`` to ``t``.
 
@@ -188,12 +205,35 @@ class _ProofMixin:
            pre-existing hash-consed enode (no expandable enode exists).
         4. **e-graph-dependent stub**: the merge is real but has no
            standalone derivation (non-local pass, manual union).
+
+        ``_ctx`` carries the certificate-wide caches (created on first
+        entry): ``eq`` the ``_term_eq`` memo, ``cls`` the
+        ``_class_of_term`` memo, ``oldest`` the ``_oldest_term`` memo,
+        ``pairs`` the ``(s, t)``-pair memo, and ``calls`` the work
+        counter.  The pair memo is what makes the traversal polynomial:
+        resolved terms are *shared DAGs* (eclass cones), so the same
+        ``(s, t)`` pair is reached through exponentially many term-tree
+        paths — without it a depth-``d`` shared pair triggers ``2**d``
+        derivations.  A hit re-emits the recorded steps shifted to the
+        new position (the derivation is deterministic: a recomputation
+        would emit exactly those steps).  ``calls`` bounds the pair
+        space itself: past ``_CERT_MAX_CALLS`` the remaining gaps close
+        as honest ``<budget>`` stubs.
         """
-        if op_repr(s) == op_repr(t):
+        if _ctx is None:
+            _ctx = {
+                "eq": {},
+                "cls": {},
+                "oldest": {},
+                "pairs": {},
+                "calls": 0,
+            }
+        if _term_eq(s, t, _ctx["eq"]):
             return True
         if (
             depth > self._CERT_MAX_DEPTH
             or len(steps) > self._CERT_MAX_STEPS
+            or _ctx["calls"] > self._CERT_MAX_CALLS
         ):
             steps.append(
                 CertStep(
@@ -207,12 +247,65 @@ class _ProofMixin:
                 )
             )
             return False
+        _ctx["calls"] += 1
+        key = (id(s), id(t))
+        hit = _ctx["pairs"].get(key)
+        if hit is not None:
+            _hs, _ht, ok, template = hit
+            if _hs is s and _ht is t:
+                steps.extend(
+                    CertStep(
+                        st.rule,
+                        (*pos, *st.path),
+                        st.lhs,
+                        st.rhs,
+                        st.bindings,
+                        st.egraph_dependent,
+                        st.note,
+                    )
+                    for st in template
+                )
+                return ok
+        start = len(steps)
+        ok = self._connect_inner(s, t, pos, steps, depth, _ctx)
+        # Store the terms in the value so the id-keyed memo pins them —
+        # the ids in ``key`` cannot be recycled while the entry lives.
+        # Paths are stored relative to ``pos`` for re-emission at other
+        # occurrences of this pair.
+        _ctx["pairs"][key] = (
+            s,
+            t,
+            ok,
+            [
+                CertStep(
+                    st.rule,
+                    st.path[len(pos) :],
+                    st.lhs,
+                    st.rhs,
+                    st.bindings,
+                    st.egraph_dependent,
+                    st.note,
+                )
+                for st in steps[start:]
+            ],
+        )
+        return ok
 
-        app, _en = self._app_for_member(t)
+    def _connect_inner(
+        self,
+        s: Any,
+        t: Any,
+        pos: tuple,
+        steps: list,
+        depth: int,
+        _ctx: dict,
+    ) -> bool:
+        """Run the derivation strategy under ``_connect``'s memo."""
+        app, _en = self._app_for_member(t, _ctx["cls"])
         if app is not None:
             rule = self._rule_objs.get(app["rule"])
             bound = (
-                self._resolve_subst(app["subst"])
+                self._resolve_subst(app["subst"], _ctx["oldest"])
                 if rule is not None
                 else None
             )
@@ -220,7 +313,7 @@ class _ProofMixin:
                 rule = cast("Rewrite", rule)
                 L = _term_instantiate(rule.lhs, bound)
                 R = _term_instantiate(rule.rhs, bound)
-                ok = self._connect(s, L, pos, steps, depth + 1)
+                ok = self._connect(s, L, pos, steps, depth + 1, _ctx)
                 steps.append(CertStep(rule.name, pos, L, R, bound))
                 if isinstance(R, Op) and isinstance(t, Op):
                     for i in range(len(t.args)):
@@ -230,6 +323,7 @@ class _ProofMixin:
                             (*pos, i),
                             steps,
                             depth + 1,
+                            _ctx,
                         ):
                             ok = False
                 return ok
@@ -241,8 +335,8 @@ class _ProofMixin:
             and s.attrs == t.attrs
             and len(s.args) == len(t.args)
         ):
-            cs = [self._class_of_term(a) for a in s.args]
-            ct = [self._class_of_term(a) for a in t.args]
+            cs = [self._class_of_term(a, _ctx["cls"]) for a in s.args]
+            ct = [self._class_of_term(a, _ctx["cls"]) for a in t.args]
             if all(
                 a is not None and a == b
                 for a, b in zip(cs, ct, strict=True)
@@ -255,11 +349,12 @@ class _ProofMixin:
                         (*pos, i),
                         steps,
                         depth + 1,
+                        _ctx,
                     ):
                         ok = False
                 return ok
 
-        path = self._edge_path(s, t, pos)
+        path = self._edge_path(s, t, pos, _eqmemo=_ctx["eq"])
         if path is not None:
             steps.extend(path)
             return True
@@ -285,6 +380,7 @@ class _ProofMixin:
         depth: int = 0,
         _seen: set | None = None,
         _budget: list | None = None,
+        _eqmemo: dict | None = None,
     ) -> list | None:
         """Bounded search for a replayable step sequence ``s -> t``.
 
@@ -292,16 +388,19 @@ class _ProofMixin:
         re-matched directly against the real term ``s`` — each emitted
         step is a genuine rule instance, so any path found is a valid
         derivation.  Returns the list of steps (all located at ``pos``),
-        or ``None`` when no short path exists.
+        or ``None`` when no short path exists.  ``_seen`` holds terms
+        (content-hashed — ``op_repr`` keys tree-expand exponentially on
+        shared DAGs); ``_eqmemo`` is the certificate-wide ``_term_eq``
+        cache.
         """
-        if op_repr(s) == op_repr(t):
+        if _term_eq(s, t, _eqmemo):
             return []
         if _seen is None:
             _seen, _budget = set(), [512]
         _budget = cast("list[int]", _budget)
         if depth > 16 or _budget[0] <= 0:
             return None
-        _seen.add(op_repr(s))
+        _seen.add(s)
         for rule in self._rule_objs.values():
             m = _term_match(rule.lhs, s)
             if m is None:
@@ -315,10 +414,12 @@ class _ProofMixin:
                     continue
                 inst.update(extra)
             r = _term_instantiate(rule.rhs, inst)
-            if op_repr(r) in _seen:
+            if r in _seen:
                 continue
             _budget[0] -= 1
-            rest = self._edge_path(r, t, pos, depth + 1, _seen, _budget)
+            rest = self._edge_path(
+                r, t, pos, depth + 1, _seen, _budget, _eqmemo
+            )
             if rest is not None:
                 return [CertStep(rule.name, pos, s, r, inst), *rest]
         return None
@@ -390,7 +491,7 @@ class _ProofMixin:
             src_term, dst_term, root_eid, cost_fn
         )
         if not self._track:
-            if op_repr(src_term) == op_repr(dst_term):
+            if _term_eq(src_term, dst_term):
                 steps0: list = []
             else:
                 steps0 = [
@@ -498,14 +599,13 @@ class _ProofMixin:
         root_eid, dst_term = self._resolve_dst(
             src_term, dst_term, root_eid, cost_fn
         )
-        dst_repr = op_repr(dst_term)
-        if op_repr(src_term) == dst_repr:
+        if _term_eq(src_term, dst_term):
             return [[]]
 
         rules = list(self._rule_objs.values())
-        # frontier entries: (term, steps_so_far, seen_term_reprs)
+        # frontier entries: (term, steps_so_far, seen_terms)
         frontier: list[tuple[Any, list, frozenset]] = [
-            (src_term, [], frozenset({op_repr(src_term)}))
+            (src_term, [], frozenset({src_term}))
         ]
         paths: list[list] = []
         sigs: set = set()
@@ -537,12 +637,11 @@ class _ProofMixin:
                             inst.update(extra)
                         r = _term_instantiate(rule.rhs, inst)
                         new_term = _replace_subterm(term, path, r)
-                        new_repr = op_repr(new_term)
                         nsteps = [
                             *steps,
                             CertStep(rule.name, path, sub, r, inst),
                         ]
-                        if new_repr == dst_repr:
+                        if _term_eq(new_term, dst_term):
                             sig = tuple(
                                 (s.rule, s.path) for s in nsteps
                             )
@@ -551,9 +650,9 @@ class _ProofMixin:
                             ):  # pragma: no branch — full (rule,path) histories can't collide
                                 sigs.add(sig)
                                 paths.append(nsteps)
-                        elif new_repr not in seen:
+                        elif new_term not in seen:
                             nxt.append(
-                                (new_term, nsteps, seen | {new_repr})
+                                (new_term, nsteps, seen | {new_term})
                             )
             frontier = nxt
         return paths

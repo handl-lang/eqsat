@@ -2,13 +2,79 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from mlopt_core.egraph.certs import (
     Certificate,
     CertificateVerificationError,
 )
-from mlopt_core.ir import Op, op_repr
+from mlopt_core.ir import Op, op_repr_dag
+
+_MEMO_MISS = object()
+
+
+def _term_eq(a: Any, b: Any, _memo: dict | None = None) -> bool:
+    """Structural term equality — the ``op_repr`` check, DAG-aware.
+
+    ``op_repr(a) == op_repr(b)`` renders each term as a *tree*: a
+    sharing-heavy term DAG (``_oldest_term`` resolutions, unrolled
+    scans — eclass cones are shared by construction) tree-expands
+    exponentially, so a single equality check is itself the
+    certificate path's superlinear blowup (measured: a depth-22
+    shared DAG cost ~15 s per compare; depth ~40 never finishes).
+    This compares the same structure directly and memoises decided
+    object pairs, so shared sub-DAGs are visited once.
+
+    Semantics mirror ``op_repr`` equality: Op nodes compare op name,
+    the repr-keyed ``_ak`` attr signature (the interning identity —
+    one notch stricter than ``op_repr``'s ``str`` rendering, which
+    conflated ``1`` with ``"1"``), and args pairwise; non-Op leaves
+    compare by ``repr`` exactly as ``op_repr`` renders them.  An Op
+    never equals a non-Op.  The ``_memo`` dict may be shared across
+    calls to amortise repeated compares over the same cones.
+    """
+    if a is b:
+        return True
+    if _memo is None:
+        _memo = {}
+    try:
+        hit = _memo.get((a, b), _MEMO_MISS)
+    except TypeError:
+        hit = _MEMO_MISS  # unhashable leaf — skip memoisation
+    if hit is not _MEMO_MISS:
+        return cast("bool", hit)
+    if isinstance(a, Op) and isinstance(b, Op):
+        res = (
+            a.op == b.op
+            and a._ak == b._ak
+            and len(a.args) == len(b.args)
+            and all(
+                _term_eq(x, y, _memo)
+                for x, y in zip(a.args, b.args, strict=True)
+            )
+        )
+    elif isinstance(a, Op) or isinstance(b, Op):
+        res = False
+    else:
+        res = repr(a) == repr(b)
+    try:
+        _memo[(a, b)] = res
+    except TypeError:  # pragma: no cover — unhashable leaf
+        return res
+    return res
+
+
+def _brief(term: Any, limit: int = 160) -> str:
+    """Bounded render for diagnostics.
+
+    ``op_repr`` can be exponentially large on a shared term DAG;
+    ``op_repr_dag`` is linear in the distinct nodes, then truncated
+    to ``limit`` chars.
+    """
+    s = op_repr_dag(term)
+    if len(s) > limit:
+        return s[: limit - 3] + "..."
+    return s
 
 
 def _term_paths(term: Any, prefix: tuple = ()):
@@ -53,7 +119,7 @@ def _term_match(
         if prev is None:
             subst[pattern] = term
             return subst
-        return subst if op_repr(prev) == op_repr(term) else None
+        return subst if _term_eq(prev, term) else None
     if isinstance(pattern, Op):
         if not isinstance(term, Op) or term.op != pattern.op:
             return None
@@ -116,7 +182,7 @@ def _replace_subterm(term: Any, path: tuple, new: Any) -> Any:
         return new
     if not isinstance(term, Op) or path[0] >= len(term.args):
         raise CertificateVerificationError(
-            f"cannot descend path {list(path)} in {op_repr(term)}"
+            f"cannot descend path {list(path)} in {_brief(term)}"
         )
     i = path[0]
     args = list(term.args)
@@ -146,25 +212,26 @@ def verify_certificate(
             f"{cert.n_egraph_dependent} e-graph-dependent step(s) "
             "cannot be replayed standalone"
         )
-    if cert.src is not None and op_repr(src_term) != op_repr(cert.src):
+    if cert.src is not None and not _term_eq(src_term, cert.src):
         raise CertificateVerificationError(
-            f"source mismatch: certificate proves {op_repr(cert.src)}, "
-            f"got {op_repr(src_term)}"
+            f"source mismatch: certificate proves {_brief(cert.src)}, "
+            f"got {_brief(src_term)}"
         )
     current = src_term
+    eq_memo: dict = {}
     for i, step in enumerate(cert.steps):
         sub = _subterm(current, step.path)
         if sub is None:
             raise CertificateVerificationError(
                 f"step {i} ({step.rule}): path {list(step.path)} "
-                f"absent in {op_repr(current)}"
+                f"absent in {_brief(current)}"
             )
         if step.egraph_dependent:
-            if op_repr(sub) != op_repr(step.lhs):
+            if not _term_eq(sub, step.lhs, eq_memo):
                 raise CertificateVerificationError(
                     f"step {i} (e-graph-dependent): expected "
-                    f"{op_repr(step.lhs)} at {list(step.path)}, "
-                    f"found {op_repr(sub)}"
+                    f"{_brief(step.lhs)} at {list(step.path)}, "
+                    f"found {_brief(sub)}"
                 )
             current = _replace_subterm(current, step.path, step.rhs)
             continue
@@ -173,16 +240,16 @@ def verify_certificate(
             raise CertificateVerificationError(
                 f"step {i}: unknown rule {step.rule!r}"
             )
-        if op_repr(step.lhs) != op_repr(sub):
+        if not _term_eq(step.lhs, sub, eq_memo):
             raise CertificateVerificationError(
                 f"step {i} ({step.rule}): recorded LHS instance "
-                f"{op_repr(step.lhs)} != subterm {op_repr(sub)}"
+                f"{_brief(step.lhs)} != subterm {_brief(sub)}"
             )
         m = _term_match(rule.lhs, sub)
         if m is None:
             raise CertificateVerificationError(
                 f"step {i} ({step.rule}): LHS does not match "
-                f"{op_repr(sub)}"
+                f"{_brief(sub)}"
             )
         for k, v in step.bindings.items():
             if k not in m:
@@ -190,7 +257,7 @@ def verify_certificate(
             same = (
                 m[k] == v
                 if k.startswith("$attr:")
-                else op_repr(m[k]) == op_repr(v)
+                else _term_eq(m[k], v, eq_memo)
             )
             if not same:
                 raise CertificateVerificationError(
@@ -211,15 +278,15 @@ def verify_certificate(
                 )
             inst.update(extra)
         rhs = _term_instantiate(rule.rhs, inst)
-        if op_repr(rhs) != op_repr(step.rhs):
+        if not _term_eq(rhs, step.rhs, eq_memo):
             raise CertificateVerificationError(
                 f"step {i} ({step.rule}): recorded RHS "
-                f"{op_repr(step.rhs)} != instantiated {op_repr(rhs)}"
+                f"{_brief(step.rhs)} != instantiated {_brief(rhs)}"
             )
         current = _replace_subterm(current, step.path, rhs)
-    if op_repr(current) != op_repr(cert.dst):
+    if not _term_eq(current, cert.dst, eq_memo):
         raise CertificateVerificationError(
-            f"replay produced {op_repr(current)}, "
-            f"certificate claims {op_repr(cert.dst)}"
+            f"replay produced {_brief(current)}, "
+            f"certificate claims {_brief(cert.dst)}"
         )
     return current

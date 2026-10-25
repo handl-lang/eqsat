@@ -1003,6 +1003,13 @@ class _ExtractMixin:
 
     _CERT_MAX_DEPTH = 400
     _CERT_MAX_STEPS = 20_000
+    #: Upper bound on ``_connect`` work per certificate: one unit per
+    #: distinct ``(s, t)`` subterm pair visited.  The pair memo makes
+    #: the traversal polynomial (shared-DAG cones are resolved once),
+    #: but the pair space itself is bounded here — exhaustion degrades
+    #: remaining gaps to honest ``<budget>`` e-graph-dependent stubs
+    #: rather than grinding a dense saturated graph forever.
+    _CERT_MAX_CALLS = 200_000
 
     def _class_of_term(
         self, term: Any, _memo: dict | None = None
@@ -1036,7 +1043,12 @@ class _ExtractMixin:
         _memo[term] = res
         return res
 
-    def _locate(self, term: Any, eid: int | None = None):
+    def _locate(
+        self,
+        term: Any,
+        eid: int | None = None,
+        _memo: dict | None = None,
+    ):
         """``(eid, enode)`` realising *term* inside its e-class.
 
         The enode is matched by structure — op, attrs, and per-child
@@ -1046,8 +1058,10 @@ class _ExtractMixin:
         attrs compare is numerically lenient and children compare by
         canonical class, so two distinct members can both match, and
         "the first match" must not be the set's hash order.
+        ``_memo`` is an optional ``_class_of_term`` cache shared with
+        the caller (the certificate path reuses one across lookups).
         """
-        memo: dict = {}
+        memo: dict = {} if _memo is None else _memo
         if eid is None:
             eid = self._class_of_term(term, memo)
         if eid is None:

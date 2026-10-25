@@ -20,7 +20,16 @@ from mlopt_core.egraph import (
     EGraph,
     verify_certificate,
 )
-from mlopt_core.ir import Const, Op, Param, TensorType, Var, op_repr
+from mlopt_core.egraph.terms import _term_eq
+from mlopt_core.ir import (
+    Const,
+    Op,
+    Param,
+    TensorType,
+    Var,
+    op_repr,
+    op_repr_dag,
+)
 from mlopt_core.laws import pair_shared_input_linears
 
 
@@ -344,3 +353,118 @@ def test_certificate_default_extracts_best():
     cert = eg.certificate(src)
     assert op_repr(cert.dst) == "x"
     assert op_repr(verify_certificate(src, cert)) == "x"
+
+
+# ---------------------------------------------------------------------------
+#  (e) shared-DAG terms — the certificate path must stay polynomial
+# ---------------------------------------------------------------------------
+
+
+def _shared_dag(d, leaf_name="h"):
+    """A depth-``d`` maximally-shared term DAG: ``d`` distinct nodes,
+    ``2**d`` as a tree — the shape ``op_repr`` tree-expands
+    exponentially (and the reason certificate extraction used to run
+    unbounded on dense saturated graphs, where ``_oldest_term``
+    resolutions are shared cones by construction)."""
+    h = Var(leaf_name, _t())
+    for _ in range(d):
+        h = Op.make("add", h, h)
+    return h
+
+
+def _shared_dag_pair(d):
+    """Two depth-``d`` shared DAGs differing only at the base —
+    ``add(x, y)`` vs ``add(y, x)`` — merged by COMM_ADD.  Congruence
+    descent reaches each ``(a_i, b_i)`` pair through ``2**i`` tree
+    paths; without the ``_connect`` pair memo that many derivations
+    were recomputed."""
+    x, y = Var("x", _t()), Var("y", _t())
+    a, b = Op.make("add", x, y), Op.make("add", y, x)
+    for _ in range(d):
+        a = Op.make("mul", a, a)
+        b = Op.make("mul", b, b)
+    return a, b
+
+
+def test_certificate_shared_dag_term_bounded():
+    """A merge of depth-40 shared-DAG terms certifies in one step.
+
+    Pre-fix, ``_connect``'s entry ``op_repr(s) == op_repr(t)`` tree-
+    expanded the DAG into a ~2**40-character render — the certificate
+    path ran unbounded (measured: verify_law candidates grinding for
+    2.5 h on a saturated 4000-node graph).  ``_term_eq`` compares the
+    DAG itself."""
+    x = Var("x", _t())
+    A = _shared_dag(40)
+    src, dst = Op.make("add", A, x), Op.make("add", x, A)
+    eg = EGraph()
+    root = eg.add_term(src)
+    eg.run([R.COMM_ADD], root, max_iterations=4)
+    t0 = time.perf_counter()
+    cert = eg.certificate(src, dst, root_eid=root)
+    out = verify_certificate(src, cert)
+    elapsed = time.perf_counter() - t0
+    assert cert.replayable
+    assert cert.n_steps == 1
+    assert cert.rules_used == ["comm_add"]
+    assert op_repr_dag(out) == op_repr_dag(dst)
+    assert elapsed < 30.0  # sanity bound; runs in milliseconds
+
+
+def test_certificate_pairwise_shared_dag_bounded():
+    """Pairwise congruence over shared DAGs: ``_connect`` derives each
+    ``(s, t)`` pair once and re-emits the recorded steps shifted to
+    each later position — ``2**12`` leaf rewrites from ``12`` actual
+    derivations."""
+    a, b = _shared_dag_pair(12)
+    eg = EGraph()
+    ra = eg.add_term(a)
+    eg.run([R.COMM_ADD], ra, max_iterations=4)
+    t0 = time.perf_counter()
+    cert = eg.certificate(a, b, root_eid=ra)
+    out = verify_certificate(a, cert)
+    elapsed = time.perf_counter() - t0
+    assert cert.replayable
+    assert cert.n_steps == 4096  # 2**12 leaf positions, one rule each
+    assert cert.rules_used == ["comm_add"]
+    assert op_repr_dag(out) == op_repr_dag(b)
+    assert elapsed < 30.0  # sanity bound; ~seconds
+
+
+def test_certificate_calls_budget_stub():
+    """``_CERT_MAX_CALLS`` bounds the ``(s, t)``-pair space itself:
+    exhaustion closes remaining gaps as honest ``<budget>``
+    e-graph-dependent stubs — never an unbounded grind — and the cert
+    still replays as a trusted assertion."""
+    x, y = Var("x", _t()), Var("y", _t())
+    src = Op.make("add", Op.make("mul", x, y), y)
+    dst = Op.make("add", Op.make("mul", y, x), y)
+    eg = EGraph()
+    root = eg.add_term(src)
+    eg.run([R.COMM_MUL], root, max_iterations=4)
+    eg._CERT_MAX_CALLS = 0  # every nested pair is over budget
+    cert = eg.certificate(src, dst, root_eid=root)
+    assert cert.n_egraph_dependent >= 1
+    assert any(s.rule == "<budget>" for s in cert.steps)
+    assert op_repr(verify_certificate(src, cert)) == op_repr(dst)
+
+
+def test_term_eq_mirrors_op_repr_on_shared_dags():
+    """``_term_eq`` is the DAG-aware ``op_repr`` equality: identical
+    structure under distinct objects (deepcopy defeats interning),
+    plus the leaf/Op and mismatch negatives."""
+    import copy
+
+    a = _shared_dag(30)
+    b = copy.deepcopy(a)  # same structure, fresh objects
+    memo: dict = {}
+    t0 = time.perf_counter()
+    assert _term_eq(a, b, memo)
+    assert time.perf_counter() - t0 < 30.0  # op_repr: ~2**30 chars
+
+    c = _shared_dag(30, leaf_name="h2")
+    assert not _term_eq(a, c)
+    assert not _term_eq(a, Var("h", _t()))
+    # leaf equality is by repr, exactly as op_repr renders
+    assert _term_eq(Const(3), Const(3))
+    assert not _term_eq(Const(3), Const(3.0))  # spelling-strict
