@@ -42,7 +42,9 @@ __all__ = [
     "MACHINE_LAWS",
     "MACHINE_SHIPPED",
     "MACHINE_STORED",
+    "PAY_MEASURED_SLOW",
     "law_provenance",
+    "pay_status",
 ]
 
 #: The machine-admitted objects promoted into the shipped bank —
@@ -290,3 +292,55 @@ def law_provenance(rule: object) -> Literal["machine", "human"]:
         rule if isinstance(rule, str) else getattr(rule, "name", rule)
     )
     return "machine" if name in MACHINE_LAWS else "human"
+
+
+#: Shipped folds whose **pay** was measured on the delivery corpus and came
+#: back slower — graphopt `docs/reports/pay_measured.md` (2026-10-25, 14
+#: cells, same-executor rule).  Each loses on wall clock; the cited number
+#: is the worst module it binds.  A fold here may be cited as *vocabulary*
+#: (it is certified, machine-original) but never as a speed result.
+#:
+#: The rest are **not** paying either — they are *unmeasured*, which is not
+#: evidence.  A fold whose denotation becomes a generated kernel leaves
+#: this set: `prim_kernel_probe` measured 0.38x of the spec-walk for six of
+#: the pointwise prims (2.6x faster).
+PAY_MEASURED_SLOW: frozenset[str] = frozenset(
+    {
+        "prim:synop_4c657cb2c0",
+        "prim:synop_5e58f26875",
+        "prim:synop_bb8c54c201",
+        "prim:synop2_35bbd03301",
+        "prim:synop3_0ca31bf1e5",
+        "prim:synop3_0fa19d1ff8",
+        "prim:synop3_21b9729f32",
+        "prim:synop3_24c5153e5e",
+        "prim:synop3_4cdc06b88f",
+    }
+)
+
+
+def pay_status(rule: object) -> str:
+    """Return a shipped fold's measured-pay status.
+
+    ``"measured-slow"`` — timed on the delivery corpus and slower than the
+    same pipeline without it; ``"unmeasured"`` — a shipped prim with no
+    wall-clock verdict (the cost model is not a measurement); ``"n/a"`` —
+    not a shipped prim fold.
+
+    Total over names, like :func:`law_provenance`: pay status is a property
+    of the measurement ledger, not a flag a rule carries.
+    """
+    name = (
+        rule if isinstance(rule, str) else getattr(rule, "name", rule)
+    )
+    # The ledger stores folds under their ``prim:`` name; the mint exposes
+    # them bare (`SYNOP_SHIPPED`).  Accept either spelling.
+    if name.startswith("synop") and not name.endswith(".expand"):
+        name = "prim:" + name
+    if name in PAY_MEASURED_SLOW:
+        return "measured-slow"
+    if name in MACHINE_SHIPPED and (
+        name.startswith("prim:synop") or name.endswith(".expand")
+    ):
+        return "unmeasured"
+    return "n/a"
