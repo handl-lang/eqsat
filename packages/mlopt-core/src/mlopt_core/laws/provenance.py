@@ -330,9 +330,12 @@ def pay_status(rule: object) -> str:
     Total over names, like :func:`law_provenance`: pay status is a property
     of the measurement ledger, not a flag a rule carries.
     """
-    name = (
-        rule if isinstance(rule, str) else getattr(rule, "name", rule)
-    )
+    name = rule if isinstance(rule, str) else getattr(rule, "name", None)
+    if not isinstance(name, str):
+        # The ledger is keyed by name; an unnamed object is not a shipped
+        # prim fold.  Refusing here keeps the predicate total over `object`
+        # instead of raising on the first attribute access.
+        return "n/a"
     # The ledger stores folds under their ``prim:`` name; the mint exposes
     # them bare (`SYNOP_SHIPPED`).  Accept either spelling.
     if name.startswith("synop") and not name.endswith(".expand"):
