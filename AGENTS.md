@@ -33,15 +33,17 @@ downstream `uv sync`, so the frozen surface in
   through a duck-typed tensor; `tests/test_profile.py` pins the
   torch-free half of target-profile calibration.
   `test_ported_square_rsqrt_laws.py` carries the two `slow`-marked
-  e-graph saturations (~17 min combined): iterate with
-  `-m "not slow"`.
+  e-graph saturations — hours-scale under the current `ALL_RULES`
+  bank (a single `div_one_sqrt` spelling was observed >10 min inside
+  one `apply_rule` enumeration; a CI run pegged a core >4 h without
+  finishing — see `project/` I-002): iterate with `-m "not slow"`.
 
 ## Verification
 
 ```sh
 uv sync --group dev
-.venv/bin/python -m pytest tests/ -q          # the suite (incl. ~17 min of
-                                              #  slow-marked saturations)
+.venv/bin/python -m pytest tests/ -q          # the suite (hours-scale —
+                                              #  see the `slow` note above)
 .venv/bin/python -m pytest tests/ -q -m "not slow"   # the fast lane (~35 s)
 .venv/bin/ruff check packages                  # lint (shipped source)
 .venv/bin/ruff format --check packages         # formatting
