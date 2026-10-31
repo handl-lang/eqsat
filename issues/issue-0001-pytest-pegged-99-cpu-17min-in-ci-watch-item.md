@@ -1,7 +1,7 @@
 +++
 id = "I-001"
 title = "pytest pegged 99% CPU 17min+ in CI (watch item)"
-status = "open"
+status = "in-progress"
 created = "2026-10-31"
 owner = "devin"
 priority = "medium"
