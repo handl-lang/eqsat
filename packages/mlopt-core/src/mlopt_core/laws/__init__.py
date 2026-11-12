@@ -169,6 +169,7 @@ from mlopt_core.laws.priorart import (
     PRIOR_ART_RULES,
 )
 from mlopt_core.laws.provenance import (
+    AUTO_ADMITTED,
     MACHINE_LAWS,
     MACHINE_SHIPPED,
     MACHINE_STORED,
@@ -379,6 +380,7 @@ __all__ = [
     "ASSOC_MATMUL_REV",
     "ASSOC_MUL",
     "ATTENTION_RULES",
+    "AUTO_ADMITTED",
     "BATCH_NORM_EXPAND",
     "BATCH_NORM_EXPAND_NOBIAS",
     "BATCH_NORM_EXPAND_PLAIN",

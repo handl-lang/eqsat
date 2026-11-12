@@ -41,6 +41,7 @@ _ATTRS = {
     1: "_PRIM_RECORDS",
     2: "_PRIM2_RECORDS",
     3: "_PRIM3_RECORDS",
+    4: "_AUTO_RECORDS",
 }
 
 

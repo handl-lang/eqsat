@@ -237,8 +237,11 @@ def test_laws_exports_every_rewrite():
     # is the composite-free kernel denotation and mul_unsq_rev the
     # broadcast-sink inverse of the shipped mul_unsq_nat — the two
     # review-queue demotions)
+    # + 1 auto-admitted prim:synop_* fold + 1 synop_*.expand premise
+    # (the AUTO_TIER record ``synop_6ed0a07c7d`` — same shipped
+    # convention: fold in DEFAULT, premise as cert-leg axiom only)
     # rewrites.
-    assert len(found) == 598
+    assert len(found) == 600
 
 
 def test_all_rules_count_unchanged():
@@ -250,13 +253,15 @@ def test_all_rules_count_unchanged():
     # attached, never as saturation rules) — + the 2 depth-2
     # ``prim:synop2_*`` folds (the ``--prim-bootstrap`` mint)
     # + the 34 depth-3 ``prim:synop3_*`` folds (the
-    # ``--prim-vocab`` run).
-    assert len(laws.all_rules()) == 143
+    # ``--prim-vocab`` run) + the 1 auto-admitted ``prim:synop_*``
+    # fold (``synop_6ed0a07c7d`` — the ``--auto-admit`` promotion,
+    # AUTO_TIER).
+    assert len(laws.all_rules()) == 144
     assert laws.all_rules() == laws.ALL_RULES
     assert len(laws.ALL_RULES) == (
         len(laws.SIMPLIFICATION_RULES) + len(laws.CATEGORICAL_RULES)
     )
-    assert len(laws.ALL_RULES_WITH_LAYOUT) == 220
+    assert len(laws.ALL_RULES_WITH_LAYOUT) == 221
     # each call returns a fresh list, not the shared ALL_RULES object
     assert laws.all_rules() is not laws.ALL_RULES
 
@@ -272,8 +277,9 @@ def test_collections_split_by_domain():
     # + ``sdpa_fold_mul_nomask`` (the sdpa_expand pair's refold)
     # + the 21 ``prim:synop_*`` folds (the zoo-prim mint, MINTED_RULES)
     # + the 2 depth-2 ``prim:synop2_*`` folds (the bootstrap mint)
-    # + the 34 depth-3 ``prim:synop3_*`` folds (the vocab run).
-    assert len(laws.CATEGORICAL_RULES) == 108
+    # + the 34 depth-3 ``prim:synop3_*`` folds (the vocab run)
+    # + the 1 auto-admitted ``prim:synop_*`` fold (AUTO_TIER).
+    assert len(laws.CATEGORICAL_RULES) == 109
     assert len(laws.SCAN_LAWS) == 6
     assert len(laws.SCAN_DIAG_LAWS) == 16
     # layout: 12 unary + 4 binary pointwise commutations x 2 spellings
@@ -399,10 +405,11 @@ def test_axiom_lemma_marker_covers_all_rules():
     # + ``add_unsq_pad_r``: the real-corpus auto-cond admission carries
     # no derivation — an axiom like the other pad strips.
     # + the 21 ``prim:synop_*`` folds + 2 ``prim:synop2_*`` folds
-    # + 34 ``prim:synop3_*`` folds: axioms by the same convention —
+    # + 34 ``prim:synop3_*`` folds + the 1 auto-admitted
+    # ``prim:synop_*`` fold: axioms by the same convention —
     # each carries its ``synop*_*.expand`` definitional premise as
     # ``rule.premises``, not a shipped ``derivation``.
-    assert len(kinds["axiom"]) == 119
+    assert len(kinds["axiom"]) == 120
     assert len(kinds["lemma"]) == 22
     assert len(kinds["redundant"]) == 2
     # the redundant kind rides on the tags.REDUNDANT constant

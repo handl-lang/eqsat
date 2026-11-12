@@ -104,7 +104,12 @@ def test_emit_is_idempotent(tmp_path: Path) -> None:
 def test_query_surface() -> None:
     """The point of the store: the bank answers SQL."""
     counts = store.tiers()
-    assert counts == {0: 4, 1: 21, 2: 2, 3: 34}
+    # tiers 0-3 are the frozen hand-promoted bank; the auto-admission
+    # tier is dynamic — pin it to the live record count instead.
+    assert {
+        t: c for t, c in counts.items() if t != store.AUTO_TIER
+    } == {0: 4, 1: 21, 2: 2, 3: 34}
+    assert counts.get(store.AUTO_TIER, 0) == len(minted.auto_records())
     assert sum(store.summary().values()) == sum(counts.values())
     row = store.query(
         "SELECT name, sha FROM records WHERE tier = 1 ORDER BY seq LIMIT 1"

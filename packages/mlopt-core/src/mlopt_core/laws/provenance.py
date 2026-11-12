@@ -32,13 +32,25 @@ tests pin as ``usable`` (``tests/test_discovery_synthesis.py`` /
 ``test_discovery_gauntlet.py`` / ``test_discovery_autocond.py``)
 plus the objects the promotion audit records as admitted
 (``project/retros/promoted-laws.md``).
+
+The **auto-admission tier** rides the same registry: records
+``mlopt_core.laws.minted.admit_prim_record`` promoted into the
+minted store's ``AUTO_TIER`` after the discovery gauntlet cleared
+them contribute their ``prim:<op>`` / ``<op>.expand`` names to
+:data:`AUTO_ADMITTED` (and therefore :data:`MACHINE_SHIPPED`) at
+import; admissions made later in the process are caught live by
+:func:`law_provenance`.  The tier marks *who* promoted the record —
+machine, not human — which is exactly what this registry measures.
 """
 
 from __future__ import annotations
 
 from typing import Literal
 
+from mlopt_core.laws import store as _laws_store
+
 __all__ = [
+    "AUTO_ADMITTED",
     "MACHINE_LAWS",
     "MACHINE_SHIPPED",
     "MACHINE_STORED",
@@ -222,6 +234,49 @@ MACHINE_SHIPPED: frozenset[str] = frozenset(
     }
 )
 
+
+def _auto_tier_names() -> frozenset[str]:
+    """Law names the auto-admission store tier ships, at import.
+
+    The minted store's ``AUTO_TIER`` rows are prim records — each
+    contributes its fold name (``prim:<op>``) and its definitional
+    premise name (``<op>.expand``, the ``minted.expand_name``
+    convention for bare ``synop*`` record keys).  Read once at
+    import: a *persisted* admission is bank membership, so it joins
+    :data:`MACHINE_SHIPPED` here exactly like a hand promotion; an
+    admission made later in this process is covered live by
+    :func:`_runtime_auto_names` inside :func:`law_provenance`.
+    """
+    try:
+        rows = _laws_store.query(
+            "SELECT name FROM records WHERE tier = ?",
+            (_laws_store.AUTO_TIER,),
+        )
+    except Exception:
+        # no store / unreadable — the auto tier contributes nothing
+        return frozenset()
+    out: set[str] = set()
+    for row in rows:
+        n = row["name"]
+        out.add(f"prim:{n}")
+        out.add(f"{n}.expand")
+    return frozenset(out)
+
+
+#: The auto-admission ledger — the ``prim:<op>`` fold and
+#: ``<op>.expand`` premise names of every record the store's
+#: ``AUTO_TIER`` carried at import.  A *subset* of
+#: :data:`MACHINE_SHIPPED` (auto-admitted laws are machine-shipped
+#: by definition); named separately so callers can tell the
+#: hand-promoted ledger from the machine-promoted one.
+AUTO_ADMITTED: frozenset[str] = _auto_tier_names()
+
+#: ``MACHINE_SHIPPED`` extended by the auto-admission tier — the
+#: full set of machine-authored names the bank ships.  Rebinding
+#: the name (rather than editing the literal) keeps the promotion
+#: table above readable as the hand-curated history it is.
+MACHINE_SHIPPED = MACHINE_SHIPPED | AUTO_ADMITTED
+
 #: Machine-constructed / machine-guarded objects that cleared the
 #: admission gauntlet but were never written into the library — the
 #: unshipped store population, by recorded object name.  Three groups:
@@ -277,13 +332,35 @@ MACHINE_STORED: frozenset[str] = frozenset(
 MACHINE_LAWS: frozenset[str] = MACHINE_SHIPPED | MACHINE_STORED
 
 
+def _runtime_auto_names() -> frozenset[str]:
+    """Law names auto-admitted into the shipped store *this* process.
+
+    :data:`AUTO_ADMITTED` is the import-time snapshot; an
+    ``admit_prim_record`` call later in the process mutates the
+    live record table without re-running this module, so the
+    classifier re-reads it here.  The name derivation is the same
+    ``prim:<op>`` / ``<op>.expand`` convention.
+    """
+    try:
+        from mlopt_core.laws import minted
+    except Exception:
+        return frozenset()
+    out: set[str] = set()
+    for n in minted.auto_records():
+        out.add(f"prim:{n}")
+        out.add(f"{n}.expand")
+    return frozenset(out)
+
+
 def law_provenance(rule: object) -> Literal["machine", "human"]:
     """Classify a rewrite's authorship: ``"machine"`` or ``"human"``.
 
     Accepts a rule name or a :class:`~mlopt_core.egraph.Rewrite`
     (reads ``.name``).  A name in :data:`MACHINE_LAWS` —
-    machine-shipped promotions or machine-held store objects —
-    reports ``"machine"``; anything else is ``"human"``, the
+    machine-shipped promotions (hand-promoted *and* auto-admitted)
+    or machine-held store objects — reports ``"machine"``; a name
+    auto-admitted earlier in this process reports ``"machine"``
+    through the live tier read; anything else is ``"human"``, the
     library's default authorship.  The function is total over names
     by design: provenance is a property of the *registry*, not a flag
     each rule had to be edited to carry.
@@ -291,7 +368,9 @@ def law_provenance(rule: object) -> Literal["machine", "human"]:
     name = (
         rule if isinstance(rule, str) else getattr(rule, "name", rule)
     )
-    return "machine" if name in MACHINE_LAWS else "human"
+    if name in MACHINE_LAWS:
+        return "machine"
+    return "machine" if name in _runtime_auto_names() else "human"
 
 
 #: Shipped folds whose **pay** was measured on the delivery corpus and came
@@ -344,7 +423,8 @@ def pay_status(rule: object) -> str:
         name = "prim:" + name
     if name in PAY_MEASURED_SLOW:
         return "measured-slow"
-    if name in MACHINE_SHIPPED and (
+    machine = name in MACHINE_SHIPPED or name in _runtime_auto_names()
+    if machine and (
         name.startswith("prim:synop") or name.endswith(".expand")
     ):
         return "unmeasured"

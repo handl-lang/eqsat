@@ -15652,6 +15652,350 @@
     "version": 2
    }
   },
+  "synop_6ed0a07c7d": {
+   "expand": {
+    "bound_norm": "spectral",
+    "cert": null,
+    "cond": null,
+    "derivation": [],
+    "dspec": null,
+    "error_bound": null,
+    "kind": "law",
+    "law": "synop_6ed0a07c7d unfolds to its mined denotation \u2014 the definitional premise the cert leg's anchored derivation unions in when the bare bank cannot derive the fold",
+    "lhs": {
+     "args": [
+      {
+       "mvar": "v223"
+      },
+      {
+       "mvar": "v345"
+      },
+      {
+       "mvar": "v375"
+      },
+      {
+       "mvar": "v404"
+      },
+      {
+       "mvar": "v405"
+      },
+      {
+       "mvar": "v358"
+      },
+      {
+       "mvar": "v1132"
+      },
+      {
+       "mvar": "v215"
+      },
+      {
+       "mvar": "v1256"
+      },
+      {
+       "mvar": "v1257"
+      },
+      {
+       "mvar": "v1258"
+      }
+     ],
+     "attrs": {
+      "a123": "a123",
+      "a320": "a320"
+     },
+     "op": "synop_6ed0a07c7d"
+    },
+    "missing_hooks": [],
+    "name": "synop_6ed0a07c7d.expand",
+    "rhs": {
+     "args": [
+      {
+       "args": [
+        {
+         "mvar": "v223"
+        },
+        {
+         "args": [
+          {
+           "args": [
+            {
+             "mvar": "v345"
+            },
+            {
+             "args": [
+              {
+               "mvar": "v375"
+              },
+              {
+               "args": [
+                {
+                 "mvar": "v404"
+                },
+                {
+                 "mvar": "v405"
+                }
+               ],
+               "attrs": {},
+               "op": "mul"
+              }
+             ],
+             "attrs": {},
+             "op": "add"
+            }
+           ],
+           "attrs": {},
+           "op": "mul"
+          },
+          {
+           "args": [
+            {
+             "mvar": "v358"
+            },
+            {
+             "args": [
+              {
+               "mvar": "v1132"
+              }
+             ],
+             "attrs": {
+              "dim": "a123"
+             },
+             "op": "unsqueeze"
+            }
+           ],
+           "attrs": {},
+           "op": "mul"
+          }
+         ],
+         "attrs": {},
+         "op": "add"
+        }
+       ],
+       "attrs": {},
+       "op": "mul"
+      },
+      {
+       "args": [
+        {
+         "mvar": "v215"
+        },
+        {
+         "args": [
+          {
+           "args": [
+            {
+             "args": [
+              {
+               "mvar": "v1256"
+              },
+              {
+               "mvar": "v1257"
+              },
+              {
+               "mvar": "v1258"
+              }
+             ],
+             "attrs": {},
+             "op": "linear"
+            }
+           ],
+           "attrs": {
+            "dim": 1,
+            "index": "a320"
+           },
+           "op": "select"
+          }
+         ],
+         "attrs": {
+          "dim": "a123"
+         },
+         "op": "unsqueeze"
+        }
+       ],
+       "attrs": {},
+       "op": "mul"
+      }
+     ],
+     "attrs": {},
+     "op": "add"
+    },
+    "serializable": true,
+    "tags": [
+     "simplification"
+    ],
+    "version": 2
+   },
+   "fold": {
+    "bound_norm": "spectral",
+    "cert": null,
+    "cond": null,
+    "derivation": [],
+    "dspec": null,
+    "error_bound": null,
+    "kind": "law",
+    "law": "machine-minted primitive fold \u2014 the manual subgraph collapses to the synop_6ed0a07c7d primitive (zoo-prim mint; admitted by the full gauntlet, machine-original; denotation definitional \u2014 the op's torch binding IS the spelled subgraph)",
+    "lhs": {
+     "args": [
+      {
+       "args": [
+        {
+         "mvar": "v223"
+        },
+        {
+         "args": [
+          {
+           "args": [
+            {
+             "mvar": "v345"
+            },
+            {
+             "args": [
+              {
+               "mvar": "v375"
+              },
+              {
+               "args": [
+                {
+                 "mvar": "v404"
+                },
+                {
+                 "mvar": "v405"
+                }
+               ],
+               "attrs": {},
+               "op": "mul"
+              }
+             ],
+             "attrs": {},
+             "op": "add"
+            }
+           ],
+           "attrs": {},
+           "op": "mul"
+          },
+          {
+           "args": [
+            {
+             "mvar": "v358"
+            },
+            {
+             "args": [
+              {
+               "mvar": "v1132"
+              }
+             ],
+             "attrs": {
+              "dim": "a123"
+             },
+             "op": "unsqueeze"
+            }
+           ],
+           "attrs": {},
+           "op": "mul"
+          }
+         ],
+         "attrs": {},
+         "op": "add"
+        }
+       ],
+       "attrs": {},
+       "op": "mul"
+      },
+      {
+       "args": [
+        {
+         "mvar": "v215"
+        },
+        {
+         "args": [
+          {
+           "args": [
+            {
+             "args": [
+              {
+               "mvar": "v1256"
+              },
+              {
+               "mvar": "v1257"
+              },
+              {
+               "mvar": "v1258"
+              }
+             ],
+             "attrs": {},
+             "op": "linear"
+            }
+           ],
+           "attrs": {
+            "dim": 1,
+            "index": "a320"
+           },
+           "op": "select"
+          }
+         ],
+         "attrs": {
+          "dim": "a123"
+         },
+         "op": "unsqueeze"
+        }
+       ],
+       "attrs": {},
+       "op": "mul"
+      }
+     ],
+     "attrs": {},
+     "op": "add"
+    },
+    "missing_hooks": [],
+    "name": "prim:synop_6ed0a07c7d",
+    "rhs": {
+     "args": [
+      {
+       "mvar": "v223"
+      },
+      {
+       "mvar": "v345"
+      },
+      {
+       "mvar": "v375"
+      },
+      {
+       "mvar": "v404"
+      },
+      {
+       "mvar": "v405"
+      },
+      {
+       "mvar": "v358"
+      },
+      {
+       "mvar": "v1132"
+      },
+      {
+       "mvar": "v215"
+      },
+      {
+       "mvar": "v1256"
+      },
+      {
+       "mvar": "v1257"
+      },
+      {
+       "mvar": "v1258"
+      }
+     ],
+     "attrs": {
+      "a123": "a123",
+      "a320": "a320"
+     },
+     "op": "synop_6ed0a07c7d"
+    },
+    "serializable": true,
+    "tags": [
+     "fusion"
+    ],
+    "version": 2
+   }
+  },
   "synop_889d740672": {
    "expand": {
     "bound_norm": "spectral",
@@ -17378,6 +17722,9 @@
    "synop3_f28f7ffd1a": "60cb20186c602a78",
    "synop3_f9c72e0a8f": "b2aef6941491ec22",
    "synop3_fbbba382fc": "878bc7c01c8d73a6"
+  },
+  "4": {
+   "synop_6ed0a07c7d": "14cff564f99fdb1a"
   }
  }
 }

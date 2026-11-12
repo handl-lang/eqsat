@@ -236,7 +236,9 @@ def _prim_bound(fold: Any) -> Any:
 
 def test_prim_records_are_frozen_and_honest():
     recs = minted.prim_records()
-    assert len(recs) == 57 == len(minted.SYNOP_SHIPPED)
+    # the census follows the data — tiers 1-3 plus whatever the
+    # AUTO_TIER has admitted (currently ``synop_6ed0a07c7d``)
+    assert len(recs) == len(minted.SYNOP_SHIPPED)
     for name, rec in recs.items():
         assert name.startswith(("synop_", "synop2_", "synop3_"))
         assert rec["fold"]["name"] == f"prim:{name}"
@@ -259,7 +261,7 @@ def test_prim_records_are_frozen_and_honest():
 
 
 def test_prim_folds_ship_in_default_and_classify_machine():
-    assert len(PRIM_FOLDS) == 57
+    assert len(PRIM_FOLDS) == len(minted.SYNOP_SHIPPED)
     by_op = {f.rhs.op: f for f in PRIM_FOLDS}
     assert set(by_op) == set(minted.SYNOP_SHIPPED)
     for f in PRIM_FOLDS:
@@ -286,7 +288,7 @@ def test_prim_folds_ship_in_default_and_classify_machine():
         else:
             assert premise[0].rhs == f.lhs
     # the premises are cert axioms, never saturation rules
-    assert len(PRIM_PREMISES) == 57
+    assert len(PRIM_PREMISES) == len(minted.SYNOP_SHIPPED)
     for p in PRIM_PREMISES:
         assert p.name.endswith(".expand")
         assert p not in DEFAULT.rules and p not in ALL_RULES

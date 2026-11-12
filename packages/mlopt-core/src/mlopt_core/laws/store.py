@@ -13,7 +13,7 @@ Layout — one row per object, one table::
     records(tier INTEGER, seq INTEGER, name TEXT, kind TEXT,
             sha TEXT, payload TEXT, PRIMARY KEY (tier, name))
 
-``tier`` mirrors the four sets the mint produces:
+``tier`` mirrors the sets the mint produces:
 
 ===== =========================================================
 tier  what
@@ -22,6 +22,10 @@ tier  what
 1     depth-1 prims (``_PRIM_RECORDS``, 21)
 2     depth-2 prims (``_PRIM2_RECORDS``, 2)
 3     depth-3 prims (``_PRIM3_RECORDS``, 34)
+4     auto-admitted prims (``_AUTO_RECORDS`` — records
+      :func:`mlopt_core.laws.minted.admit_prim_record` wrote
+      after the gauntlet cleared them; same record shape as
+      tiers 1-3, distinguished only by *who* promoted them)
 ===== =========================================================
 
 ``payload`` is the canonical JSON text of the record (``sort_keys``, no
@@ -66,7 +70,13 @@ __all__ = [
 DB_PATH: Path = Path(__file__).with_name("data") / "minted.db"
 
 #: The tier numbers :func:`load` returns, in the mint's own order.
-TIERS: tuple[int, ...] = (0, 1, 2, 3)
+TIERS: tuple[int, ...] = (0, 1, 2, 3, 4)
+
+#: The auto-admission tier — records
+#: :func:`mlopt_core.laws.minted.admit_prim_record` promoted after
+#: the gauntlet cleared them, as opposed to the hand-promoted tiers
+#: 0-3.  Same record shape; the tier is the provenance class.
+AUTO_TIER = 4
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS records (

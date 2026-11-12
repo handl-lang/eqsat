@@ -103,15 +103,38 @@ nests (the loop-closure provenance the depth-2 run measured).  The
 pool's stratified cap kept the 34 deeper-tier mints beside 48
 depth-2 rows that stayed unshipped (already-named denotations and
 tier duplicates of the shipped surface).
+
+The fifth family — :data:`_AUTO_RECORDS` — is the **auto-admission
+tier**: records :func:`admit_prim_record` wrote into the store's
+tier :data:`~mlopt_core.laws.store.AUTO_TIER` after the
+discovery-side gauntlet cleared them (``mlopt_discovery``'s
+``bench.referees`` arm — oracle → pay → sweep → cert, all stages
+green).  Same record shape as tiers 1-3 — the fold's
+``law_to_data`` row plus the mint's own measurements —
+distinguished only by *who* promoted them: these rows never passed
+through a human's hand-port, so the tier IS the provenance class.
+``admit_prim_record`` validates the record's structural invariants
+(the fold decodes, names ``prim:<name>``, its RHS is the bare
+``<name>(args)`` call, an embedded ``expand`` premise starts at
+that call) and refuses a name collision — it does NOT re-run the
+gauntlet: verification stays the discovery side's gate, and a
+record that reaches this function is asserted to carry its
+admission already.  A persisted admission ships on the next import
+(``prim_folds`` → ``PRIM_FOLDS`` → ``ALL_RULES``/``DEFAULT``, the
+same path the hand-promoted tiers take); within the admitting
+process the returned ``(fold, expand)`` pair materializes
+immediately for explicit composition.
 """
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 from mlopt_core import meta
 from mlopt_core.egraph import Rewrite
-from mlopt_core.ir import op_def
+from mlopt_core.ir import Op, op_def
 from mlopt_core.laws import store as _store
 from mlopt_core.laws import tags
 from mlopt_core.laws.serialize import object_from_data
@@ -129,6 +152,8 @@ __all__ = [
     "SYNOP2_SHIPPED",
     "SYNOP3_SHIPPED",
     "SYNOP_SHIPPED",
+    "admit_prim_record",
+    "auto_records",
     "expand_name",
     "materialize",
     "prim2_folds",
@@ -142,6 +167,7 @@ __all__ = [
     "prim_premises",
     "prim_records",
     "synop_name",
+    "synop_shipped",
 ]
 
 #: The verbatim ``law_json`` records of the minted intermediates the
@@ -204,6 +230,16 @@ _PRIM2_RECORDS: dict[str, Any] = _STORE[2]
 #: nests — the loop-closure provenance of the vocab-priced frontier.
 _PRIM3_RECORDS: dict[str, Any] = _STORE[3]
 
+#: The auto-admission tier — records
+#: :func:`admit_prim_record` promoted into the store after the
+#: discovery-side gauntlet cleared them (store tier
+#: ``AUTO_TIER``).  Same record shape as the hand-promoted prim
+#: tiers; the live dict also picks up admissions made earlier in
+#: this process (``admit_prim_record`` on the shipped store mutates
+#: it, so ``prim_fold``/``prim_folds`` see them immediately — the
+#: *rule lists* built at import do not).
+_AUTO_RECORDS: dict[str, Any] = _STORE.get(4, {})
+
 #: The minted op names the prim family ships — all three depths:
 #: ``synop_<sha256[:10]>`` (the zoo-prim mint), the depth-2
 #: ``synop2_<sha256[:10]>`` (the vocabulary-bootstrap mint) and the
@@ -215,14 +251,36 @@ SYNOP_SHIPPED: frozenset[str] = (
     frozenset(_PRIM_RECORDS)
     | frozenset(_PRIM2_RECORDS)
     | frozenset(_PRIM3_RECORDS)
+    | frozenset(_AUTO_RECORDS)
 )
 
-#: The depth-2 subset — the bootstrap mint's ``synop2_*`` ops.
-SYNOP2_SHIPPED: frozenset[str] = frozenset(_PRIM2_RECORDS)
+
+def _auto_depth(prefix: str) -> frozenset[str]:
+    """Auto-admitted record names carrying a ``synopN_`` depth prefix."""
+    return frozenset(n for n in _AUTO_RECORDS if n.startswith(prefix))
+
+
+#: The live shipped set — :data:`SYNOP_SHIPPED` plus any records
+#: :func:`admit_prim_record` added to the shipped store *this
+#: process* (the frozenset above is the import-time snapshot; this
+#: is the same set re-read live).
+def synop_shipped() -> frozenset[str]:
+    """Return every shipped ``*synop*`` op name, live."""
+    return SYNOP_SHIPPED | frozenset(_AUTO_RECORDS)
+
+
+#: The depth-2 subset — the bootstrap mint's ``synop2_*`` ops plus
+#: any auto-admitted record named ``synop2_*``.
+SYNOP2_SHIPPED: frozenset[str] = frozenset(
+    _PRIM2_RECORDS
+) | _auto_depth("synop2_")
 
 #: The depth-3 subset — the vocab-priced bootstrap's ``synop3_*``
-#: ops (skeletons spelled through both shipped tiers).
-SYNOP3_SHIPPED: frozenset[str] = frozenset(_PRIM3_RECORDS)
+#: ops (skeletons spelled through both shipped tiers) plus any
+#: auto-admitted record named ``synop3_*``.
+SYNOP3_SHIPPED: frozenset[str] = frozenset(
+    _PRIM3_RECORDS
+) | _auto_depth("synop3_")
 
 #: Law text for the fold rules — a structural fold collapsing a
 #: consumer pattern into one kernel, same class as ``conv_bn_fold``.
@@ -254,12 +312,29 @@ def expand_name(synop: str) -> str:
 def prim_records() -> dict[str, Any]:
     """Return the embedded prim records — the frozen mint artifacts.
 
-    All three depths, merged: the 21 depth-1 ``synop_*`` records plus
-    the 2 depth-2 ``synop2_*`` records plus the 34 depth-3
-    ``synop3_*`` records (the deeper tiers additionally carry
-    ``alpha_fold`` / ``embeds_shipped`` / ``embeds`` / ``expand``).
+    All four families, merged: the 21 depth-1 ``synop_*`` records,
+    the 2 depth-2 ``synop2_*`` records, the 34 depth-3 ``synop3_*``
+    records (the deeper tiers additionally carry ``alpha_fold`` /
+    ``embeds_shipped`` / ``embeds`` / ``expand``) and the
+    auto-admission tier's records.
     """
-    return {**_PRIM_RECORDS, **_PRIM2_RECORDS, **_PRIM3_RECORDS}
+    return {
+        **_PRIM_RECORDS,
+        **_PRIM2_RECORDS,
+        **_PRIM3_RECORDS,
+        **_AUTO_RECORDS,
+    }
+
+
+def auto_records() -> dict[str, Any]:
+    """Return the auto-admission tier's records — a live snapshot.
+
+    Keys are the minted op names (``synop_*``/``synopN_*``); values
+    are the same record shape :func:`prim_records` carries.  The
+    dict reflects admissions made earlier in this process, so a
+    caller polling it sees :func:`admit_prim_record`'s writes.
+    """
+    return dict(_AUTO_RECORDS)
 
 
 def prim2_records() -> dict[str, Any]:
@@ -288,8 +363,9 @@ def prim_fold(synop: str) -> tuple[Rewrite, Rewrite]:
     domain-side piece).  Interned: the same objects come back on
     every call.
 
-    *synop* resolves across all three tables — a ``synopN_*`` name
-    materializes its depth-N record.  The deeper-tier records embed
+    *synop* resolves across all four tables — a ``synopN_*`` name
+    materializes its depth-N record, an auto-admitted name its
+    tier-4 record.  The deeper-tier records embed
     the definitional premise verbatim (``rec["expand"]``): its RHS is
     the skeleton *re-expanded to manual ops*, NOT the fold's LHS —
     the cert leg's anchored derivation then re-folds through the
@@ -307,6 +383,8 @@ def prim_fold(synop: str) -> tuple[Rewrite, Rewrite]:
         rec = _PRIM2_RECORDS[synop]
     elif synop in _PRIM3_RECORDS:
         rec = _PRIM3_RECORDS[synop]
+    elif synop in _AUTO_RECORDS:
+        rec = _AUTO_RECORDS[synop]
     else:
         raise KeyError(synop)
     fold = object_from_data(rec["fold"])
@@ -359,24 +437,46 @@ def prim_fold(synop: str) -> tuple[Rewrite, Rewrite]:
 def prim_folds() -> tuple[Rewrite, ...]:
     """Return the shipped fold laws — ``pattern -> synop*_*(args)``.
 
-    All three depths: the 21 ``prim:synop_*`` folds, then the 2
-    depth-2 ``prim:synop2_*`` folds, then the 34 depth-3
-    ``prim:synop3_*`` folds (skeleton -> ``synopN_*(args)``).
+    All four families: the 21 ``prim:synop_*`` folds, the 2 depth-2
+    ``prim:synop2_*`` folds, the 34 depth-3 ``prim:synop3_*`` folds
+    (skeleton -> ``synopN_*(args)``) and the auto-admission tier's
+    folds (live — an :func:`admit_prim_record` earlier in this
+    process is included).
     """
     return tuple(
         prim_fold(n)[0]
-        for n in (*_PRIM_RECORDS, *_PRIM2_RECORDS, *_PRIM3_RECORDS)
+        for n in (
+            *_PRIM_RECORDS,
+            *_PRIM2_RECORDS,
+            *_PRIM3_RECORDS,
+            *_AUTO_RECORDS,
+        )
+    )
+
+
+def _depth_names(prefix: str) -> tuple[str, ...]:
+    """Record names at *prefix* depth across every shipped table."""
+    return tuple(
+        n
+        for table in (
+            _PRIM_RECORDS,
+            _PRIM2_RECORDS,
+            _PRIM3_RECORDS,
+            _AUTO_RECORDS,
+        )
+        for n in table
+        if n.startswith(prefix)
     )
 
 
 def prim2_folds() -> tuple[Rewrite, ...]:
-    """Return the 2 depth-2 fold laws — the bootstrap mint's slice."""
-    return tuple(prim_fold(n)[0] for n in _PRIM2_RECORDS)
+    """Return the depth-2 fold laws — the ``synop2_*`` slice."""
+    return tuple(prim_fold(n)[0] for n in _depth_names("synop2_"))
 
 
 def prim3_folds() -> tuple[Rewrite, ...]:
-    """Return the 34 depth-3 fold laws — the vocab-priced mint's."""
-    return tuple(prim_fold(n)[0] for n in _PRIM3_RECORDS)
+    """Return the depth-3 fold laws — the ``synop3_*`` slice."""
+    return tuple(prim_fold(n)[0] for n in _depth_names("synop3_"))
 
 
 def prim_premises() -> tuple[Rewrite, ...]:
@@ -386,25 +486,247 @@ def prim_premises() -> tuple[Rewrite, ...]:
     search would re-add the unfolded spelling the fold collapses.
     These are the anchored-derivation axioms a cert/verify leg unions
     into its axiom set; each fold also carries its own premise as
-    ``rule.premises``.  All three depths — a deeper-tier premise's
+    ``rule.premises``.  All four families — a deeper-tier premise's
     RHS is the skeleton's *expanded* manual denotation (the embedded
     ``expand`` record), so its anchored derivation still closes
     through the shipped lower-tier folds.
     """
     return tuple(
         prim_fold(n)[1]
-        for n in (*_PRIM_RECORDS, *_PRIM2_RECORDS, *_PRIM3_RECORDS)
+        for n in (
+            *_PRIM_RECORDS,
+            *_PRIM2_RECORDS,
+            *_PRIM3_RECORDS,
+            *_AUTO_RECORDS,
+        )
     )
 
 
 def prim2_premises() -> tuple[Rewrite, ...]:
     """Return the depth-2 ``synop2_*.expand`` premises — cert axioms."""
-    return tuple(prim_fold(n)[1] for n in _PRIM2_RECORDS)
+    return tuple(prim_fold(n)[1] for n in _depth_names("synop2_"))
 
 
 def prim3_premises() -> tuple[Rewrite, ...]:
     """Return the depth-3 ``synop3_*.expand`` premises — cert axioms."""
-    return tuple(prim_fold(n)[1] for n in _PRIM3_RECORDS)
+    return tuple(prim_fold(n)[1] for n in _depth_names("synop3_"))
+
+
+# ---------------------------------------------------------------------------
+#  auto-admission — the gauntlet-cleared record becomes a shipped law
+# ---------------------------------------------------------------------------
+
+
+def _canonical(record: Any) -> str:
+    """Return the store's canonical JSON text — the idempotence comparator."""
+    return json.dumps(record, sort_keys=True, separators=(",", ":"))
+
+
+def _prim_tables() -> tuple[dict[str, Any], ...]:
+    """Every record table a prim name could already occupy."""
+    return (
+        _PRIM_RECORDS,
+        _PRIM2_RECORDS,
+        _PRIM3_RECORDS,
+        _AUTO_RECORDS,
+    )
+
+
+def admit_prim_record(
+    name: str,
+    record: dict[str, Any],
+    *,
+    db: Path | str | None = None,
+) -> tuple[Rewrite, Rewrite]:
+    """Admit a gauntlet-cleared prim record into the shipped store.
+
+    *name* is the minted op name (``synop_*``/``synopN_*`` — the
+    record's key, NOT the ``prim:``-prefixed fold name); *record* is
+    the ``prims.yaml``-shaped row the mint emitted — ``fold`` (the
+    fold's ``law_to_data``), the mint's measurements (``alpha`` /
+    ``mods`` / ``sites`` / ``equal_sites`` / ``handler``) and, for a
+    depth-N mint, ``alpha_fold`` / ``embeds_shipped`` / ``embeds`` /
+    ``expand`` verbatim.
+
+    The contract is honest about where verification lives: the
+    discovery-side gauntlet (``bench.referees.judge`` — oracle → pay
+    → sweep → cert, every stage green) is the gate, and this
+    function does NOT re-run it — a record reaching here is asserted
+    to carry its admission.  What it DOES enforce is the shipped
+    object's own invariants, loudly:
+
+    * the record's ``fold`` row decodes through
+      :func:`~mlopt_core.laws.serialize.object_from_data`;
+    * the decoded fold is named ``prim:<name>`` and its RHS is the
+      bare ``<name>(args)`` call — the shape every shipped prim fold
+      has;
+    * an embedded ``expand`` premise decodes and its LHS is the
+      fold's own call (a mismatched axiom would anchor nothing —
+      the same check :func:`prim_fold` makes at materialize);
+    * *name* is not already shipped: an identical record is an
+      idempotent no-op returning the materialized pair; a
+      *different* record under a shipped name raises — silent
+      shadowing is a smuggle, not an admit.
+
+    The write is :func:`mlopt_core.laws.store.emit` into tier
+    ``AUTO_TIER`` of *db* (default: the shipped store this module
+    loaded).  On the shipped store the record also joins
+    :data:`_AUTO_RECORDS`, so :func:`prim_fold` /
+    :func:`prim_folds` / :func:`prim_premises` see it immediately;
+    the ``PRIM_FOLDS``/``ALL_RULES``/``DEFAULT`` lists built at
+    import pick it up on the NEXT import — a persisted admission,
+    not a retroactive one.  For any other *db* the pair is
+    materialized and returned without touching the shipped tables.
+
+    Returns the ``(fold, expand)`` pair — the fold carries the
+    ``FUSION`` tag, the fold law text and ``premises=(expand,)``,
+    exactly as the hand-promoted tiers materialize, and the op's
+    :func:`~mlopt_core.ir.op_def` declaration registers with it.
+    """
+    if not isinstance(name, str) or not name:
+        raise ValueError(
+            f"prim record name must be a nonempty str, got {name!r}"
+        )
+    if not isinstance(record, dict) or not isinstance(
+        record.get("fold"), dict
+    ):
+        raise ValueError(
+            f"prim record {name!r} must carry its fold's "
+            "law_to_data row under 'fold'"
+        )
+    try:
+        fold = object_from_data(record["fold"])
+    except Exception as exc:
+        raise ValueError(
+            f"prim record {name!r} fold does not decode: {exc}"
+        ) from exc
+    if fold.name != f"prim:{name}":
+        raise ValueError(
+            f"prim record {name!r} fold is named {fold.name!r} — "
+            f"the shipped convention is 'prim:{name}'"
+        )
+    if not (
+        isinstance(fold.rhs, Op)
+        and fold.rhs.op == name
+        and all(isinstance(a, str) for a in fold.rhs.args)
+    ):
+        raise ValueError(
+            f"prim record {name!r} fold RHS is not the bare "
+            f"{name}(args) call over metavar leaves — the op a "
+            "search collapses to"
+        )
+    if "expand" in record:
+        try:
+            ex = object_from_data(record["expand"])
+        except Exception as exc:
+            raise ValueError(
+                f"prim record {name!r} expand premise does not "
+                f"decode: {exc}"
+            ) from exc
+        if ex.lhs != fold.rhs:
+            raise ValueError(
+                f"prim record {name!r} embeds an expand premise "
+                f"whose LHS is not the fold's own call — a "
+                f"mismatched axiom would anchor nothing"
+            )
+    want = _canonical(record)
+    for table in _prim_tables():
+        if name in table:
+            if _canonical(table[name]) == want:
+                # idempotent re-admission — the same measured object
+                return prim_fold(name)
+            raise ValueError(
+                f"prim name {name!r} is already shipped with a "
+                "different record — refusing to shadow it"
+            )
+    # The target store itself may hold rows the in-memory tables do
+    # not: a scratch db, or a tier-4 row another process persisted
+    # since this module's import.  ``emit`` upserts by ``(tier,
+    # name)`` — without this check a differing payload would be
+    # silently overwritten, which is a smuggle, not an admit.
+    try:
+        rows = _store.query(
+            "SELECT payload FROM records WHERE name = ?",
+            (name,),
+            path=db,
+        )
+    except Exception:
+        rows = []  # no store yet — emit creates it
+    identical = False
+    for row in rows:
+        if row["payload"] == want:
+            identical = True
+        else:
+            raise ValueError(
+                f"prim name {name!r} is already recorded in the "
+                "target store with a different record — refusing "
+                "to shadow it"
+            )
+    shipped = (
+        db is None or Path(db).resolve() == _store.DB_PATH.resolve()
+    )
+    if identical:
+        # the same measured object already persisted — idempotent.
+        # On the shipped store, self-heal the live table (another
+        # process may have written the row since import).
+        if shipped:
+            _AUTO_RECORDS[name] = record
+            return prim_fold(name)
+        return _materialize_rec(name, record)
+    _store.emit({_store.AUTO_TIER: {name: record}}, db)
+    if shipped:
+        # the shipped store this module read at import — the live
+        # tables see the admission now (the import-time rule lists
+        # do not; they rebuild next import).
+        _AUTO_RECORDS[name] = record
+        return prim_fold(name)
+    # a scratch/alternate store — the pair materializes for the
+    # caller without the shipped tables claiming the name.
+    return _materialize_rec(name, record)
+
+
+def _materialize_rec(name: str, rec: dict[str, Any]):
+    """Materialize ``(fold, expand)`` from a record dict not in a table.
+
+    The record-local twin of :func:`prim_fold`'s body — used when an
+    admission targeted a non-shipped store, so the returned pair is
+    real without the shipped tables claiming the name.
+    """
+    fold = object_from_data(rec["fold"])
+    if "expand" in rec:
+        denotation = object_from_data(rec["expand"]).rhs
+    else:
+        denotation = fold.lhs
+    expand = Rewrite(
+        expand_name(name),
+        fold.rhs,
+        denotation,
+        law=_PRIM_EXPAND_LAW.format(synop=name),
+        tags=frozenset({tags.SIMPLIFICATION}),
+    )
+    out = Rewrite(
+        name=fold.name,
+        lhs=fold.lhs,
+        rhs=fold.rhs,
+        law=_PRIM_FOLD_LAW.format(synop=name),
+        tags=frozenset({tags.FUSION}),
+        error_bound=fold.error_bound,
+        bound_norm=fold.bound_norm,
+        derivation=fold.derivation,
+        cond=fold.cond,
+        dspec=fold.dspec,
+    )
+    object.__setattr__(out, "premises", (expand,))
+    op_def(
+        name,
+        len(fold.rhs.args),
+        1,
+        law=(
+            "synthesized primitive — denotation is the mined manual "
+            f"subgraph {rec.get('alpha', '')}"
+        ),
+    )
+    return out, expand
 
 
 def _resolve(name: str, lib: dict[str, Rewrite], seen: frozenset[str]):
