@@ -49,7 +49,8 @@ graphopt's domain test files (`tests/test_ported_*`, plus the
 duck-typed `tests/test_value_passes.py` /
 `tests/test_profile.py`); the `fail_under` ratchet is pinned at 74
 for hypothesis-order slack — tighten, never lower.  The suite includes two `slow`-marked e-graph
-saturations (~17 min); iterate with `-m "not slow"` (~35 s).
+saturations (hours-scale under the current `ALL_RULES` — see AGENTS.md);
+iterate with `-m "not slow"` (~35 s).
 
 ## Documentation
 
