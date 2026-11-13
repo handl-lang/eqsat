@@ -13,14 +13,19 @@ downstream `uv sync`, so the frozen surface in
 
 - `packages/mlopt-core` — term IR, e-graph, certificates, the law
   bank + machinery (gauntlet, provenance, `cond`/`tensor`/`minted`),
-  the cost algebra, attrs/typing, ports.  The whole package travels:
+  the minted-record store (`laws.store` — the shipped `minted.db`,
+  tiers 0–3 hand-promoted + tier 4 `AUTO_TIER`), the auto-admission
+  path (`laws.minted.admit_prim_record` — persists a gauntlet-cleared
+  prim record into `AUTO_TIER`; `laws.provenance.AUTO_ADMITTED` folds
+  those names into `MACHINE_SHIPPED`), the cost algebra, attrs/typing,
+  ports.  The whole package travels:
   bank-vs-machinery is a later sub-package split.
 - `packages/mlopt-orchestrator` — the backend-neutral pipeline
   (`search`/`lower`/`Optimizer`/strategies/criteria).  Renames to
   `pipeline` later; name kept for now.
 - `packages/mlopt-native` — the optional Rust engine behind
   `engine=` (maturin/PyO3; excluded from the uv workspace).
-- `tests/` — the substrate suite (121 test files whose imports stay
+- `tests/` — the substrate suite (124 test files whose imports stay
   inside the substrate + hypothesis; domain-bound test functions were
   carved back into `graphopt:tests/test_substrate_domain_edges.py`).
   `tests/test_ported_<stem>.py` are the substrate-pure functions

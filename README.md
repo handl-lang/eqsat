@@ -7,7 +7,12 @@ The eqsat substrate for the mlopt game — extracted from
   (`mlopt_core.ir`), the e-graph (`mlopt_core.egraph` — `EGraph`,
   `run`, `extract_best`, `certificate`/`verify_certificate`), the law
   bank + machinery (`mlopt_core.laws` — `DEFAULT`, `ALL_RULES`,
-  `provenance`, `cond`/`tensor`/`minted`), the cost algebra
+  `provenance`, `cond`/`tensor`/`minted`), the minted-record store
+  (`mlopt_core.laws.store` — the shipped `minted.db`, tiers 0–4) and
+  its auto-admission path (`mlopt_core.laws.minted.admit_prim_record`
+  persists a gauntlet-cleared prim into `store.AUTO_TIER`;
+  `mlopt_core.laws.provenance.AUTO_ADMITTED` classifies those names
+  into `MACHINE_SHIPPED`), the cost algebra
   (`mlopt_core.cost` — `dag_cost` and the shipped models), attrs,
   typing, and the ports (`mlopt_core.ports` — `Sink`, `Source`,
   `Engine`, `Composer`, `Executor`, …).
@@ -39,10 +44,11 @@ uv sync --group dev
 
 The coverage floor (`[tool.coverage.report] fail_under`) is
 re-measured for this repo's suite — 56% at the extraction scaffold,
-75% after the substrate-pure tests were ported back from graphopt's
-domain test files (`tests/test_ported_*`, plus the duck-typed
-`tests/test_value_passes.py` / `tests/test_profile.py`) — tighten,
-never lower.  The suite includes two `slow`-marked e-graph
+75% measured after the substrate-pure tests were ported back from
+graphopt's domain test files (`tests/test_ported_*`, plus the
+duck-typed `tests/test_value_passes.py` /
+`tests/test_profile.py`); the `fail_under` ratchet is pinned at 74
+for hypothesis-order slack — tighten, never lower.  The suite includes two `slow`-marked e-graph
 saturations (~17 min); iterate with `-m "not slow"` (~35 s).
 
 ## Documentation
