@@ -14,7 +14,7 @@ here is a pass-through then.
 from __future__ import annotations
 
 import contextlib
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -27,6 +27,46 @@ from mlopt_orchestrator.resources import OptimizationResourceError
 # ---------------------------------------------------------------------------
 #  Certified bounded-error offers (plan 0012) — the budget plumbing
 # ---------------------------------------------------------------------------
+
+
+class ErrorBoundEntry(dict):
+    """One ``stats["error_bounds"]`` ledger entry — a typed dict record.
+
+    Lifecycle: :func:`_error_bound_entries` / :func:`_bound_ledger`
+    mint the certificate fields (``rule`` / ``law`` / ``bound`` /
+    ``norm`` / ``measured_max_rel``); :func:`_propagate_bounds` adds
+    the site-input amplification (``site_input_norm`` / ``site_input``
+    / ``output_bound``); :func:`_bound_record` fills the measured
+    fields (``measured_max_rel`` / ``output_bound_rel``);
+    ``taskgate._gate_delivery`` stamps ``accepted_by``.  Keys appear
+    progressively — a search-time entry carries only the first five.
+
+    A ``dict`` subclass rather than the
+    :class:`~mlopt_orchestrator.diagram.DiagramSearchStats`
+    ``Mapping`` record: this ledger crosses a *serialization* edge —
+    ``mlopt_torch.export`` copies ``stats["error_bounds"]`` verbatim
+    into a manifest written with ``json.dumps`` (the safetensors path
+    passes no ``default=`` fallback), and the task gate mutates
+    entries in place (``e["accepted_by"] = ...``).  Both keep working
+    unchanged — ``isinstance(e, dict)``, ``json.dumps``, ``e[k] = v``,
+    ``dict(e)`` / ``{**e}`` and dict equality are all preserved —
+    while producers and normalizers name the type instead of bare
+    ``dict``.  :meth:`to_dict` is the plain-dict escape hatch.
+    """
+
+    def __init__(
+        self,
+        fields: Mapping[str, Any] | None = None,
+        /,
+        **kw: Any,
+    ) -> None:
+        """Build an entry from an existing mapping and/or kwargs."""
+        super().__init__(fields or {})
+        self.update(kw)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain ``dict`` copy of the entry."""
+        return dict(self)
 
 
 def _check_budget_engine(eg: Any, error_budget: float | None) -> None:
@@ -113,7 +153,7 @@ def _delivered_bound(
 
 def _bound_ledger(
     eg: EGraph, cert: Any, term: Any
-) -> tuple[list[dict], float]:
+) -> tuple[list[ErrorBoundEntry], float]:
     """Compute the bound ledger of a delivered term — entries + total.
 
     The certificate is the primary source: each replayed bound step
@@ -134,13 +174,13 @@ def _bound_ledger(
     for nm in extra:
         r = bound[nm]
         entries.append(
-            {
-                "rule": nm,
-                "law": r.law,
-                "bound": r.error_bound,
-                "norm": r.bound_norm,
-                "measured_max_rel": None,
-            }
+            ErrorBoundEntry(
+                rule=nm,
+                law=r.law,
+                bound=r.error_bound,
+                norm=r.bound_norm,
+                measured_max_rel=None,
+            )
         )
     return entries, cert.error_bound + sum(
         bound[nm].error_bound for nm in extra
@@ -200,7 +240,7 @@ def _bounded_term(
     src: Any,
     cost_fn: CostFn,
     error_budget: float,
-) -> tuple[Any, list[dict], float]:
+) -> tuple[Any, list[ErrorBoundEntry], float]:
     """Cheapest member whose delivered bound fits ``error_budget``.
 
     Iterates ``extract_best`` under accumulating enode bans: each
@@ -263,7 +303,7 @@ def _bound_gate(
     return best_term
 
 
-def _error_bound_entries(cert: Any) -> list[dict]:
+def _error_bound_entries(cert: Any) -> list[ErrorBoundEntry]:
     """One record per bound-carrying step of the accepted derivation.
 
     ``measured_max_rel`` stays ``None`` until ``lower``'s verify fills
@@ -271,13 +311,13 @@ def _error_bound_entries(cert: Any) -> list[dict]:
     surfaced either way, never silent.
     """
     return [
-        {
-            "rule": s.rule,
-            "law": r.law,
-            "bound": r.error_bound,
-            "norm": r.bound_norm,
-            "measured_max_rel": None,
-        }
+        ErrorBoundEntry(
+            rule=s.rule,
+            law=r.law,
+            bound=r.error_bound,
+            norm=r.bound_norm,
+            measured_max_rel=None,
+        )
         for s in cert.steps
         if (r := cert.rules.get(s.rule)) is not None and r.error_bound
     ]
@@ -428,11 +468,11 @@ def _propagate_bounds(
     if not entries:
         return 0.0
     rules = _bound_rules(eg) if isinstance(eg, EGraph) else {}
-    out: list[dict] = []
+    out: list[ErrorBoundEntry] = []
     total = 0.0
     unpropagated = False
     for e in entries:
-        e2 = dict(e)
+        e2 = ErrorBoundEntry(e)
         amp, src = (
             _entry_amp(rules.get(e["rule"]), p, sink, ir, params, args)
             if (p := _bound_p(str(e.get("norm") or ""))) is not None
@@ -469,16 +509,16 @@ def _bound_record(
         report.max_abs / report.max_rel if report.max_rel > 0 else None
     )
     stats["error_bounds"] = [
-        {
-            **e,
-            "measured_max_rel": report.max_rel,
-            "output_bound_rel": (
+        ErrorBoundEntry(
+            e,
+            measured_max_rel=report.max_rel,
+            output_bound_rel=(
                 e["output_bound"] / denom
                 if e.get("output_bound") is not None
                 and denom is not None
                 else None
             ),
-        }
+        )
         for e in stats.get("error_bounds", [])
     ]
     honored = bool(

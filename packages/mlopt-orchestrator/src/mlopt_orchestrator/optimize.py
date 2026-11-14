@@ -82,6 +82,7 @@ from mlopt_core.ports import (
 )
 
 from mlopt_orchestrator.bounds import (
+    ErrorBoundEntry as ErrorBoundEntry,
     _ban_bound_members as _ban_bound_members,
     _block_bound_gate as _block_bound_gate,
     _bound_gate as _bound_gate,

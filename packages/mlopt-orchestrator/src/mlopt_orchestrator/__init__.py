@@ -79,6 +79,7 @@ from mlopt_orchestrator.morphisms import (
 from mlopt_orchestrator.optimize import (
     Autotuned,
     Compositional,
+    ErrorBoundEntry,
     Monolithic,
     OptimizationResourceError,
     Optimizer,
@@ -117,6 +118,7 @@ __all__ = [
     "Diagram",
     "DiagramMove",
     "DiagramSearchStats",
+    "ErrorBoundEntry",
     "FactorShared",
     "FlopsCriterion",
     "IdentityRunner",
