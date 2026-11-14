@@ -122,6 +122,19 @@ _VIEW_OPS: frozenset[str] = COST_VIEW_OPS
 #: deterministically toward fewer launches.
 _LAUNCH_PENALTY = 1.0
 
+#: Fallback weight for an op absent from :data:`_OP_FLOPS` that is not
+#: declared cost-view: one elementwise pass per output element.  This
+#: is a *documented convention*, pinned by
+#: ``test_flops_default_weight_ops`` — not a silent default.  It covers
+#: both registered-but-unpriced ops (``relu``/``softmax``/the
+#: reductions — one pass is the right order for them) and unregistered
+#: carrier spellings the explicit ``_flops_of`` arms do not reach
+#: (``omd_apply[m]``/``om_elem_aff*`` — knowingly approximate: their
+#: bindings can hide contractions a per-element weight cannot see;
+#: pricing them honestly needs the carrier shape conventions, which
+#: live outside this package).
+_UNPRICED_FLOPS = 1
+
 
 #: Price of a provably ill-typed term.  Finite but so large it can
 #: never win an extraction — the equivalence verifier is the last line
@@ -320,7 +333,16 @@ def _flops_of(term: Op, memo: dict | None = None) -> float:
         # operand is an in-kernel Hadamard gain — one extra
         # elementwise pass over the output vs the weightless form.
         return float((2 if len(term.args) > 1 else 1) * n_out)
-    return float(_OP_FLOPS.get(term.op, 1) * n_out)
+    weight = _OP_FLOPS.get(term.op)
+    if weight is not None:
+        return float(weight * n_out)
+    if term.op in COST_VIEW_OPS:
+        # A declared no-kernel op with no explicit weight (today only
+        # ``leaf``) — the opmeta tag is the contract: _VIEW_OPS already
+        # exempts it from launch penalties and the roofline prices it
+        # 0, so the flop model must agree.
+        return 0.0
+    return float(_UNPRICED_FLOPS * n_out)
 
 
 def _local_cost(
