@@ -88,6 +88,7 @@ from mlopt_core.cost import (
     roofline_cost_for,
 )
 from mlopt_core.egraph import EGraph, ENode
+from mlopt_core.egraph.extract import _CostMemo
 from mlopt_core.ir import IR, Const, Op, Param, Var, op_repr
 from mlopt_core.laws import RuleSet
 from mlopt_core.ports import ExecutorSpec
@@ -122,7 +123,15 @@ __all__ = [
 #: same precedent as ``mlopt_core.laws.base._SHAPE_MEMO``: extracted
 #: terms are shared-DAG interned objects and an unmemoised
 #: ``typing._shape_of`` walk is exponential on them.
-_SHAPE_MEMO: dict = {}
+#:
+#: Bounded :class:`_CostMemo` (the ``egraph.extract`` LRU pattern): this
+#: dict is module-global and lives for the process, so an unbounded one
+#: would pin every shape-queried term forever across long discovery
+#: loops.  Entries are pure functions of their key — ``typing._memo_set``
+#: skips unhashable keys — so eviction costs a recompute, never a wrong
+#: shape.
+_SHAPE_MEMO_LIMIT = 100_000
+_SHAPE_MEMO: dict = _CostMemo(_SHAPE_MEMO_LIMIT)
 
 
 def footprint_cost(term: Any, memo: dict | None = None) -> float:
