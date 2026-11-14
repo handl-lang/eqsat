@@ -908,9 +908,7 @@ class DevicePolicy(Protocol):
     the caller moves tensors.
     """
 
-    def resolve(
-        self, module: Any = None, inputs: Any = None
-    ) -> Any:
+    def resolve(self, module: Any = None, inputs: Any = None) -> Any:
         """Return the resolved placement for ``module``/``inputs``."""
         ...
 

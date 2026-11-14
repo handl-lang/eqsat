@@ -13,6 +13,9 @@ plan-0032 phase-4 split.
 - [The ports](./ports) — `Source`/`Sink`/`Engine`/`Runner`: the seam
   between a substrate that knows no backend and the backends that know
   no search.
+- [The pipeline](./pipeline) — `optimize.py` and the sibling modules
+  it delegates to (`resources`/`pricing`/`bounds`/`taskgate`/`cache`/
+  `lifts`/`compositional`), and the frozen re-export contract.
 
 Cross-cutting concepts (the three costs, the game, the gauntlet) live
 with [graphopt](/graphopt/).
