@@ -27,7 +27,7 @@ import textwrap
 
 from mlopt_core.egraph import EGraph
 from mlopt_core.egraph.types import _member_key
-from mlopt_core.ir import Op
+from mlopt_core.ir import Const, Op
 from mlopt_core.laws.base import R
 
 #: The budgeted saturation whose result must be seed-independent.  One
@@ -119,7 +119,8 @@ def test_representative_choice_is_canonical():
     rule's ``check``/``derive`` sees.
     """
     eg = EGraph()
-    arg = eg.add_leaf("a")
+    # A registered leaf — bare ``add_leaf`` keys no longer decode.
+    arg = eg.add_term(Const(1))
     members = [eg.add_enode(f"o{i}", (arg,)) for i in range(8)]
     first = members[0]
     for e in members[1:]:

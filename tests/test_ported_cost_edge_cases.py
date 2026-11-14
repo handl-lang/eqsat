@@ -10,13 +10,11 @@ own suite exercises them.
 import types
 
 import pytest
-
 from mlopt_core.cost import (
     _INVALID_COST,
     _LAUNCH_S,
     CostModel,
     _flops_of,
-    _fold_ewidth,
     _folds_to_param,
     _is_strided,
     _local_roofline,
@@ -28,35 +26,39 @@ from mlopt_core.cost import (
     flops_cost,
     launch_aware_cost,
     param_bytes_cost,
-    param_bytes_cost_for,
     roofline_cost,
     roofline_cost_for,
 )
-
 from mlopt_core.ir import Const, Op, Param, TensorType, Var
-
 from mlopt_core.typing import _INVALID, _shape_of
 
 
 def _v(name: str, *shape) -> Var:
     return Var(name, TensorType(tuple(shape)))
 
+
 def _p(name: str, *shape) -> Param:
     return Param(name, TensorType(tuple(shape)))
 
+
 UNKNOWN = Op.make("transpose", Const(1.0))
+
 
 def _numel_of(t) -> int:
     from mlopt_core.typing import _numel
 
     return _numel(_shape_of(t))
 
+
 def test_flops_matmul_unshapeable_rhs():
-    """matmul(x, <None-shaped>) bills 2*n_out with no K to read."""
+    """matmul(x, <None-shaped>) reports unknown — operand 0's shape is
+    NOT the output's (the old first-operand propagation fabricated
+    ``(4, 8)`` for a term whose last axis is unknowable)."""
     t = Op.make("matmul", _v("x", 4, 8), UNKNOWN)
-    assert _shape_of(t) == (4, 8)  # first-operand propagation
-    assert _flops_of(t) == pytest.approx(2 * 4 * 8)
-    assert flops_cost(t) == pytest.approx(2 * 4 * 8)
+    assert _shape_of(t) is None
+    assert _flops_of(t) == pytest.approx(2.0)
+    assert flops_cost(t) == pytest.approx(2.0)
+
 
 def test_flops_conv2d_groups_and_fallback():
     x = _v("x", 2, 4, 8, 8)
@@ -72,6 +74,7 @@ def test_flops_conv2d_groups_and_fallback():
     w_holed = _p("wh", 8, 4, None, 3)
     t = Op.make("conv2d", x, w_holed)
     assert _flops_of(t) == pytest.approx(2 * _numel_of(t))
+
 
 def test_flops_aff_family_fallbacks():
     # aff_compose on a rank-1 map part: no d axis to price against.
@@ -97,11 +100,13 @@ def test_flops_aff_family_fallbacks():
         Op.make("applyd", f1, _v("h2", 4))
     ) == pytest.approx(2 * 4)
 
+
 def test_flops_sdpa_rank2_query():
     """sdpa needs (…, T, d) to price T — a rank-2 q falls back flat."""
     q = _v("q", 4, 8)
     t = Op.make("sdpa", q, _v("k", 4, 8), _v("v", 4, 8))
     assert _flops_of(t) == pytest.approx(4 * _numel_of(t))
+
 
 def test_flops_default_weight_ops():
     """Ops absent from _OP_FLOPS bill 1 flop per output element, and
@@ -132,11 +137,13 @@ def test_flops_default_weight_ops():
     assert _shape_of(fl) == (2, 12)
     assert _flops_of(fl) == pytest.approx(24.0)
 
+
 def test_flops_invalid_term_is_poison():
     bad = Op.make("add", _v("a", 4, 8), _v("b", 4, 7))
     assert _shape_of(bad) is _INVALID
     assert _flops_of(bad) >= _INVALID_COST
     assert flops_cost(bad) >= _INVALID_COST
+
 
 def test_count_and_depth_on_view_and_carrier_ops():
     x = _v("x", 4, 8)
@@ -156,6 +163,7 @@ def test_count_and_depth_on_view_and_carrier_ops():
     # depth: a view adds no latency over its child.
     assert depth_cost(t) == pytest.approx(depth_cost(t.args[0]))
 
+
 def test_launch_aware_view_ops_skip_penalty():
     x = _v("x", 4, 8)
     neg = Op.make("neg", x)
@@ -172,6 +180,7 @@ def test_launch_aware_view_ops_skip_penalty():
     first = launch_aware_cost(tr, memo)
     assert launch_aware_cost(tr, memo) == first
 
+
 def test_depth_cost_invalid_term_charges_launch_not_veto():
     bad = Op.make("add", _v("a", 4, 8), _v("b", 4, 7))
     assert _local_roofline(bad) == _INVALID_COST
@@ -183,6 +192,7 @@ def test_depth_cost_invalid_term_charges_launch_not_veto():
     assert df.__name__ == "depth_cost_for"
     assert df.profile == {"tflops": 2.5, "gbps": 89.0, "launch_us": 2.0}
 
+
 def test_depth_cost_zero_arg_op():
     """A childless op has depth == its own latency (default=0.0)."""
     eye = Op.make("eye", dim=4)
@@ -190,6 +200,7 @@ def test_depth_cost_zero_arg_op():
         _local_roofline(eye, {}), rel=0.01
     )
     assert depth_cost(eye) >= 0.0
+
 
 def test_roofline_cost_for_kwarg_calibration():
     """Keyword overrides re-price each op's compute/memory/launch."""
@@ -220,6 +231,7 @@ def test_roofline_cost_for_kwarg_calibration():
     assert by_obj.profile is prof
     # roofline_cost_for() with no profile IS the default.
     assert roofline_cost_for()(t) == pytest.approx(default)
+
 
 def test_folds_to_param_non_op_and_const_rules():
     """_folds_to_param's leaf and Const-arities mirror the lowerer."""
@@ -277,6 +289,7 @@ def test_folds_to_param_non_op_and_const_rules():
     )
     assert _folds_to_param(Op.make("matmul", A, B), None, {}) is True
 
+
 def test_folds_to_param_covers_the_lowering_alphabet():
     """The fold predicate reads the full ``FOLD_OPS`` alphabet, not a
     hand-narrowed subset — the conv+BN weight-fold spelling
@@ -297,21 +310,14 @@ def test_folds_to_param_covers_the_lowering_alphabet():
     assert _folds_to_param(chain, None, {}) is True
     # Reductions, gathers-by-construction and creators fold too —
     # ``_fold_weight_chains`` evaluates them eagerly on bound params.
+    assert _folds_to_param(Op.make("sum", V, dim=0), None, {}) is True
     assert (
-        _folds_to_param(Op.make("sum", V, dim=0), None, {}) is True
-    )
-    assert (
-        _folds_to_param(
-            Op.make("flip", V, dims=(0,)), None, {}
-        )
-        is True
+        _folds_to_param(Op.make("flip", V, dims=(0,)), None, {}) is True
     )
     # …but the declined slice/extraction family still stays runtime —
     # re-materialising a dedup slice must keep its sharing saving.
     assert (
-        _folds_to_param(
-            Op.make("expand", V, shape=(2, 6)), None, {}
-        )
+        _folds_to_param(Op.make("expand", V, shape=(2, 6)), None, {})
         is False
     )
     # A Var leaf anywhere makes the whole subtree runtime work.
@@ -319,6 +325,7 @@ def test_folds_to_param_covers_the_lowering_alphabet():
         _folds_to_param(Op.make("mul", chain, _v("x", 4)), None, {})
         is False
     )
+
 
 def test_dag_cost_prices_folded_weight_chains_at_zero():
     """A subtree closed over Param/Const leaves is compile-time work:
@@ -345,6 +352,7 @@ def test_dag_cost_prices_folded_weight_chains_at_zero():
         dag_cost(bare, launch_aware_cost)
     )
 
+
 def test_param_bytes_bills_folds_at_output_size():
     """A materialised fold stores its OUTPUT — concat re-stores every
     copy; a folded weight matmul stores the dense product, not the
@@ -363,6 +371,7 @@ def test_param_bytes_bills_folds_at_output_size():
     t2 = Op.make("reshape", _p("R", 4, 5), shape=(4, 5))
     assert param_bytes_cost(t2) == 20.0
 
+
 def test_param_bytes_shared_fold_billed_once():
     """The same fold object reached twice is one stored tensor —
     ``_fold_memo``/``_build_params`` materialise it a single time.
@@ -377,6 +386,7 @@ def test_param_bytes_shared_fold_billed_once():
     two = Op.make("zwrap", cat, cat2)
     assert param_bytes_cost(two) == 2 * 8 * 4
 
+
 def test_param_bytes_index_keys():
     """_param_index exposes the two storage entry kinds by key."""
     W = _p("W", 4, 4)
@@ -386,6 +396,7 @@ def test_param_bytes_index_keys():
     assert idx[("\x00fold", cat)] == 32.0
     leaf = _param_index(W, None, {})
     assert leaf == {"W": 16.0}
+
 
 def test_dag_cost_shared_subtree_billed_once():
     x = _v("x", 4, 8)
@@ -397,6 +408,7 @@ def test_dag_cost_shared_subtree_billed_once():
         _flops_of(t) + flops_cost(m)
     )
     assert dag_cost(t, flops_cost) < tree
+
 
 def test_dag_cost_param_only_discount():
     """Param-only subtrees fold at compile time: runtime cost 0."""
@@ -416,6 +428,7 @@ def test_dag_cost_param_only_discount():
         param_bytes_cost(t)
     )
     assert dag_cost(t, param_bytes_cost) == pytest.approx(4 * 8)
+
 
 def test_dag_cost_cost_fn_without_memo():
     """A bare ``fn(term)`` cost model works — memo is only forwarded
@@ -439,6 +452,7 @@ def test_dag_cost_cost_fn_without_memo():
     # bill_params -> not skipped: local = 1 - (1 + 1) clamped at 0.
     assert dag_cost(only, unit) == pytest.approx(2.0)
 
+
 def test_is_strided_edges():
     # Non-tuple (scalar) chunk shape -> not strided.
     assert _is_strided(Op.make("chunk", Const(1.0), chunks=2)) is False
@@ -449,6 +463,7 @@ def test_is_strided_edges():
     assert _is_strided(Op.make("chunk", x, chunks=2, dim=-1)) is True
     assert _is_strided(Op.make("chunk", x, chunks=2, dim=0)) is False
 
+
 def test_cost_model_linear_and_fallback_arms():
     cm = CostModel()
     x = _v("x", 4, 16)
@@ -458,15 +473,16 @@ def test_cost_model_linear_and_fallback_arms():
     # scalar x: no in-features axis -> flat 2*n fallback.
     t = Op.make("linear", Const(1.0), W)
     assert cm(t) == pytest.approx(2.0)
-    # matmul with unshapeable RHS -> coeff * n.
+    # matmul with unshapeable RHS -> unknown shape -> flat fallback.
     m = Op.make("matmul", _v("v", 4, 8), UNKNOWN)
-    assert cm(m) == pytest.approx(cm.matmul_coeff * 4 * 8)
+    assert cm(m) == pytest.approx(2.0)
     # Custom weights: op_weights override, weight_coeff is the default.
     cm2 = CostModel(op_weights={"neg": 5.0}, weight_coeff=3.0)
     assert cm2(Op.make("neg", x)) == pytest.approx(5.0 * 4 * 16)
     assert cm2(Op.make("frobnicate", x)) == pytest.approx(3.0 * 4 * 16)
     # Non-Op leaves cost nothing.
     assert cm(x) == 0.0 and cm(Const(1.0)) == 0.0
+
 
 def test_cost_model_matmul_rank1_rhs():
     """CostModel's matmul arm reads k from dim -2 only: a rank-1 RHS
@@ -477,6 +493,7 @@ def test_cost_model_matmul_rank1_rhs():
     v = _p("v", 8)
     # (4,8) @ (8,) -> (4,), and CostModel prices it as 2*n.
     assert cm(Op.make("matmul", x, v)) == pytest.approx(2 * 4)
+
 
 def test_defensive_branch_inventory():
     """Unreachable-by-construction code — ``# pragma: no cover``

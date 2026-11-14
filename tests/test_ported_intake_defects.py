@@ -7,7 +7,7 @@ same file needed domain packages.  Ported back so the substrate's
 own suite exercises them.
 """
 
-from mlopt_core.ir import IR, Const, Op, TensorType, Var
+from mlopt_core.ir import Const, Op, TensorType, Var
 
 
 def test_const_int_float_spellings_are_distinct():
@@ -25,7 +25,6 @@ def test_const_int_float_spellings_are_distinct():
     equality now matches.
     """
     from mlopt_core.egraph import EGraph
-    from mlopt_core.ir import Const
 
     assert Const(8) != Const(8.0)
     assert Const(8.0) == Const(8.0)
@@ -41,7 +40,8 @@ def test_const_int_float_spellings_are_distinct():
         for n in ec.nodes
         if n.op == "leaf"
     }
-    assert {"8", "8.0"} <= keys
+    assert {"const:8", "const:8.0"} <= keys
+
 
 def test_attr_int_float_spellings_are_distinct_terms():
     """``clamp(min=0)`` and ``clamp(min=0.0)`` are different terms.
@@ -70,6 +70,7 @@ def test_attr_int_float_spellings_are_distinct_terms():
     e = Op.make("unflatten", x, dim=0, sizes=[3, 5])
     assert c != d and c != e
 
+
 def test_attr_int_float_spellings_are_distinct_enodes():
     """``min=0`` and ``min=0.0`` land in different e-classes.
 
@@ -83,18 +84,17 @@ def test_attr_int_float_spellings_are_distinct_enodes():
     from mlopt_core.ir import TensorType, Var
 
     eg = EGraph()
-    x = eg.add_leaf("x")
+    x = eg.add_term(Var("x", TensorType(())))
     a = eg.add_enode("clamp", (x,), {"min": 0})
     b = eg.add_enode("clamp", (x,), {"min": 0.0})
     assert eg.find(a) != eg.find(b)
     assert eg.add_enode("clamp", (x,), {"min": 0}) == eg.find(a)
 
     # add_term goes through the same strict enode identity — a Var
-    # named "x" reprs to the same leaf key, so only ``min`` differs.
-    c = eg.add_term(
-        Op.make("clamp", Var("x", TensorType(())), min=0.0)
-    )
+    # named "x" keys to the same leaf, so only ``min`` differs.
+    c = eg.add_term(Op.make("clamp", Var("x", TensorType(())), min=0.0))
     assert eg.find(c) == eg.find(b)
+
 
 def test_attr_match_stays_numerically_lenient():
     """Pattern ``min=0`` still matches a term spelled ``min=0.0``.
@@ -106,7 +106,6 @@ def test_attr_match_stays_numerically_lenient():
     """
     from mlopt_core.egraph import EGraph
     from mlopt_core.egraph.terms import _term_match
-    from mlopt_core.ir import Const
     from mlopt_core.meta import match_pattern
 
     pat = Op.make("clamp", "v", min=0)
@@ -120,6 +119,7 @@ def test_attr_match_stays_numerically_lenient():
     root = eg.add_term(term)
     subs = list(eg.matches(Op.make("clamp", "v", min="m"), root))
     assert subs and subs[0]["$attr:m"] == 0.0
+
 
 def test_infer_op_shape_declines_on_str_attr_metavar():
     """``_infer_op_shape`` returns ``None`` (unknown), not a TypeError,

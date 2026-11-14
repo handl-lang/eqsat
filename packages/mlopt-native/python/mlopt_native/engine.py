@@ -44,6 +44,7 @@ from mlopt_core.egraph.extract import _ExtractMixin
 from mlopt_core.egraph.types import (
     EClass,
     ENode,
+    _leaf_key,
     _LeafRegistry,
     _norm_attr_value,
 )
@@ -77,7 +78,7 @@ def _flatten(term: Any, nodes: list, memo: dict) -> int:
         nodes.append(("op", term.op, idxs, attrs))
     else:
         _LeafRegistry.register(term)
-        nodes.append(("leaf", repr(term)))
+        nodes.append(("leaf", _leaf_key(term)))
     memo[term] = len(nodes) - 1
     return memo[term]
 
@@ -119,7 +120,7 @@ def _flatten_dag(
         nodes.append(("op", term.op, idxs, attrs))
     else:
         _LeafRegistry.register(term)
-        nodes.append(("leaf", repr(term), _leaf_kind(term)))
+        nodes.append(("leaf", _leaf_key(term), _leaf_kind(term)))
     terms.append(term)
     memo[term] = len(nodes) - 1
     return memo[term]
@@ -169,7 +170,7 @@ def _ser_pattern(p: Any) -> tuple:
             ),
         )
     _LeafRegistry.register(p)
-    return ("leaf", repr(p))
+    return ("leaf", _leaf_key(p))
 
 
 def _build_term(ser: Any) -> Any:

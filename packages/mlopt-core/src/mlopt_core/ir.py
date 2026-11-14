@@ -15,6 +15,7 @@ from __future__ import annotations
 import weakref
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from numbers import Integral
 from typing import Any, ClassVar, cast
 
 from mlopt_core.attrs import validate_attrs
@@ -44,9 +45,34 @@ __all__ = [
 
 @dataclass(frozen=True)
 class TensorType:
-    """A tensor type characterized by its shape."""
+    """A tensor type characterized by its shape.
+
+    ``shape`` is a tuple of dims — each ``None`` (extent unknown) or a
+    non-negative int (``0`` is a legal empty-tensor extent; ``()`` is
+    the scalar shape).  ``shape=None`` is the wholly-unknown wildcard
+    some callers mint deliberately.  Anything else — a negative dim,
+    a float, a symbolic string — is rejected at construction: a bad
+    dim silently poisons every downstream broadcast/numel check.
+    """
 
     shape: tuple[int | None, ...]
+
+    def __post_init__(self) -> None:
+        """Validate dims: ``None`` or a non-negative integer each."""
+        shape = self.shape
+        if shape is None:
+            return
+        for d in shape:
+            if d is None:
+                continue
+            if isinstance(d, bool) or not isinstance(d, Integral):
+                raise ValueError(
+                    f"TensorType dim must be int or None, got {d!r}"
+                )
+            if d < 0:
+                raise ValueError(
+                    f"TensorType dim must be >= 0, got {d!r}"
+                )
 
     @property
     def size(self) -> int | None:
@@ -93,8 +119,9 @@ class Const:
 
     Equality is *spelling-strict* — ``Const(8) != Const(8.0)`` —
     because ``Const`` is a structural object, not a number: it is the
-    e-graph's leaf identity (``EGraph.add_leaf`` keys on
-    ``repr(term)``, ``_term_match`` compares ``repr``) and it is what
+    e-graph's leaf identity (``EGraph.add_leaf`` keys leaves on the
+    kind-tagged ``egraph.types._leaf_key``, ``_term_match`` compares
+    ``repr``) and it is what
     ``Op`` interning, ``add_term`` memos and every term-keyed dict
     hash and compare on.  Python's numeric tower (``8 == 8.0``,
     ``hash(8) == hash(8.0)``) leaking through the dataclass-default

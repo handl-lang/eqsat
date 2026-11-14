@@ -138,6 +138,156 @@ def _shape_of(
 #: A projection of :mod:`mlopt_core.opmeta` (the ``commutative`` tag).
 _COMMUTATIVE_BROADCAST = COMMUTATIVE_OPS
 
+#: Ops whose result shape IS operand 0's shape no matter what the
+#: other operands' shapes are.  This is the *only* set the
+#: partial-unknown early return in :func:`_infer_op_shape` may answer
+#: ``shapes[0]`` for: returning it for any other op fabricates a
+#: shape — ``matmul(x, ?)`` is not ``x.shape``, ``concat`` grows the
+#: cat axis, ``select`` drops one.  Membership mirrors the ``match``
+#: arms below that return ``shapes[0]`` (or a broadcast that
+#: degenerates to it when the sibling operands are unknown):
+#: elementwise/broadcast binaries, the shape-preserving unary
+#: family, the axis-anchored in-place-shape family, and the explicit
+#: arg0-passthroughs.  Everything else — ``matmul``/``linear``/
+#: ``concat``/views/reductions/carrier rules — must see ``None``
+#: (unknown), never a borrowed operand-0 shape.  When a new
+#: shape-preserving op is added to the ``match`` it belongs here too;
+#: the failure direction for a missing entry is ``None`` (honest
+#: unknown), never a wrong shape.
+_ARG0_SHAPE_OPS = frozenset(
+    {
+        # Elementwise / broadcast binaries (the ``_broadcast`` arms):
+        # with one operand unknown the broadcast IS the known shape.
+        "add",
+        "mul",
+        "sub",
+        "div",
+        "pow",
+        "maximum",
+        "minimum",
+        "fmax",
+        "fmin",
+        "fmod",
+        "remainder",
+        "xlogy",
+        "atan2",
+        "heaviside",
+        "isclose",
+        "eq",
+        "ne",
+        "lt",
+        "le",
+        "gt",
+        "ge",
+        "logical_and",
+        "logical_or",
+        "logical_xor",
+        "bitwise_and",
+        "bitwise_or",
+        # Shape-preserving elementwise family (``return shapes[0]``).
+        "square",
+        "sqrt",
+        "neg",
+        "sigmoid",
+        "silu",
+        "tanh",
+        "gelu",
+        "rsqrt",
+        "exp",
+        "exp2",
+        "expm1",
+        "softmax",
+        "log_softmax",
+        "masked_fill",
+        "logical_not",
+        "relu",
+        "leaky_relu",
+        "elu",
+        "celu",
+        "softplus",
+        "softsign",
+        "hardswish",
+        "hardsigmoid",
+        "mish",
+        "relu6",
+        "prelu",
+        "hardtanh",
+        "abs",
+        "sign",
+        "floor",
+        "ceil",
+        "round",
+        "frac",
+        "trunc",
+        "log",
+        "log2",
+        "log10",
+        "log1p",
+        "erf",
+        "erfc",
+        "erfinv",
+        "gammaln",
+        "digamma",
+        "i0",
+        "sinc",
+        "reciprocal",
+        "nan_to_num",
+        "isnan",
+        "isinf",
+        "isfinite",
+        "isposinf",
+        "isneginf",
+        "asin",
+        "acos",
+        "atan",
+        "sinh",
+        "cosh",
+        "asinh",
+        "acosh",
+        "atanh",
+        "detach",
+        "detach_",
+        "copy",
+        # Axis-anchored ops that keep the input rank (``shapes[0]``).
+        "cumsum",
+        "cumprod",
+        "logcumsumexp",
+        "cummax",
+        "cummin",
+        "argsort",
+        "flip",
+        "roll",
+        "triu",
+        "tril",
+        "scatter",
+        "scatter_add",
+        "scatter_reduce",
+        "index_add",
+        "index_put",
+        "slice_scatter",
+        "select_scatter",
+        "batch_norm",
+        "group_norm",
+        "instance_norm",
+        "sort",
+        "topk",
+        "median",
+        "kthvalue",
+        "mode",
+        "_assert_tensor_metadata",
+        # Explicit arg0-passthrough arms.
+        "contiguous",
+        "to",
+        "type_as",
+        "float",
+        "dropout",
+        "alias",
+        "inv",
+        "getitem",
+        "sdpa",
+    }
+)
+
 
 def _infer_op_shape(op: Op, memo: dict | None = None):
     # Zero-argument ops with a registered rule (constant morphisms
@@ -151,7 +301,16 @@ def _infer_op_shape(op: Op, memo: dict | None = None):
     if any(s is _INVALID for s in shapes):
         return _INVALID
     if not shapes or any(s is None for s in shapes):
-        if shapes and shapes[0] is not None:
+        # Operand 0's shape answers ONLY for ops whose output shape is
+        # provably operand 0's (``_ARG0_SHAPE_OPS``): for ``matmul``/
+        # ``concat``/``select``/carrier rules it would fabricate a
+        # shape the term does not have — the silent-wrong the
+        # ``_INVALID``/``None`` contract exists to prevent.
+        if (
+            shapes
+            and shapes[0] is not None
+            and op.op in _ARG0_SHAPE_OPS
+        ):
             return shapes[0]
         # Commutative element-wise ops are operand-symmetric: with the
         # first shape unknown, fall back to whichever operand shape IS
@@ -182,7 +341,8 @@ def _infer_op_shape(op: Op, memo: dict | None = None):
                 return ()
             # A scalar operand under matmul is ill-typed — almost
             # always a carrier-internal member read as a tensor.
-            return shapes[0] or None
+            # Operand 0's shape is not the output's — unknown.
+            return None
         case "add" | "mul" | "sub" | "div":
             # Element-wise ops broadcast: result is the broadcast shape,
             # not simply the first operand's shape.
@@ -369,7 +529,10 @@ def _infer_op_shape(op: Op, memo: dict | None = None):
                             out_b = _broadcast(out, b)
                         return out_b
                     return out
-            return shapes[0] or None
+            # The output's last axis is the weight's out-features —
+            # operand 0's shape is NOT a valid fallback (it would
+            # report the input rank/dims as the output's).
+            return None
         case (
             "sum"
             | "mean"

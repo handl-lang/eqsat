@@ -875,6 +875,7 @@ def share_duplicate_param_slices(
       stored_before, stored_after, eid}``.
     """
     from mlopt_core.egraph import ENode
+    from mlopt_core.egraph.types import _leaf_key
     from mlopt_core.ir import Param, TensorType
 
     offers: list[dict] = []
@@ -882,7 +883,21 @@ def share_duplicate_param_slices(
         if not _is_tensor(t) or t.dim() != 2:
             continue
         o, i = int(t.shape[0]), int(t.shape[1])
-        leaf = ENode("leaf", (), (("key", name),))
+        leaf = ENode(
+            "leaf",
+            (),
+            (
+                (
+                    "key",
+                    _leaf_key(
+                        Param(
+                            name,
+                            TensorType(tuple(int(d) for d in t.shape)),
+                        )
+                    ),
+                ),
+            ),
+        )
         w_eid = eg._node_to_class.get(leaf)
         if w_eid is None:
             continue  # param not in the graph — nothing to offer to

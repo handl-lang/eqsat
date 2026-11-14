@@ -7,25 +7,27 @@ same file needed domain packages.  Ported back so the substrate's
 own suite exercises them.
 """
 
-from mlopt_core.cost import flops_cost, launch_aware_cost
-
-from mlopt_core.ir import IR, Const, Op, TensorType, Var
-
+from mlopt_core.cost import flops_cost
+from mlopt_core.ir import Const, Op, TensorType, Var
 from mlopt_core.typing import _INVALID, _shape_of
 
 
 def _v(name: str, *shape) -> Var:
     return Var(name, TensorType(tuple(shape)))
 
+
 def _spelled(s, d, v):
     return Op.make("matmul", Op.make("mul", s, d), v)
 
+
 RAW = "raw_leaf"
+
 
 def test_shape_rule_reports_the_applied_shape():
     """(s ⊙ d) @ v — out is (…,T,dv), incl. broadcast batch dims."""
     s, d, v = _v("s", 2, 8, 8), _v("d", 8, 8), _v("v", 2, 8, 16)
     assert _shape_of(Op.make("om_decayed", s, d, v)) == (2, 8, 16)
+
 
 def test_shape_rule_scalar_operands_report_unknown():
     """A () operand is a carrier member read as a tensor — None."""
@@ -33,6 +35,7 @@ def test_shape_rule_scalar_operands_report_unknown():
     s = _v("s", 4, 4)
     assert _shape_of(Op.make("om_decayed", Const(1.0), d, v)) is None
     assert _shape_of(Op.make("om_decayed", s, d, Const(1.0))) is None
+
 
 def test_shape_rule_marks_misuse_invalid():
     """Unbroadcastable mul or a non-contracting pair is _INVALID."""
@@ -59,12 +62,14 @@ def test_shape_rule_marks_misuse_invalid():
         is _INVALID
     )
 
+
 def test_flops_price_the_element_like_the_spelling():
     """om_decayed's FLOPs == mul's broadcast pass + the contraction."""
     s, d, v = _v("s", 2, 8, 8), _v("d", 8, 8), _v("v", 2, 8, 16)
     spelled = _spelled(s, d, v)
     carrier = Op.make("om_decayed", s, d, v)
     assert flops_cost(carrier) == flops_cost(spelled)
+
 
 def test_flops_fall_back_without_extents():
     """Partial/unknown operand shapes degrade to bounded estimates."""
@@ -79,4 +84,8 @@ def test_flops_fall_back_without_extents():
         flops_cost(Op.make("om_decayed", Const(1.0), Const(1.0), v))
         == 2.0
     )
-    assert flops_cost(Op.make("om_decayed", s, RAW, v)) == 2 * 4
+    # An unshaped MIDDLE operand makes the whole broadcast/matmul
+    # unknown — operand 0's shape is not the output's, so the flat
+    # 2·n_out fallback applies (n_out = 1 when the term's own shape
+    # is unknown).
+    assert flops_cost(Op.make("om_decayed", s, RAW, v)) == 2.0

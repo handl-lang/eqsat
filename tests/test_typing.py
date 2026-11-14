@@ -16,7 +16,6 @@ contract the layer publishes:
 """
 
 import pytest
-
 from mlopt_core.ir import Const, Op, Param, TensorType, Var
 from mlopt_core.typing import (
     _INVALID,
@@ -85,7 +84,9 @@ SHAPE_CASES = [
     ),
     # --- chunk ------------------------------------------------------------
     pytest.param(
-        Op.make("chunk", Var("c", TensorType((2, 8))), chunks=4, dim=-1),
+        Op.make(
+            "chunk", Var("c", TensorType((2, 8))), chunks=4, dim=-1
+        ),
         (2, 2),
         id="chunk/last-dim",
     ),
@@ -159,7 +160,9 @@ SHAPE_CASES = [
     ),
     # --- the () -> None carrier policy --------------------------------------
     pytest.param(
-        Op.make("transpose", scalar), None, id="policy/transpose-of-scalar"
+        Op.make("transpose", scalar),
+        None,
+        id="policy/transpose-of-scalar",
     ),
     pytest.param(
         Op.make("slice", scalar, dim=0),
@@ -241,7 +244,9 @@ SHAPE_CASES = [
         id="carrier/parl-juxtaposes",
     ),
     # --- zero-arg constant morphisms (registered, attrs-only) -------------
-    pytest.param(Op.make("eye", dim=5), (5, 5), id="const-morphism/eye"),
+    pytest.param(
+        Op.make("eye", dim=5), (5, 5), id="const-morphism/eye"
+    ),
     pytest.param(
         Op.make("cswap", d1=2, d2=3),
         (5, 5),
@@ -338,3 +343,26 @@ def test_memo_is_content_keyed_dag():
     memo: dict = {}
     assert _shape_of(term, memo) == (2, 3, 4)
     assert shared in memo
+
+
+def test_partial_unknown_shape_not_operand0():
+    """Regression: the partial-unknown early return used to answer
+    ``shapes[0]`` for ANY op — ``matmul(x, ?)`` reported x's own shape,
+    a fabricated result that poisons every broadcast consumer."""
+    known = Var("xk", TensorType((4, 8)))
+    unknown = Var("uu", TensorType(None))
+    # Shape-transforming ops: honest unknown, never operand 0's shape.
+    assert _shape_of(Op.make("matmul", known, unknown)) is None
+    assert _shape_of(Op.make("linear", known, unknown)) is None
+    assert _shape_of(Op.make("concat", known, unknown, dim=0)) is None
+    assert _shape_of(Op.make("select", known, unknown)) is None
+    # Broadcast / shape-preserving ops keep the operand-0 answer —
+    # the unknown sibling is a wildcard under ``_broadcast``.
+    assert _shape_of(Op.make("add", known, unknown)) == (4, 8)
+    assert _shape_of(Op.make("sub", known, unknown)) == (4, 8)
+    assert _shape_of(
+        Op.make("neg", Op.make("add", known, unknown))
+    ) == (
+        4,
+        8,
+    )

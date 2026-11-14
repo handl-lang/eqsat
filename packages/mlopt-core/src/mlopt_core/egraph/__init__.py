@@ -29,6 +29,7 @@ from mlopt_core.egraph.types import (
     ENode,
     Rewrite,
     UnionFind,
+    _leaf_key,  # noqa: F401 — compat re-export
     _LeafRegistry,  # noqa: F401 — compat re-export
     _pattern_attrs,  # noqa: F401 — compat re-export
 )

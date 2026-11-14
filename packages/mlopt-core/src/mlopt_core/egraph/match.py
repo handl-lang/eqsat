@@ -36,7 +36,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from mlopt_core.egraph.types import EClass, ENode, _pattern_attrs
+from mlopt_core.egraph.types import (
+    EClass,
+    ENode,
+    _leaf_key,
+    _pattern_attrs,
+)
 from mlopt_core.ir import Op
 
 __all__ = [
@@ -60,8 +65,9 @@ class _PVar:
 class _PLeaf:
     """Concrete-leaf pattern (``Const``/``Param``/``Var``/other terms).
 
-    ``key`` is the leaf-registry key (``repr`` of the term); ``enode``
-    is the prebuilt ``("leaf", (), (("key", key),))`` node the matcher
+    ``key`` is the leaf-registry key (:func:`_leaf_key` — kind-tagged,
+    not bare ``repr``); ``enode`` is the prebuilt
+    ``("leaf", (), (("key", key),))`` node the matcher
     probes in ``_node_to_class``; ``term`` is the original pattern
     object — kept so RHS instantiation can re-register it.
     """
@@ -125,7 +131,7 @@ def _pnode(pattern: Any) -> Any:
             frozenset(k for k, _ in attrs),
             child_reqs,
         )
-    key = repr(pattern)
+    key = _leaf_key(pattern)
     return _PLeaf(key, pattern, ENode("leaf", (), (("key", key),)))
 
 

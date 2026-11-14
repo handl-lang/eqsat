@@ -23,10 +23,15 @@ replaced:
 from __future__ import annotations
 
 import pytest
+from hypothesis import given, settings
 from mlopt_core.cost import count_cost
 from mlopt_core.egraph import EGraph
 from mlopt_core.egraph.core import EGraph as CoreEG
-from mlopt_core.egraph.types import ENode, _pattern_attrs
+from mlopt_core.egraph.types import (
+    ENode,
+    _leaf_key,
+    _pattern_attrs,
+)
 from mlopt_core.ir import Const, Op, Param, TensorType, Var
 from mlopt_core.laws import (
     ALL_RULES,
@@ -39,7 +44,6 @@ from mlopt_core.laws import (
     ID_MUL,
     RuleSet,
 )
-from hypothesis import given, settings
 
 from tests.test_property_strategies import terms
 
@@ -133,7 +137,7 @@ def _ref_match(eg, pattern, eid, subst, results, limit=None):
                     results.extend(child_substs)
         return
 
-    key = ("key", repr(pattern))
+    key = ("key", _leaf_key(pattern))
     enode = ENode("leaf", (), (key,))
     if (
         enode in eg._node_to_class
@@ -562,8 +566,6 @@ def test_improving_stall_breaks_early():
     assert stats["stop"] == "improving"
     assert stats["improved"] == 1
     assert stats["iterations"] == 3
-
-
 
 
 def test_fixed_point_is_default_and_identical():

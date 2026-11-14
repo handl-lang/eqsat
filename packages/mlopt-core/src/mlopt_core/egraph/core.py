@@ -24,6 +24,7 @@ from mlopt_core.egraph.types import (
     ENode,
     Rewrite,
     UnionFind,
+    _leaf_key,
     _LeafRegistry,
     _member_key,
     _norm_attr_value,
@@ -288,7 +289,7 @@ class EGraph(_ExtractMixin, _ProofMixin):
                 memo[key] = self._add_enode(enode, provenance)
             return memo[key]
         _LeafRegistry.register(term)
-        memo[key] = self.add_leaf(repr(term), provenance)
+        memo[key] = self.add_leaf(_leaf_key(term), provenance)
         return memo[key]
 
     def union(

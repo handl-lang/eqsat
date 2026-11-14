@@ -28,7 +28,6 @@ the match, so they can never observe one.
 """
 
 import pytest
-
 from mlopt_core.ir import Const, Op, Param, TensorType, Var
 from mlopt_core.typing import (
     _INVALID,
@@ -69,11 +68,12 @@ SHAPE_CASES = [
         Op.make("add", unknown, unknown), None, id="mixed/all-unknown"
     ),
     # --- linear -------------------------------------------------------
-    # Rank-0 weight: no in-features axis to consume — fall through to
-    # the operand shape rather than fabricating one.
+    # Rank-0 weight: no in-features axis to consume — the output's
+    # last axis is unknowable, so unknown (operand 0's shape is not
+    # the output's).
     pytest.param(
         Op.make("linear", x48, scalar),
-        (4, 8),
+        None,
         id="linear/scalar-weight",
     ),
     # Column bias on a (B,o) output: the squeezed (B,) broadcast is

@@ -7,7 +7,7 @@ import functools
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
-from mlopt_core.ir import Op, op_repr
+from mlopt_core.ir import Const, Op, Param, Var, op_repr
 
 
 @dataclass(frozen=True, eq=False)
@@ -357,6 +357,30 @@ def _pattern_attrs(op: Op) -> tuple[tuple[str, Any], ...]:
     )
 
 
+def _leaf_key(term: Any) -> str:
+    """Kind-tagged identity key for a leaf term.
+
+    ``repr`` is *not* injective across leaf kinds — ``Var("x")``,
+    ``Param("x")`` and ``Const(8)``-style spellings can render
+    identically — so a repr-keyed leaf merges distinct leaves into
+    one e-class, and congruence then equates programs that differ
+    (a same-named ``Var`` and ``Param`` are NOT the same leaf).
+    The key carries the leaf kind plus the identity that kind's own
+    equality uses: the name for ``Var``/``Param``, the
+    spelling-strict value repr for ``Const`` (matching
+    :meth:`Const.__eq__`), and ``type:repr`` for anything else.
+    Shapes stay out of the ``Var``/``Param`` key — pattern leaves
+    match by name, the ``_term_match`` convention.
+    """
+    if isinstance(term, Var):
+        return f"var:{term.name}"
+    if isinstance(term, Param):
+        return f"param:{term.name}"
+    if isinstance(term, Const):
+        return f"const:{term.value!r}"
+    return f"{type(term).__name__}:{term!r}"
+
+
 class _LeafRegistry:
     """Maps string keys to leaf term objects and vice-versa."""
 
@@ -364,10 +388,18 @@ class _LeafRegistry:
 
     @classmethod
     def register(cls, term: Any) -> str:
-        key = repr(term)
+        key = _leaf_key(term)
         cls._key_to_term[key] = term
         return key
 
     @classmethod
     def decode(cls, key: str) -> Any:
-        return cls._key_to_term.get(key, key)
+        """Return the term registered under *key*.
+
+        Raises ``KeyError`` on an unknown key — returning the raw
+        string used to leak a non-term into extracted members and
+        cost pricing, a silent wrong answer.  A miss means the leaf
+        was never registered (a hand-built ``add_leaf`` key or a
+        stale enode), which is a bug to surface, not paper over.
+        """
+        return cls._key_to_term[key]

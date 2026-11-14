@@ -18,6 +18,7 @@ from mlopt_core.cost import (
 )
 from mlopt_core.egraph.types import (
     ENode,
+    _leaf_key,
     _LeafRegistry,
     _member_key,
     _pattern_attrs,
@@ -185,7 +186,14 @@ class _ExtractMixin:
 
         eid = self.find(eid)
         eclass = self._classes[eid]
-        seen: dict[str, tuple[float, Any]] = {}
+        # Dedup key is the term itself: Op terms are hash-consed and
+        # leaves compare by their own equality, so the key is
+        # structural AND injective.  ``op_repr`` is neither past
+        # ``_OP_REPR_BUDGET`` (elided subtrees render identically) nor
+        # across leaf kinds (``Var("x")``/``Param("x")`` share a
+        # repr) — two distinct frontier members could collapse into
+        # one entry and silently drop an alternative.
+        seen: dict[Any, tuple[float, Any]] = {}
         for node in sorted(eclass.nodes, key=_member_key):
             if node.op == "leaf":
                 continue
@@ -194,7 +202,15 @@ class _ExtractMixin:
             )
             if term is None:
                 continue
-            key = op_repr(term)
+            try:
+                hash(term)
+            except TypeError:
+                # An unhashable exotic leaf can't key the dict — fall
+                # back to its repr (the pre-fix behaviour for that
+                # corner only).
+                key = op_repr(term)
+            else:
+                key = term
             cost = dag_cost(term, cost_fn)
             if key not in seen or cost < seen[key][0]:
                 seen[key] = (cost, term)
@@ -1037,7 +1053,7 @@ class _ExtractMixin:
                 cids.append(c)
             en = ENode(term.op, tuple(cids), _pattern_attrs(term))
         else:
-            en = ENode("leaf", (), (("key", repr(term)),))
+            en = ENode("leaf", (), (("key", _leaf_key(term)),))
         eid = self._node_to_class.get(en)
         res = self.find(eid) if eid is not None else None
         _memo[term] = res
@@ -1075,7 +1091,7 @@ class _ExtractMixin:
                 if (
                     n.op == "leaf"
                     and n.attrs
-                    and n.attrs[0][1] == repr(term)
+                    and n.attrs[0][1] == _leaf_key(term)
                 ):
                     return eid, n
             return eid, None

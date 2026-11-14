@@ -53,6 +53,7 @@ from __future__ import annotations
 from typing import Any
 
 from mlopt_core.egraph import Certificate, Rewrite, cert_to_data
+from mlopt_core.egraph.types import _leaf_key
 from mlopt_core.ir import Const, Op, term_from_data, term_to_data
 from mlopt_core.laws.cond import (
     compile_derive,
@@ -129,7 +130,7 @@ def _canon(term: Any, mv: dict) -> Any:
         return ("c", term.value)
     if isinstance(term, str):
         return ("m", mv.setdefault(term, len(mv)))
-    return ("m", mv.setdefault(repr(term), len(mv)))
+    return ("m", mv.setdefault(_leaf_key(term), len(mv)))
 
 
 def alpha_key(lhs: Any, rhs: Any) -> tuple[Any, Any]:

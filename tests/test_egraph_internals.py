@@ -54,7 +54,6 @@ Everything is deterministic (small graphs, no RNG).
 """
 
 import pytest
-
 from mlopt_core import laws as R
 from mlopt_core.cost import count_cost, dag_cost, executor_cost_for
 from mlopt_core.egraph import (
@@ -201,8 +200,10 @@ def test_extract_alternatives_distinct_members_topk():
     alts = eg.extract_alternatives(root, count_cost)
     reprs = {op_repr(t) for _, t in alts}
     assert reprs == {"(add x, y)", "(add y, x)"}
-    assert all(c == count_cost(t) or c == dag_cost(t, count_cost)
-               for c, t in alts)
+    assert all(
+        c == count_cost(t) or c == dag_cost(t, count_cost)
+        for c, t in alts
+    )
     # top_k bounds the returned frontier
     top1 = eg.extract_alternatives(root, count_cost, top_k=1)
     assert len(top1) == 1
@@ -270,7 +271,9 @@ def test_diverse_classes_sketch_arms():
     entry = next(d for d in out if d["eid"] == cls)
     members = entry["members"]
     assert any(m.startswith("orph(?") for m in members)
-    assert any(m.startswith("neg(") or m.startswith("hh(") for m in members)
+    assert any(
+        m.startswith("neg(") or m.startswith("hh(") for m in members
+    )
     assert "w" in members or "?" in members  # leaf sketches
     # leaf-less classes and single-op classes are absent
     assert all(len(d["members"]) >= 2 for d in out)
@@ -290,7 +293,10 @@ def _bound_graph():
     root = eg.add_term(src)
     r_exact = Rewrite("r_exact", Op.make("f", "a"), Op.make("g", "a"))
     r_approx = Rewrite(
-        "r_approx", Op.make("f", "a"), Op.make("h", "a"), error_bound=0.3
+        "r_approx",
+        Op.make("f", "a"),
+        Op.make("h", "a"),
+        error_bound=0.3,
     )
     eg.run([r_exact, r_approx], root, max_iterations=5)
     return eg, src, root
@@ -305,7 +311,9 @@ def _h_cheap_cost(t, memo=None):
 
 def test_bounded_unconstrained_and_generous():
     eg, _src, root = _bound_graph()
-    assert op_repr(eg.extract_best_bounded(root, _h_cheap_cost)) == "(h x)"
+    assert (
+        op_repr(eg.extract_best_bounded(root, _h_cheap_cost)) == "(h x)"
+    )
     assert (
         op_repr(
             eg.extract_best_bounded(root, _h_cheap_cost, max_error=0.5)
@@ -333,7 +341,9 @@ def test_bounded_cyclic_class_returns_none():
     ``extract_best`` fails -> ``None``."""
     eg = EGraph()
     cid = _self_loop(eg)
-    assert eg.extract_best_bounded(cid, count_cost, max_error=1.0) is None
+    assert (
+        eg.extract_best_bounded(cid, count_cost, max_error=1.0) is None
+    )
 
 
 def test_bounded_unlocatable_and_rebanned_steps():
@@ -378,7 +388,9 @@ def test_bounded_unlocatable_and_rebanned_steps():
         root, lambda t, memo=None: 1.0, max_error=0.0
     )
     assert got is None
-    assert calls["n"] >= 2  # banned the add enode, re-extracted, gave up
+    assert (
+        calls["n"] >= 2
+    )  # banned the add enode, re-extracted, gave up
 
 
 # ===========================================================================
@@ -416,15 +428,15 @@ def test_extract_paired_steers_consumers():
     member = next(iter(groups[0]))
 
     # root gains a bypass member that wins ties on size
-    lf = eg.add_leaf("lf")
+    lf = eg.add_term(Const(1))
     alt = eg.add_enode("alt", (lf,))
     eg.union(root, alt)
 
     # an unreachable class: member-reaching + bypass enodes -> the
     # route prices inf (child absent from the pass-1 cache) -> skipped
-    far = eg.add_enode("far", (eg.add_leaf("lf2"),))
+    far = eg.add_enode("far", (eg.add_term(Const(2)),))
     v1 = eg.add_enode("v", (member, far))
-    v2 = eg.add_enode("v2", (eg.add_leaf("lf3"),))
+    v2 = eg.add_enode("v2", (eg.add_term(Const(3)),))
     eg.union(v1, v2)
 
     # a cyclic 2-cycle: descendant enumeration must survive the cycle,
@@ -433,7 +445,7 @@ def test_extract_paired_steers_consumers():
     d2 = eg.add_enode("dummy2", (ca, eg.find(root)))
     eg.union(root, d2)
     w1 = eg.add_enode("w", (member, ca))
-    w2 = eg.add_enode("w2", (eg.add_leaf("lf4"),))
+    w2 = eg.add_enode("w2", (eg.add_term(Const(4)),))
     eg.union(w1, w2)
 
     # duplicate group entries: member_over.setdefault keeps the first
@@ -644,7 +656,9 @@ def test_class_of_term_and_locate_failure_arms():
     eg = EGraph()
     xc = eg.add_term(x)
     vid = eg.add_enode("vf", (xc,), {"k": 1})
-    eg.add_enode("vf", (xc,), {"k": 2})  # same class? no — distinct enode
+    eg.add_enode(
+        "vf", (xc,), {"k": 2}
+    )  # same class? no — distinct enode
     # put both vf variants in one class to exercise the attr-mismatch scan
     v2 = eg.add_enode("vg", (xc,), {"k": 2})
     other = eg.add_enode("other", (xc,), {})
@@ -699,7 +713,10 @@ def test_app_for_member_failure_arms():
     _eid2, en = eg._locate(t)
     assert en is not None
     # foreign term: not locatable at all
-    assert eg._app_for_member(Op.make("ff", _v("ghost"))) == (None, None)
+    assert eg._app_for_member(Op.make("ff", _v("ghost"))) == (
+        None,
+        None,
+    )
     # application whose RHS-root op disagrees with the member enode
     eg.add_term(Op.make("gg", x))
     _eog, en_g = eg._locate(Op.make("gg", x))
@@ -961,8 +978,10 @@ def test_edge_path_found_and_seen_recursion():
     assert path2 is not None
     # exhausted budget / depth -> None
     assert eg._edge_path(s, t, (), _seen=set(), _budget=[0]) is None
-    assert eg._edge_path(s, t, (), depth=17, _seen=set(),
-                       _budget=[8]) is None
+    assert (
+        eg._edge_path(s, t, (), depth=17, _seen=set(), _budget=[8])
+        is None
+    )
 
 
 def test_edge_path_rule_gates():
@@ -1127,7 +1146,9 @@ def test_iter_ops_and_term_paths():
     assert [o.op for o in ops] == ["add", "mul"]
     paths = list(_term_paths(t))
     assert () in paths and (0,) in paths and (0, 1) in paths
-    assert _subterm(t, (0, 1)) is y or op_repr(_subterm(t, (0, 1))) == "y"
+    assert (
+        _subterm(t, (0, 1)) is y or op_repr(_subterm(t, (0, 1))) == "y"
+    )
 
 
 def test_term_match_attr_metavar_edges():
@@ -1137,9 +1158,7 @@ def test_term_match_attr_metavar_edges():
     # arity mismatch
     assert _term_match(Op.make("f", "a", "b"), Op.make("f", x)) is None
     # attribute set mismatch
-    assert (
-        _term_match(Op.make("f", "a", k=1), Op.make("f", x)) is None
-    )
+    assert _term_match(Op.make("f", "a", k=1), Op.make("f", x)) is None
     # attribute metavariable: consistent binding required at every site
     pat = Op.make(
         "p",
@@ -1176,13 +1195,17 @@ def test_term_match_attr_metavar_edges():
 def test_subterm_and_replace_bad_paths():
     x = _v("x")
     t = Op.make("add", x, Op.make("neg", x))
-    assert _subterm(t, (9,)) is None          # index past arity
-    assert _subterm(x, (0,)) is None          # descend into a leaf
-    assert _subterm(t, (1, 0)) is x or op_repr(_subterm(t, (1, 0))) == "x"
+    assert _subterm(t, (9,)) is None  # index past arity
+    assert _subterm(x, (0,)) is None  # descend into a leaf
+    assert (
+        _subterm(t, (1, 0)) is x or op_repr(_subterm(t, (1, 0))) == "x"
+    )
     with pytest.raises(CertificateVerificationError):
-        _replace_subterm(t, (1, 0, 0), _v("z"))  # descend through a leaf
+        _replace_subterm(
+            t, (1, 0, 0), _v("z")
+        )  # descend through a leaf
     with pytest.raises(CertificateVerificationError):
-        _replace_subterm(t, (5,), _v("z"))       # index past arity
+        _replace_subterm(t, (5,), _v("z"))  # index past arity
     new = _replace_subterm(t, (), _v("z"))
     assert op_repr(new) == "z"
     new2 = _replace_subterm(t, (1,), x)
@@ -1231,7 +1254,9 @@ def test_verify_cert_lhs_rule_mismatch():
         rules={"rr": r},
         dst=Op.make("h", x),
     )
-    with pytest.raises(CertificateVerificationError, match="does not match"):
+    with pytest.raises(
+        CertificateVerificationError, match="does not match"
+    ):
         verify_certificate(t, cert)
 
 
@@ -1240,8 +1265,15 @@ def test_verify_cert_derived_binding_and_tampered_binding():
     r = Rewrite("rr", "a", Op.make("f", "a"))
     good = _mini_cert(
         x,
-        [CertStep("rr", (), x, Op.make("f", x),
-                  {"a": x, "derived_extra": y})],
+        [
+            CertStep(
+                "rr",
+                (),
+                x,
+                Op.make("f", x),
+                {"a": x, "derived_extra": y},
+            )
+        ],
         rules={"rr": r},
         dst=Op.make("f", x),
     )
@@ -1265,13 +1297,17 @@ def test_verify_cert_check_and_derive_replay():
         [CertStep("rb", (), t, Op.make("q", x), {"a": x})],
         rules={
             "rb": Rewrite(
-                "rb", Op.make("p", "a"), Op.make("q", "a"),
+                "rb",
+                Op.make("p", "a"),
+                Op.make("q", "a"),
                 check=lambda b: False,
             )
         },
         dst=Op.make("q", x),
     )
-    with pytest.raises(CertificateVerificationError, match="side condition"):
+    with pytest.raises(
+        CertificateVerificationError, match="side condition"
+    ):
         verify_certificate(t, bad_check)
 
     veto = _mini_cert(
@@ -1279,7 +1315,9 @@ def test_verify_cert_check_and_derive_replay():
         [CertStep("rv", (), t, Op.make("q", x, k=9), {"a": x})],
         rules={
             "rv": Rewrite(
-                "rv", Op.make("p", "a"), Op.make("q", "a", k="S"),
+                "rv",
+                Op.make("p", "a"),
+                Op.make("q", "a", k="S"),
                 derive=lambda b: None,
             )
         },
@@ -1290,12 +1328,12 @@ def test_verify_cert_check_and_derive_replay():
 
     ok = _mini_cert(
         t,
-        [CertStep(
-            "rg", (), t, Op.make("q", x, k=9), {"a": x}
-        )],
+        [CertStep("rg", (), t, Op.make("q", x, k=9), {"a": x})],
         rules={
             "rg": Rewrite(
-                "rg", Op.make("p", "a"), Op.make("q", "a", k="S"),
+                "rg",
+                Op.make("p", "a"),
+                Op.make("q", "a", k="S"),
                 derive=lambda b: {"$attr:S": 9},
             )
         },
@@ -1311,10 +1349,12 @@ def test_certificate_properties_on_real_cert():
     src = Op.make("ff", x)
     eg = EGraph()
     root = eg.add_term(src)
-    r1 = Rewrite("e1", Op.make("ff", "a"), Op.make("gg", "a"),
-                 error_bound=0.3)
-    r2 = Rewrite("e2", Op.make("gg", "a"), Op.make("hh", "a"),
-                 error_bound=0.4)
+    r1 = Rewrite(
+        "e1", Op.make("ff", "a"), Op.make("gg", "a"), error_bound=0.3
+    )
+    r2 = Rewrite(
+        "e2", Op.make("gg", "a"), Op.make("hh", "a"), error_bound=0.4
+    )
     eg.run([r1, r2], root, max_iterations=5)
     cert = eg.certificate(src, Op.make("hh", x))
     assert cert.replayable and cert.n_egraph_dependent == 0
@@ -1389,7 +1429,9 @@ def test_union_witness_registers_synthetic_application():
     assert eg.applications[-1]["rule"] == "wit"
     cert = eg.certificate(src, dst)
     assert cert.replayable
-    assert op_repr(verify_certificate(src, cert, strict=True)) == op_repr(dst)
+    assert op_repr(
+        verify_certificate(src, cert, strict=True)
+    ) == op_repr(dst)
 
 
 # ===========================================================================
@@ -1463,9 +1505,9 @@ def test_rebuild_canonicalizes_untracked_node():
 def test_any_term_and_min_term_cyclic():
     eg = EGraph()
     cid = _self_loop2(eg)
-    assert eg.any_term(cid) is None     # two failing members -> None
+    assert eg.any_term(cid) is None  # two failing members -> None
     ca, _cb = _two_cycle(eg)
-    assert eg.any_term(ca) is None      # indirect cycle
+    assert eg.any_term(ca) is None  # indirect cycle
     assert eg._min_term(ca, {}) == (None, float("inf"))
     assert eg._any_term_cached(ca) is None
     # an already-seen eid short-circuits at _min_term entry
@@ -1503,7 +1545,9 @@ def test_candidate_classes_leaf_lhs():
     # leaf pattern absent from the graph -> no candidates -> no change
     eg2 = EGraph()
     eg2.add_term(Const(9.0))
-    assert eg2.apply_rule(rule, eg2.find(eg2.add_term(_v("q")))) is False
+    assert (
+        eg2.apply_rule(rule, eg2.find(eg2.add_term(_v("q")))) is False
+    )
 
 
 def test_apply_rule_bound_none_and_derive_veto():
@@ -1567,10 +1611,10 @@ def test_union_find_rank_arms():
     equal ranks bump the surviving root."""
     uf = UnionFind()
     a, b, c, d = uf.make(), uf.make(), uf.make(), uf.make()
-    assert uf.union(a, b)          # equal rank -> a gains rank
-    assert uf.union(c, a)          # c (rank 0) under a (rank 1): swap arm
+    assert uf.union(a, b)  # equal rank -> a gains rank
+    assert uf.union(c, a)  # c (rank 0) under a (rank 1): swap arm
     assert uf.find(c) == uf.find(b)
-    assert uf.union(d, c)          # d under the (a,b,c) tree
+    assert uf.union(d, c)  # d under the (a,b,c) tree
     assert uf.find(d) == uf.find(a)
     assert uf.union(d, b) is False  # already one set
 
@@ -1579,9 +1623,58 @@ def test_leaf_registry_roundtrip():
     term = Param("p_reg", _t())
     key = _LeafRegistry.register(term)
     assert _LeafRegistry.decode(key) is term
-    assert _LeafRegistry.decode("__never_registered__") == (
-        "__never_registered__"
-    )
+    # Unknown keys fail loudly — the old raw-string fallback leaked a
+    # non-term into extracted members and cost pricing.
+    with pytest.raises(KeyError):
+        _LeafRegistry.decode("__never_registered__")
+
+
+def test_leaf_registry_kind_tagged_keys():
+    """Var/Param/Const leaves with colliding reprs get distinct keys —
+    the bare-repr key used to merge them into one e-class."""
+    from mlopt_core.egraph.types import _leaf_key
+
+    t = _t()
+    assert _leaf_key(Var("w", t)) == "var:w"
+    assert _leaf_key(Param("w", t)) == "param:w"
+    assert _leaf_key(Const(8)) == "const:8"
+    assert _leaf_key(Const(8.0)) == "const:8.0"
+    # Same-kind same-name still shares a key (the merge is intended).
+    assert _leaf_key(Var("w", TensorType((2, 2)))) == "var:w"
+
+
+def test_var_param_same_name_stay_distinct():
+    """A Var and a Param sharing a name must NOT share a leaf e-class:
+    congruence over the merged class used to equate unequal leaves."""
+    t = _t()
+    v, p = Var("w", t), Param("w", t)
+    eg = EGraph()
+    ev = eg.add_term(v)
+    ep = eg.add_term(p)
+    assert eg.find(ev) != eg.find(ep)
+    # And extraction resolves each class to its own leaf kind.
+    assert eg.extract_best(ev, count_cost) == v
+    assert eg.extract_best(ep, count_cost) == p
+
+
+def test_extract_alternatives_leaf_kind_dedup():
+    """``op_repr`` renders ``Var("w")`` and ``Param("w")`` identically —
+    the frontier dedup must key on the term, not the repr, or one
+    alternative silently drops."""
+    t = _t()
+    eg = EGraph()
+    fv = eg.add_enode("f", (eg.add_term(Var("w", t)),))
+    fp = eg.add_enode("f", (eg.add_term(Param("w", t)),))
+    eg.union(fv, fp)
+    root = eg.find(fv)
+    alts = eg.extract_alternatives(root, count_cost)
+    # Both members survive: f(var w) and f(param w) are distinct terms
+    # even though op_repr renders both "(f w)".
+    assert len(alts) == 2
+    assert {type(x.args[0]).__name__ for _, x in alts} == {
+        "Var",
+        "Param",
+    }
 
 
 # ===========================================================================
@@ -1657,8 +1750,16 @@ def test_match_limit_larger_than_results():
     fx = eg.add_term(Op.make("f", x))
     fy = eg.add_term(Op.make("f", y))
     eg.union(fx, fy)
-    assert len(list(eg.matches(Op.make("f", "a"), eg.find(fx),
-                          max_results=5))) == 2
+    assert (
+        len(
+            list(
+                eg.matches(
+                    Op.make("f", "a"), eg.find(fx), max_results=5
+                )
+            )
+        )
+        == 2
+    )
 
 
 def test_match_multiarg_cap_breaks_mid_enumeration():
@@ -1727,14 +1828,10 @@ def test_oldest_term_memo_and_birth_fallback():
     t = Op.make("add", h, h)
     root = eg.add_term(t)
     assert op_repr(eg._oldest_term(root)) == "(add (hh x), (hh x))"
-    eg.get_class(root).nodes.add(
-        ENode("inj", (eg.add_term(x),), ())
-    )
+    eg.get_class(root).nodes.add(ENode("inj", (eg.add_term(x),), ()))
     # the injected node has no birth record -> ``1 << 60`` -> sorted
     # last, so the real (earlier-born) member still wins
-    assert (
-        op_repr(eg._oldest_term(root)) == "(add (hh x), (hh x))"
-    )
+    assert op_repr(eg._oldest_term(root)) == "(add (hh x), (hh x))"
 
 
 def test_instantiate_concrete_attr():
@@ -1760,7 +1857,10 @@ def test_run_rule_budget_spent_accounting():
     # single-enode budget is spent -> the enode_budget break fires
     eg.add_term(Op.make("add", y, _v("w")))
     stats = eg.run(
-        [R.COMM_ADD], root, max_iterations=5, rule_budgets={"comm_add": 1}
+        [R.COMM_ADD],
+        root,
+        max_iterations=5,
+        rule_budgets={"comm_add": 1},
     )
     assert stats["rule_budgets"]["comm_add"] >= 1
     assert stats["budget_suspended"] == ["comm_add"]
@@ -1797,9 +1897,10 @@ def test_certificate_default_dst_resolution():
 
 def test_term_match_concrete_attr_equal():
     x = _v("x")
-    assert _term_match(
-        Op.make("f", "a", k=1), Op.make("f", x, k=1)
-    ) is not None
+    assert (
+        _term_match(Op.make("f", "a", k=1), Op.make("f", x, k=1))
+        is not None
+    )
 
 
 def test_term_instantiate_attr_arms():
@@ -1838,10 +1939,10 @@ def test_verify_cert_wrong_source():
 
 def test_verify_cert_unknown_rule():
     x = _v("x")
-    cert = _mini_cert(
-        x, [CertStep("nope", (), x, x, {})], dst=x
-    )
-    with pytest.raises(CertificateVerificationError, match="unknown rule"):
+    cert = _mini_cert(x, [CertStep("nope", (), x, x, {})], dst=x)
+    with pytest.raises(
+        CertificateVerificationError, match="unknown rule"
+    ):
         verify_certificate(x, cert)
 
 
@@ -1854,7 +1955,9 @@ def test_verify_cert_recorded_lhs_mismatch():
         rules={"rr": r},
         dst=Op.make("f", x),
     )
-    with pytest.raises(CertificateVerificationError, match="recorded LHS"):
+    with pytest.raises(
+        CertificateVerificationError, match="recorded LHS"
+    ):
         verify_certificate(x, cert)
 
 
@@ -1867,7 +1970,9 @@ def test_verify_cert_recorded_rhs_mismatch():
         rules={"rr": r},
         dst=Op.make("g", x),
     )
-    with pytest.raises(CertificateVerificationError, match="recorded RHS"):
+    with pytest.raises(
+        CertificateVerificationError, match="recorded RHS"
+    ):
         verify_certificate(x, cert)
 
 

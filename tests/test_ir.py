@@ -82,6 +82,23 @@ def test_tensor_type_repr():
     assert repr(TensorType(())) == "TensorType()"
 
 
+def test_tensor_type_dim_validation():
+    """Dims are ``None`` or a non-negative int — negative/float/
+    symbolic dims are rejected at mint, not silently propagated."""
+    assert TensorType((0,)).shape == (0,)  # empty extent is legal
+    assert TensorType(()).shape == ()  # scalar
+    assert TensorType(None).shape is None  # wholly-unknown wildcard
+    assert TensorType((None, 3)).shape == (None, 3)
+    with pytest.raises(ValueError):
+        TensorType((-1,))
+    with pytest.raises(ValueError):
+        TensorType((2, -3))
+    with pytest.raises(ValueError):
+        TensorType((2.0,))
+    with pytest.raises(ValueError):
+        TensorType(("D",))
+
+
 def test_generator_registry():
     g = generator("add")
     assert g is not None
