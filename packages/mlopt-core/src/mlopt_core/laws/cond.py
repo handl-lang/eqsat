@@ -276,6 +276,7 @@ import functools
 import math
 from typing import Any
 
+from mlopt_core.egraph.extract import _CostMemo
 from mlopt_core.ir import Const, Op, Param, TensorType
 from mlopt_core.typing import (
     _axis_pair,
@@ -303,8 +304,10 @@ __all__ = [
 
 #: Content-keyed shape memo (same contract as ``laws.base._SHAPE_MEMO``:
 #: bound terms are interned Op/leaf objects, so one shared dict turns
-#: repeated per-binding shape inference into a DAG walk).
-_MEMO: dict = {}
+#: repeated per-binding shape inference into a DAG walk).  Bounded
+#: :class:`_CostMemo` like its sibling — module-global, so unbounded
+#: would pin every spec-resolved term for the process lifetime.
+_MEMO: dict = _CostMemo()
 
 _CMPS: dict = {
     "==": lambda a, b: a == b,

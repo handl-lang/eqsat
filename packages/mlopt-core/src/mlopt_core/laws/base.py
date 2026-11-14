@@ -14,6 +14,7 @@ the scan monoids (:mod:`.scan`), and the non-local graph passes
 from typing import Any
 
 from mlopt_core.egraph import Rewrite
+from mlopt_core.egraph.extract import _CostMemo
 
 
 def R(
@@ -70,7 +71,16 @@ def R(
 #: and ``typing._shape_of`` is already memo-aware: threading one memo
 #: turns an exponential DAG re-walk into a linear one.  Term keys hold
 #: their objects alive, so no keepalive pins are needed.
-_SHAPE_MEMO: dict = {}
+#:
+#: Bounded :class:`_CostMemo` (the ``egraph.extract`` LRU pattern):
+#: this dict is module-global and lives for the process, so an
+#: unbounded one would pin every shape-queried term forever across
+#: long discovery loops.  Entries are pure functions of their key —
+#: eviction costs a recompute, never a wrong shape.  Keys are the
+#: *terms themselves* (``_memo_set`` skips unhashable ones), so the
+#: OrderedDict key type is unchanged.
+_SHAPE_MEMO_LIMIT = 100_000
+_SHAPE_MEMO: dict = _CostMemo(_SHAPE_MEMO_LIMIT)
 
 
 def _shape_of(t: Any):

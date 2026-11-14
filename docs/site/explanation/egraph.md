@@ -91,7 +91,34 @@ maps — 100k entries per cost model, 1,024 distinct cost fns per
 e-graph — with LRU-ish eviction. Eviction is semantics-preserving:
 every entry is a pure function of `(cost_fn, term)` and terms are
 interned, so a dropped entry is recomputed identically on the next
-miss; the bound only caps memory on long discovery loops.
+miss; the bound only caps memory on long discovery loops. The same
+bounded-memo pattern caps the law-side shape memos
+(`mlopt_core.laws.base._SHAPE_MEMO`, `laws.cond._MEMO`) — module-global
+shape caches shared by every check hook, bounded at 100k entries for
+the same recompute-only eviction reason.
+
+## Rule sets compose — and scope — by name
+
+`run`'s `rules` argument is a `mlopt_core.laws.RuleSet`: a named,
+frozen collection with set algebra — `A + B` unions, `A - B`
+subtracts, `A & B` intersects, all by *rule name*, with
+same-name/different-rule collisions raising rather than silently
+shadowing. Presets (`DEFAULT`, `FULL`, `SYMMETRY`, `CARRIER_SEARCH`,
+…) are themselves compositions, and the orchestrator layers carrier
+banks on top the same way.
+
+`RuleSet.scoped(...)` derives a view without touching the bank:
+`include`/`exclude` select members, `rename` retitles them
+(priorities follow), and `predicate=` / `op=`+`metavar=` conjoin a
+side condition into every member's `check` — the scope sees the same
+resolved binding the rule's own check does, so "only fire when the
+bound term's `.op` is `linear`" is `scoped(op="linear",
+metavar="t")`. Scoped members are new `Rewrite` objects (the scope is
+a closure, so scoped sets are pipeline-local, not
+`laws.serialize`-portable) and collide with their unscoped twins on
+union — `rename=` namespaces a scoped copy meant to coexist. Scope is
+binding-level: there is no "only at the e-class root" — the match
+enumeration does not surface position to `check`.
 
 ## Where it lives
 

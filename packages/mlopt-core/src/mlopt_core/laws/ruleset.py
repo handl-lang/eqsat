@@ -20,15 +20,17 @@ switch and its hidden ``_SUBSUMED`` / ``_EXPANSIVE_RULES`` filters.
   not a new hand-maintained list.
 
 Known limit (recorded in plan 0009): a ``RuleSet`` is a flat list —
-there is no way to say "these rules only fire at ``linear`` ops" or
-"only at the root".  A ``scoped(op=..., rules=...)`` combinator is the
-documented placeholder for carrier- or region-specific rules and is
-deliberately not implemented here.
+scope is enforced through each rule's ``check`` hook over the
+*resolved binding*, so :meth:`RuleSet.scoped` can gate on bound
+metavars (``op=`` tests ``bound[metavar].op``) but cannot express
+"only at the e-class root" or other positional regions — the match
+enumeration does not surface position to ``check``.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator, Mapping
+import copy
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -242,6 +244,110 @@ class RuleSet:
         names = {r.name for r in rules}
         return {k: v for k, v in self.priorities.items() if k in names}
 
+    # -- scoping -----------------------------------------------------
+
+    def scoped(
+        self,
+        *,
+        predicate: Callable[[dict[str, Any]], bool] | None = None,
+        op: str | Iterable[str] | None = None,
+        metavar: str | None = None,
+        include: Iterable[str] = (),
+        exclude: Iterable[str] = (),
+        rename: Mapping[str, str] | None = None,
+        name: str | None = None,
+        description: str = "",
+    ) -> RuleSet:
+        """Return a derived set: a scoped view of this bank.
+
+        Three orthogonal knobs, all optional:
+
+        * **membership** — ``include`` keeps only the named rules
+          (empty = all), ``exclude`` drops names; both match on the
+          *original* rule names, before ``rename``.
+        * **scope** — ``predicate`` is a side condition over the
+          *resolved binding* (the same ``bound`` dict ``check`` sees),
+          conjoined into every member's ``check`` so the rule only
+          fires where it holds.  ``op=``/``metavar=`` is the sugar for
+          the common carrier case: ``bound[metavar]`` must be an
+          ``Op`` whose ``.op`` is in *op* (``metavar`` is required
+          with ``op`` — which binding carries the matched term is the
+          caller's knowledge).  Scope is binding-level, not
+          positional: there is no "only at the root".
+        * **rename** — ``{old_name: new_name}`` retitles members
+          (priorities follow the rename); unknown sources raise
+          ``KeyError`` like :meth:`with_priorities`.
+
+        Scoped members are NEW ``Rewrite`` objects — a scoped rule is
+        a different rule, so ``bank.scoped(...) + bank`` raises the
+        usual same-name collision; pass ``rename=`` to namespace a
+        scoped copy that must coexist with its unscoped twin.  The
+        derived rule carries ``cond``/``dspec`` verbatim but its
+        ``check`` is a closure, so scoped sets are not
+        ``laws.serialize``-portable — they are pipeline-local views.
+        """
+        want = set(include)
+        drop = set(exclude)
+        selected = tuple(
+            r
+            for r in self.rules
+            if (not want or r.name in want) and r.name not in drop
+        )
+        selected_names = {r.name for r in selected}
+        if rename:
+            unknown = sorted(set(rename) - selected_names)
+            if unknown:
+                raise KeyError(
+                    f"scoped: rename sources {unknown} not in "
+                    f"{self.name!r}"
+                )
+        preds: list[Callable[[dict[str, Any]], bool]] = []
+        if predicate is not None:
+            preds.append(predicate)
+        if op is not None:
+            if metavar is None:
+                raise ValueError(
+                    "scoped: op= scope needs metavar= naming the "
+                    "binding whose term's .op is tested"
+                )
+            ops = frozenset((op,) if isinstance(op, str) else op)
+
+            def _op_ok(
+                bound: dict[str, Any],
+                _m: str = metavar,
+                _ops: frozenset = ops,
+            ) -> bool:
+                return getattr(bound.get(_m), "op", None) in _ops
+
+            preds.append(_op_ok)
+        scope = _conjoin(preds) if preds else None
+        rules = []
+        prio: dict[str, int] = {}
+        for r in selected:
+            nr = _derive_rule(
+                r,
+                name=(rename or {}).get(r.name),
+                scope=scope,
+            )
+            rules.append(nr)
+            if r.name in self.priorities:
+                prio[nr.name] = self.priorities[r.name]
+        if (
+            scope is None
+            and not want
+            and not drop
+            and not rename
+            and name is None
+            and not description
+        ):
+            return self
+        return RuleSet(
+            name or f"{self.name}.scoped",
+            tuple(rules),
+            prio,
+            description or self.description,
+        )
+
     # -- scheduling ----------------------------------------------------
 
     def priority_of(self, rule: Any) -> int:
@@ -266,6 +372,58 @@ class RuleSet:
 # ---------------------------------------------------------------------------
 #  Presets — the named sets the pipeline composes
 # ---------------------------------------------------------------------------
+
+
+def _conjoin(
+    preds: list[Callable[[dict[str, Any]], bool]],
+) -> Callable[[dict[str, Any]], bool]:
+    """Return the conjunction of *preds* over one ``bound`` dict."""
+    if len(preds) == 1:
+        return preds[0]
+
+    def check(bound: dict[str, Any]) -> bool:
+        return all(p(bound) for p in preds)
+
+    return check
+
+
+def _derive_rule(
+    rule: Rewrite,
+    *,
+    name: str | None = None,
+    scope: Callable[[dict[str, Any]], bool] | None = None,
+) -> Rewrite:
+    """Return *rule* retitled and/or re-checked for :meth:`RuleSet.scoped`.
+
+    ``copy.copy`` bypasses ``Rewrite.__post_init__`` deliberately: the
+    rule's ``cond``/``dspec`` *data* and its already-folded
+    ``check``/``derive`` hooks are carried verbatim.  Rebuilding through
+    ``Rewrite(...)`` would re-fold the specs — evaluating ``dspec``
+    twice and flipping the derive merge precedence (the procedural
+    remainder is supposed to win collisions).
+    """
+    if (name is None or name == rule.name) and scope is None:
+        return rule
+    new = copy.copy(rule)
+    if name is not None and name != rule.name:
+        object.__setattr__(new, "name", name)
+    if scope is not None:
+        orig_check = rule.check
+
+        def check(
+            bound: dict[str, Any],
+            _scope=scope,
+            _orig=orig_check,
+        ) -> bool:
+            # Scope first — it is the cheap gate; the rule's own
+            # (already cond-folded) check runs only inside it.
+            return _scope(bound) and (
+                _orig(bound) if _orig is not None else True
+            )
+
+        object.__setattr__(new, "check", check)
+    return new
+
 
 #: Every core rule, deduplicated by construction (the group lists are
 #: disjoint by name).

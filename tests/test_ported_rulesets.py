@@ -13,7 +13,7 @@ from mlopt_core import laws
 
 from mlopt_core.egraph import Rewrite
 
-from mlopt_core.ir import Op
+from mlopt_core.ir import Const, Op, TensorType, Var
 
 from mlopt_core.laws import (
     ALL_RULES,
@@ -284,3 +284,124 @@ def test_optimize_getattr_unknown():
     assert opt.DEFAULT_RULES is opt.default_rules()
     with pytest.raises(AttributeError):
         _ = opt.bogus_name
+
+
+# ---------------------------------------------------------------------------
+#  RuleSet.scoped — the composition/scope combinator
+# ---------------------------------------------------------------------------
+
+
+def test_scoped_noop_returns_self():
+    a = _a()
+    assert a.scoped() is a
+    # a relabel alone still derives a set.
+    relabelled = a.scoped(name="a2")
+    assert relabelled.name == "a2" and relabelled == a
+
+
+def test_scoped_membership_and_rename():
+    rs = (_a() + _b()).with_priorities(comm_add=1)
+    sub = rs.scoped(include=["comm_add"], rename={"comm_add": "ca"})
+    assert [r.name for r in sub] == ["ca"]
+    # priorities follow the rename.
+    assert sub.priorities == {"ca": 1}
+    assert sub.priority_of("ca") == 1
+    # exclude composes with include on original names.
+    both = rs.scoped(exclude=["comm_add"])
+    assert [r.name for r in both] == ["id_add", "distribute_matmul_over_add"]
+    # unknown rename sources raise like with_priorities.
+    with pytest.raises(KeyError, match="rename sources"):
+        rs.scoped(rename={"nope": "x"})
+    # rename onto an existing member name is a duplicate-name error.
+    with pytest.raises(ValueError, match="duplicate rule name"):
+        rs.scoped(rename={"comm_add": "id_add"})
+
+
+def test_scoped_predicate_gates_check():
+    calls = []
+
+    def orig_check(bound):
+        calls.append(bound)
+        return True
+
+    rule = R(
+        "gated",
+        Op.make("add", "x", "y"),
+        "x",
+        check=orig_check,
+    )
+    rs = RuleSet("g", (rule,))
+    off = rs.scoped(predicate=lambda bound: False)
+    scoped_rule = off.rules[0]
+    # scope vetoes BEFORE the rule's own check runs.
+    assert scoped_rule.check({"x": None}) is False
+    assert calls == []
+    on = rs.scoped(predicate=lambda bound: True)
+    assert on.rules[0].check({"x": None}) is True
+    assert calls == [{"x": None}]
+    # the unscoped twin is untouched.
+    assert rule.check({"x": None}) is True
+
+
+def test_scoped_op_metavar_scope():
+    linear = Op.make("linear", "x", "w")
+    matmul = Op.make("matmul", "x", "w")
+    rule = R("anyroot", "t", "t")
+    rs = RuleSet("s", (rule,))
+    scoped = rs.scoped(op="linear", metavar="t")
+    check = scoped.rules[0].check
+    assert check({"t": linear}) is True
+    assert check({"t": matmul}) is False
+    # a tuple of ops and a missing binding both behave.
+    scoped2 = rs.scoped(op=("linear", "matmul"), metavar="t")
+    assert scoped2.rules[0].check({"t": matmul}) is True
+    assert scoped2.rules[0].check({}) is False
+    # op= without metavar= is a usage error.
+    with pytest.raises(ValueError, match="metavar="):
+        rs.scoped(op="linear")
+    # predicate and op= conjoin.
+    both = rs.scoped(
+        predicate=lambda b: b.get("t") is linear,
+        op="linear",
+        metavar="t",
+    )
+    assert both.rules[0].check({"t": linear}) is True
+    assert both.rules[0].check({"t": matmul}) is False
+
+
+def test_scoped_preserves_rule_data_and_cond():
+    rule = R(
+        "cond_rule",
+        Op.make("add", "a", "b"),
+        "a",
+        cond=("scalar", "a"),
+    )
+    rs = RuleSet("c", (rule,))
+    scoped = rs.scoped(predicate=lambda b: True)
+    derived = scoped.rules[0]
+    # cond/dspec data carried verbatim; check still honours the fold.
+    assert derived.cond == rule.cond
+    scalar = Const(3.0)
+    wide = Var("w", TensorType((2, 3)))
+    assert derived.check({"a": scalar}) is True
+    assert derived.check({"a": wide}) is False
+    # the original rule object is not mutated.
+    assert rule.check is not None and rule.cond == ("scalar", "a")
+
+
+def test_scoped_members_are_distinct_rules():
+    a = _a()
+    scoped = a.scoped(predicate=lambda b: True)
+    # same names but different check hooks -> union collision.
+    with pytest.raises(ValueError, match="override=True"):
+        a + scoped
+    # rename namespaces the scoped copy so both can coexist — scope
+    # just the one member so the rest keep their unscoped identity.
+    namespaced = a.scoped(
+        include=["comm_add"],
+        predicate=lambda b: True,
+        rename={"comm_add": "comm_add@scope"},
+    )
+    merged = a + namespaced
+    assert len(merged) == 3
+    assert "comm_add@scope" in merged
