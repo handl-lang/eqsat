@@ -68,7 +68,12 @@ from mlopt_core.laws import (
     preset,
     tags as _law_tags,
 )
-from mlopt_core.pipeline import Backend, LowerResult, SearchResult
+from mlopt_core.pipeline import (
+    Backend,
+    LowerResult,
+    PipelineStats,
+    SearchResult,
+)
 from mlopt_core.ports import (
     Capabilities,
     Composer,
@@ -786,16 +791,21 @@ def search(
     run_cap = max_enodes if max_enodes is not None else sys.maxsize
 
     run_kw = _policy_kwargs(policy, eg)
-    stats: dict[str, Any] = eg.run(
-        rules,
-        root_eid,
-        max_iterations=max_iterations,
-        max_nodes=run_cap,
-        rule_budgets=rule_budgets,
-        stop=stop,
-        patience=patience,
-        cost_fn=cost_fn,
-        **run_kw,
+    # The pipeline stats record — a ``PipelineStats`` (dict subclass)
+    # either engine's plain ``run`` dict normalises into; every
+    # downstream writer keeps mutating it as a dict.
+    stats: PipelineStats = PipelineStats(
+        eg.run(
+            rules,
+            root_eid,
+            max_iterations=max_iterations,
+            max_nodes=run_cap,
+            rule_budgets=rule_budgets,
+            stop=stop,
+            patience=patience,
+            cost_fn=cost_fn,
+            **run_kw,
+        )
     )
     # Which saturation core ran — the reference engine needs no marker,
     # engines declare ``engine_name`` ("native", ...).
@@ -906,9 +916,9 @@ def lower(
     transform like ``mlopt_torch.runners.TorchCompileRunner`` /
     ``mlopt_cuda.CudaGraphRunner`` / a ``ChainedRunner``
     composition.
-    ``stats`` is a FRESH dict — the search record plus the lowering
-    keys; :attr:`SearchResult.stats` is never mutated — so one search
-    can feed many deliveries.
+    ``stats`` is a FRESH ``PipelineStats`` — the search record plus
+    the lowering keys; :attr:`SearchResult.stats` is never mutated —
+    so one search can feed many deliveries.
 
     Parameters
     ----------
@@ -977,7 +987,7 @@ def lower(
     """
     if runner is None:
         runner = IdentityRunner()
-    stats: dict[str, Any] = dict(result.stats)
+    stats: PipelineStats = PipelineStats(result.stats)
     # Task contract precedence — explicit ``task=`` wins; otherwise
     # the search's recorded contract governs (see ``_resolve_task``).
     task, contract = _resolve_task(task, task_tol, result)

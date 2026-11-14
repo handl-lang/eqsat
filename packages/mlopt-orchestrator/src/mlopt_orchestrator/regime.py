@@ -91,6 +91,7 @@ from mlopt_core.egraph import EGraph, ENode
 from mlopt_core.egraph.extract import _CostMemo
 from mlopt_core.ir import IR, Const, Op, Param, Var, op_repr
 from mlopt_core.laws import RuleSet
+from mlopt_core.pipeline import PipelineStats
 from mlopt_core.ports import ExecutorSpec
 from mlopt_core.profile import TargetProfile, load_profile
 from mlopt_core.typing import INVALID, numel, shape_of
@@ -1042,8 +1043,13 @@ def build_egraph(
     eg = EGraph()
     root = eg.add_term(ir.root)
     core = default_rules() if rules is None else rules
-    stats = eg.run(
-        core, root, max_iterations=max_iterations, max_nodes=max_nodes
+    stats: PipelineStats = PipelineStats(
+        eg.run(
+            core,
+            root,
+            max_iterations=max_iterations,
+            max_nodes=max_nodes,
+        )
     )
     # Non-local lifts: recurrences -> trace(F), stacks of same-state
     # carrier applications -> one application, om trees over scanned

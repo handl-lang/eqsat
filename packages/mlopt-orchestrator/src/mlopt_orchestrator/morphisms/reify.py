@@ -22,7 +22,7 @@ from mlopt_core.egraph import EGraph
 from mlopt_core.ir import IR, Const, Op, Param, Var, op_repr_dag
 from mlopt_core.laws import tags as _law_tags
 from mlopt_core.laws.pairing import share_duplicate_params
-from mlopt_core.pipeline import LowerResult
+from mlopt_core.pipeline import LowerResult, PipelineStats
 from mlopt_core.ports import Composer, CostFn, Meter, Sink, Source
 
 from mlopt_orchestrator.runners import IdentityRunner
@@ -1565,23 +1565,27 @@ def _optimize_morphisms(
             label="MorphismSearch",
         )
 
-    stats: dict[str, Any] = {
-        "morphism": True,
-        "n_blocks": len(graph.nodes),
-        "n_lifted": sum(1 for n in graph.nodes if not n.opaque),
-        "sigs": {
-            n.name: (_sig_dict(n.sig) if n.sig is not None else None)
-            for n in graph.nodes
-        },
-        "wires": [(w.src, w.dst, w.kind) for w in graph.wires],
-        "matches": match_stats,
-        "morphism_fires": morphism_fires,
-        "n_rewritten": len(consumed),
-        "blocks": block_reports,
-        "in_place": in_place,
-        "shared_params": not in_place,
-        "end_to_end": e2e,
-    }
+    stats: PipelineStats = PipelineStats(
+        {
+            "morphism": True,
+            "n_blocks": len(graph.nodes),
+            "n_lifted": sum(1 for n in graph.nodes if not n.opaque),
+            "sigs": {
+                n.name: (
+                    _sig_dict(n.sig) if n.sig is not None else None
+                )
+                for n in graph.nodes
+            },
+            "wires": [(w.src, w.dst, w.kind) for w in graph.wires],
+            "matches": match_stats,
+            "morphism_fires": morphism_fires,
+            "n_rewritten": len(consumed),
+            "blocks": block_reports,
+            "in_place": in_place,
+            "shared_params": not in_place,
+            "end_to_end": e2e,
+        }
+    )
     stats["wall_time_s"] = time.time() - t_start
     return new_model, stats
 

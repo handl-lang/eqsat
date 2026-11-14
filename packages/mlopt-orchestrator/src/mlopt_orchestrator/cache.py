@@ -21,7 +21,7 @@ from mlopt_core.egraph import EGraph
 from mlopt_core.ir import IR, Const, Op, Param, Var
 from mlopt_core.laws import headshare_keys_hold
 from mlopt_core.laws.pairing import _raw_bytes
-from mlopt_core.pipeline import SearchResult
+from mlopt_core.pipeline import PipelineStats, SearchResult
 from mlopt_core.ports import Sink, Source
 
 # ---------------------------------------------------------------------------
@@ -505,7 +505,7 @@ def _cache_replay(
     ) or not _param_shapes_ok(term, params):
         return None
 
-    stats = dict(entry["stats"])
+    stats = PipelineStats(entry["stats"])
     stats["cache_replay"] = True
     return SearchResult(
         ir=ir,

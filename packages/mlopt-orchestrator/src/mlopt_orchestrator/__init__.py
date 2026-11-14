@@ -21,7 +21,12 @@ with their backends (:class:`mlopt_torch.runners.TorchCompileRunner`,
 :func:`runner_candidate` live in :mod:`mlopt_orchestrator.runners`.
 """
 
-from mlopt_core.pipeline import Backend, LowerResult, SearchResult
+from mlopt_core.pipeline import (
+    Backend,
+    LowerResult,
+    PipelineStats,
+    SearchResult,
+)
 from mlopt_core.ports import Criterion, Runner
 
 from mlopt_orchestrator.carriers import (
@@ -136,6 +141,7 @@ __all__ = [
     "NormSig",
     "OptimizationResourceError",
     "Optimizer",
+    "PipelineStats",
     "PredictedCriterion",
     "ReifySpec",
     "ReorderCompose",

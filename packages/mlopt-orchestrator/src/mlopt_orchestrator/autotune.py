@@ -99,6 +99,7 @@ from mlopt_core.cost import (
 )
 from mlopt_core.failures import FailureClass, classify
 from mlopt_core.ir import IR, Op, Param, TensorType, Var
+from mlopt_core.pipeline import PipelineStats
 from mlopt_core.ports import (
     ExecutorSpec,
     Sink,
@@ -601,7 +602,11 @@ def _autotuned_impl(
         model, example_input, verify=verbose, verbose=verbose, **opt_kw
     )
     delivered = lr.module
-    stats = lr.stats
+    # Fresh copy — the ``autotune`` record extends the pipeline stats
+    # without mutating the LowerResult it came from (a custom strategy
+    # could hand back a plain-dict stats; the boundary type is
+    # guaranteed here either way).
+    stats: PipelineStats = PipelineStats(lr.stats)
     search_s = time.monotonic() - t_start
     lowering = str(stats.get("lowering", "generic"))
     if verbose:

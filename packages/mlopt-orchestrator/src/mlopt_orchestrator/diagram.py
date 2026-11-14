@@ -81,7 +81,7 @@ from mlopt_core.laws.pairing import (
     pair_shared_input_convs,
     pair_shared_input_linears,
 )
-from mlopt_core.pipeline import LowerResult
+from mlopt_core.pipeline import LowerResult, PipelineStats
 from mlopt_core.ports import Composer, CostFn, Meter, Sink, Source
 
 import mlopt_orchestrator.morphisms as M
@@ -1572,13 +1572,15 @@ def _optimize_diagram(
             label="ContractionSearch",
         )
 
-    stats = _diagram_stats(
-        diagram,
-        move_stats,
-        move_fires,
-        consumed,
-        block_reports,
-        in_place,
+    stats: PipelineStats = PipelineStats(
+        _diagram_stats(
+            diagram,
+            move_stats,
+            move_fires,
+            consumed,
+            block_reports,
+            in_place,
+        )
     )
     stats["diagram_search"] = dsearch
     stats["end_to_end"] = e2e

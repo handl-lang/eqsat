@@ -25,9 +25,9 @@ Port needs by phase
   ``ir`` instead, so the reference is a runnable in the SINK's runtime
   (which the source-side model need not be).
 * :class:`LowerResult` is produced by a :class:`~mlopt_core.ports.Sink`
-  plus a delivery runner.  ``stats`` is a FRESH dict — the search
-  record plus the lowering keys; ``lower`` never mutates
-  :attr:`SearchResult.stats`.
+  plus a delivery runner.  ``stats`` is a FRESH
+  :class:`PipelineStats` — the search record plus the lowering keys;
+  ``lower`` never mutates :attr:`SearchResult.stats`.
 
 :class:`Backend` (plan 0007) is the immutable bundle of the four
 backend ports — ``source`` / ``sink`` / ``composer`` / ``meter`` — the
@@ -57,7 +57,79 @@ if TYPE_CHECKING:
         VerifyResult,
     )
 
-__all__ = ["Backend", "LowerResult", "SearchResult"]
+__all__ = ["Backend", "LowerResult", "PipelineStats", "SearchResult"]
+
+
+class PipelineStats(dict):
+    """The pipeline ``stats`` record — the typed dict at the seam edge.
+
+    Lifecycle: :func:`mlopt_orchestrator.optimize.search` seeds it
+    from the saturation engine's ``run`` record (the ``EGraph``
+    reference and ``mlopt_native`` both return plain dicts — the
+    pipeline normalises either into this type) and extends it through
+    the non-local passes, extraction bookkeeping and the bound ledger;
+    :func:`~mlopt_orchestrator.optimize.lower` copies it fresh (the
+    search record is never mutated) and adds the lowering / runner /
+    verify keys; the strategy drivers (``Compositional`` /
+    ``Autotuned`` / ``MorphismSearch`` / ``ContractionSearch``) emit
+    their own top-level records under the same type, and the
+    compositional structural cache replays stored records through it
+    (``cache._cache_replay``).
+
+    The key surface is open — roughly fifty keys across the pipeline,
+    grouped by producer: the ``EGraph.run`` saturation seed
+    (``iterations`` / ``n_enodes`` / ``n_classes`` / ``n_proof_edges``
+    / ``truncation_level`` / ``rule_budgets`` / ``budget_suspended``
+    / ``stop`` / ``improved`` / ``policy``), the search-phase
+    additions (``engine`` / ``rule_fires`` / ``criteria`` /
+    ``corpus_probe`` / ``device`` / ``fusion_epsilon`` / ``task`` /
+    ``pairing_groups`` / ``nonlocal_lifts`` / ``param_sharing`` /
+    ``low_rank_factors`` / ``weight_specials`` / ``paired_extract`` /
+    ``paired_delta`` / ``causal_specialized`` / ``pre_causal_term`` /
+    ``error_budget`` / ``error_bound_total`` / ``error_bounds`` /
+    ``cache_replay`` / ``xc_rounds`` / ``xc_fires``), the lower-phase
+    additions (``lowering`` / ``runner`` / ``delivery_device`` and
+    whatever the delivery ``Runner`` writes — ``compiled`` /
+    ``cuda_graph`` — plus ``error_bound_output`` /
+    ``error_bounds_honored`` / ``verify_metric`` / ``accepted_by`` /
+    ``task``'s measured ``distance`` / ``autotune``), and the
+    strategy-level records (``compositional`` / ``morphism`` /
+    ``contraction`` markers with their ``blocks`` / ``matches`` /
+    ``moves`` / ``edges`` / ``param_report`` / ``end_to_end`` /
+    ``wall_time_s`` payloads).
+
+    A ``dict`` subclass — the
+    :class:`~mlopt_orchestrator.bounds.ErrorBoundEntry` /
+    :class:`~mlopt_orchestrator.morphisms.ReifyResult` pattern: this
+    record crosses *serialization* edges (``mlopt_torch.export``
+    copies it into a manifest written with ``json.dumps``; bench
+    drivers and manifests read arbitrary keys) and *mutation* edges
+    (runners and the task/bound gates write keys in place).  Every
+    consumer reads it as a mapping — ``stats["stop"]``,
+    ``stats.get("error_bound_total", 0.0)``, ``in``, ``dict(stats)``,
+    ``{**stats}``, ``json.dumps(stats)`` — so ``isinstance(s, dict)``,
+    item access, ``.get``/``.update``/item assignment, iteration,
+    unpacking and dict equality are all preserved while every
+    producer boundary names the type.  :meth:`to_dict` is the
+    plain-dict escape hatch; nested records keep their own types
+    (``error_bounds`` entries are ``ErrorBoundEntry``,
+    ``diagram_search`` is ``DiagramSearchStats``, ``matches`` /
+    ``moves`` rows are ``ReifyEntry``).
+    """
+
+    def __init__(
+        self,
+        fields: Mapping[str, Any] | None = None,
+        /,
+        **kw: Any,
+    ) -> None:
+        """Build a record from an existing mapping and/or kwargs."""
+        super().__init__(fields or {})
+        self.update(kw)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain ``dict`` copy of the record."""
+        return dict(self)
 
 
 @dataclass(frozen=True)
@@ -113,10 +185,11 @@ class SearchResult:
     ``ir`` / ``param_values`` are the source's export (the program and
     its concrete leaf values); ``eg`` / ``root_eid`` are the saturated
     e-graph and the root e-class; ``term`` is the member the search
-    extracted under ``cost_fn``; ``stats`` is the *search* record
-    (``eg.run`` stats plus ``rule_fires``, ``criteria``,
-    ``pairing_groups`` / ``nonlocal_lifts`` / ``paired_extract`` /
-    ``causal_specialized`` when they fired).  ``source`` and ``model``
+    extracted under ``cost_fn``; ``stats`` is the *search* record — a
+    :class:`PipelineStats` (``eg.run`` stats plus ``rule_fires``,
+    ``criteria``, ``pairing_groups`` / ``nonlocal_lifts`` /
+    ``paired_extract`` / ``causal_specialized`` when they fired).
+    ``source`` and ``model``
     are provenance — which port produced the IR, and which model the
     result optimizes.
 
@@ -228,10 +301,10 @@ class LowerResult:
     ``module`` is the runnable executor (a carrier-batched module when
     the extracted root plans one, the sink's generic lowering
     otherwise, then whatever the delivery runner wrapped it in).
-    ``stats`` is a fresh dict: the *search* record plus the *lower*
-    record (``lowering``, ``runner``, and whatever the runner wrote —
-    ``compiled``, ``cuda_graph``); :attr:`SearchResult.stats` is never
-    mutated.  ``verified`` is the sink's equivalence report, or
+    ``stats`` is a fresh :class:`PipelineStats`: the *search* record
+    plus the *lower* record (``lowering``, ``runner``, and whatever
+    the runner wrote — ``compiled``, ``cuda_graph``);
+    :attr:`SearchResult.stats` is never mutated.  ``verified`` is the sink's equivalence report, or
     ``None`` when ``lower`` ran with ``verify=False``.
 
     Iterates as ``(module, stats)`` so ``mod, stats = lower(...)``

@@ -17,6 +17,7 @@ from collections.abc import Callable, Iterable, Mapping
 from typing import TYPE_CHECKING, Any, cast
 
 from mlopt_core.laws import RuleSet
+from mlopt_core.pipeline import PipelineStats
 from mlopt_core.ports import CostFn, Sink, Source, TaskMetric
 
 from mlopt_orchestrator.cache import (
@@ -564,27 +565,32 @@ def _optimize_compositional(
         if agg["original_bytes"]
         else 1.0
     )
-    stats: dict[str, Any] = {
-        "compositional": True,
-        "n_blocks": len(blocks),
-        # Post-rollback: a failed e2e cleared ``replacements``, so this
-        # counts what actually shipped (0 when the graft was reverted).
-        "n_optimized": len(replacements),
-        "n_failed": sum(
-            1 for r in block_reports.values() if r["status"] == "failed"
-        ),
-        "n_skipped": sum(
-            1
-            for r in block_reports.values()
-            if r["status"] in ("skipped", "not_executed")
-        ),
-        "blocks": block_reports,
-        "in_place": in_place,
-        "shared_params": not in_place,
-        "param_report": agg,
-        "cross_pairs": cross_pairs,
-        "end_to_end": e2e,
-    }
+    stats: PipelineStats = PipelineStats(
+        {
+            "compositional": True,
+            "n_blocks": len(blocks),
+            # Post-rollback: a failed e2e cleared ``replacements``, so
+            # this counts what actually shipped (0 when the graft was
+            # reverted).
+            "n_optimized": len(replacements),
+            "n_failed": sum(
+                1
+                for r in block_reports.values()
+                if r["status"] == "failed"
+            ),
+            "n_skipped": sum(
+                1
+                for r in block_reports.values()
+                if r["status"] in ("skipped", "not_executed")
+            ),
+            "blocks": block_reports,
+            "in_place": in_place,
+            "shared_params": not in_place,
+            "param_report": agg,
+            "cross_pairs": cross_pairs,
+            "end_to_end": e2e,
+        }
+    )
     if cache is not None:
         stats["cache"] = {
             "hits": cache_hits,
