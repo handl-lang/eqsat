@@ -67,6 +67,7 @@ import mlopt_orchestrator.morphisms as M
 from mlopt_orchestrator.diagram import (
     Diagram,
     DiagramMove,
+    DiagramSearchStats,
     _body_costs,
     _graft_contrib,
     _one_move,
@@ -253,7 +254,7 @@ def _expand_one(
     m: MorphismMatch,
     st: _DState,
     cache: dict,
-    stats: dict,
+    stats: DiagramSearchStats,
     *,
     sink: Sink,
     cost_fn: CostFn,
@@ -270,9 +271,9 @@ def _expand_one(
     produce no transition.
     """
     if any(n in st.sealed for n in m.nodes):
-        stats["moves_sealed"] += 1
+        stats.moves_sealed += 1
         return None
-    stats["moves_tried"] += 1
+    stats.moves_tried += 1
     ckey = _candidate_key(mv, m, st)
     got = cache.get(ckey)
     if got is None:
@@ -290,10 +291,10 @@ def _expand_one(
         )
         cache[ckey] = got
     else:
-        stats["cache_hits"] += 1
+        stats.cache_hits += 1
     res, entry = got
     if res is None or res.get("status") != "grafted":
-        stats["moves_declined"] += 1
+        stats.moves_declined += 1
         return None
     return _advance(st, m, res, entry, cost_fn=cost_fn)
 
@@ -302,7 +303,7 @@ def _expand_state(
     st: _DState,
     moves: tuple[DiagramMove, ...],
     cache: dict,
-    stats: dict,
+    stats: DiagramSearchStats,
     **kw: Any,
 ) -> Iterator[_DState]:
     """Yield the successors of one state — every legal transition.
@@ -330,14 +331,15 @@ def search_moves(
     max_depth: int,
     max_states: int,
     verbose: bool,
-) -> tuple[dict, dict, set, dict, dict, dict]:
+) -> tuple[dict, dict, set, dict, dict, DiagramSearchStats]:
     """Best-first search over move-application states.
 
     Every frontier state expands all its candidates — so orderings,
     not just single applications, are explored — and identical
     reachable states merge on the interned-term key.  Returns the
     same tuple as the greedy ``_apply_moves`` plus the
-    ``diagram_search`` stats record.
+    ``diagram_search`` stats record (a
+    :class:`~mlopt_orchestrator.diagram.DiagramSearchStats`).
     """
     seed = _initial_state(diagram, cost_fn)
     best = seed
@@ -345,20 +347,12 @@ def search_moves(
     frontier: list = [(seed.cost, 0, seed)]
     seq = count(1)
     cache: dict[tuple, tuple] = {}
-    stats: dict[str, Any] = {
-        "mode": "search",
-        "initial_cost": seed.cost,
-        "states_explored": 0,
-        "states_generated": 0,
-        "states_merged": 0,
-        "moves_tried": 0,
-        "moves_declined": 0,
-        "moves_sealed": 0,
-        "cache_hits": 0,
-        "bound_depth": max_depth,
-        "bound_states": max_states,
-        "bound_hit": False,
-    }
+    stats = DiagramSearchStats(
+        mode="search",
+        initial_cost=seed.cost,
+        bound_depth=max_depth,
+        bound_states=max_states,
+    )
     kw: dict[str, Any] = dict(
         sink=sink,
         cost_fn=cost_fn,
@@ -368,19 +362,19 @@ def search_moves(
         symmetry_budget=symmetry_budget,
     )
     while frontier:
-        if stats["states_explored"] >= max_states:
-            stats["bound_hit"] = True
+        if stats.states_explored >= max_states:
+            stats.bound_hit = True
             break
         _, _, st = heapq.heappop(frontier)
-        stats["states_explored"] += 1
+        stats.states_explored += 1
         if len(st.applied) >= max_depth:
             continue
         for succ in _expand_state(st, moves, cache, stats, **kw):
             if succ.key in seen:
-                stats["states_merged"] += 1
+                stats.states_merged += 1
                 continue
             seen.add(succ.key)
-            stats["states_generated"] += 1
+            stats.states_generated += 1
             if succ.cost < best.cost:
                 best = succ
             heapq.heappush(frontier, (succ.cost, next(seq), succ))
@@ -393,9 +387,9 @@ def search_moves(
                     "+".join(last[1]),
                     succ.cost,
                 )
-    stats["best_cost"] = best.cost
-    stats["moves_applied"] = len(best.applied)
-    stats["best_path"] = [
+    stats.best_cost = best.cost
+    stats.moves_applied = len(best.applied)
+    stats.best_path = [
         f"{law}:{'+'.join(nodes)}" for law, nodes in best.applied
     ]
     move_fires: dict[str, int] = {}

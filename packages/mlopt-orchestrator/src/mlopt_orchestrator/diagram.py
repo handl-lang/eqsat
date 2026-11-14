@@ -68,7 +68,8 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass
+from collections.abc import Mapping
+from dataclasses import dataclass, field
 from dataclasses import replace as _dc_replace
 from typing import Any, Protocol, runtime_checkable
 
@@ -105,6 +106,7 @@ __all__ = [
     "DNode",
     "Diagram",
     "DiagramMove",
+    "DiagramSearchStats",
     "FactorShared",
     "MergeProjs",
     "ReorderCompose",
@@ -1611,6 +1613,107 @@ def _graft_contrib(
                 contrib[n] = 0.0
 
 
+# ---------------------------------------------------------------------------
+#  The ``stats["diagram_search"]`` record — typed move-driver counters
+# ---------------------------------------------------------------------------
+
+#: Mapping keys a ``mode="search"`` record exposes, in the historical
+#: dict insertion order.
+_SEARCH_STATS_KEYS = (
+    "mode",
+    "initial_cost",
+    "states_explored",
+    "states_generated",
+    "states_merged",
+    "moves_tried",
+    "moves_declined",
+    "moves_sealed",
+    "cache_hits",
+    "bound_depth",
+    "bound_states",
+    "bound_hit",
+    "best_cost",
+    "moves_applied",
+    "best_path",
+)
+
+#: Mapping keys a ``mode="greedy"`` record exposes.
+_GREEDY_STATS_KEYS = (
+    "mode",
+    "candidates",
+    "moves_applied",
+    "initial_cost",
+    "final_cost",
+)
+
+
+@dataclass
+class DiagramSearchStats(Mapping):
+    """The ``stats["diagram_search"]`` record — a typed stats object.
+
+    Both move drivers emit this record: ``mode="search"``
+    (:func:`mlopt_orchestrator.diagram_search.search_moves` — the
+    best-first state exploration counters, the ``bound_depth`` /
+    ``bound_states`` / ``bound_hit`` caps and the best-path summary)
+    and ``mode="greedy"`` (:func:`_apply_moves` — the candidate count
+    and before/after costs).  Fields outside the mode's key set stay
+    at their defaults and are *not* visible through the mapping
+    surface, so ``stats["diagram_search"]["states_explored"]`` raises
+    ``KeyError`` under greedy exactly as the historical dict did.
+
+    The record is a :class:`~collections.abc.Mapping` — the frozen
+    ``stats[...]`` dict-access contract downstream consumers read
+    (``s["best_cost"]``, ``ds.get("final_cost", ...)``, ``in``) keeps
+    working unchanged — while the fields themselves are typed
+    attributes the drivers mutate directly (``stats.states_explored
+    += 1``) instead of scattered ``stats["..."]`` string keys.  Plan
+    0035's typed-ports pattern: one record, one owner, honest names.
+    """
+
+    mode: str = "search"
+    initial_cost: float = 0.0
+    # greedy-mode fields
+    candidates: int = 0
+    final_cost: float = 0.0
+    # search-mode counters
+    states_explored: int = 0
+    states_generated: int = 0
+    states_merged: int = 0
+    moves_tried: int = 0
+    moves_declined: int = 0
+    moves_sealed: int = 0
+    cache_hits: int = 0
+    bound_depth: int = 0
+    bound_states: int = 0
+    bound_hit: bool = False
+    # shared finals
+    best_cost: float = 0.0
+    moves_applied: int = 0
+    best_path: list[str] = field(default_factory=list)
+
+    def _keys(self) -> tuple[str, ...]:
+        """Return the mapping keys this mode exposes, in emit order."""
+        return (
+            _GREEDY_STATS_KEYS
+            if self.mode == "greedy"
+            else _SEARCH_STATS_KEYS
+        )
+
+    def __getitem__(self, key: str) -> Any:
+        """Return the field *key* names, ``KeyError`` off-mode."""
+        if key not in self._keys():
+            raise KeyError(key)
+        return getattr(self, key)
+
+    def __iter__(self):
+        """Iterate the mode's keys in emit order."""
+        return iter(self._keys())
+
+    def __len__(self) -> int:
+        """Return the mode's key count."""
+        return len(self._keys())
+
+
 def _apply_moves(
     moves: tuple,
     diagram: Diagram,
@@ -1622,7 +1725,7 @@ def _apply_moves(
     joint_max_enodes: int,
     symmetry_budget: int | None,
     verbose: bool,
-) -> tuple[dict, dict, set, dict, dict, dict]:
+) -> tuple[dict, dict, set, dict, dict, DiagramSearchStats]:
     """Collect candidates and claim them greedily, widest first.
 
     A grafted move consumes its nodes — overlapping candidates skip;
@@ -1679,13 +1782,13 @@ def _apply_moves(
         move_fires[m.law] = move_fires.get(m.law, 0) + 1
         if verbose:
             log.info("[Diagram] %s: grafted (%s)", key, m.detail)
-    dsearch = {
-        "mode": "greedy",
-        "candidates": len(cands),
-        "moves_applied": sum(move_fires.values()),
-        "initial_cost": initial_cost,
-        "final_cost": sum(contrib.values()),
-    }
+    dsearch = DiagramSearchStats(
+        mode="greedy",
+        candidates=len(cands),
+        moves_applied=sum(move_fires.values()),
+        initial_cost=initial_cost,
+        final_cost=sum(contrib.values()),
+    )
     return (
         replacements,
         move_stats,
