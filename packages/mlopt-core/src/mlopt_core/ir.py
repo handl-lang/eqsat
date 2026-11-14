@@ -396,25 +396,20 @@ def _dag_shared(root: Op) -> set[Op]:
 
 
 def _dag_postorder(root: Op) -> list[Op]:
-    """Every op in ``root``'s DAG, children before parents, deduped."""
-    order: list[Op] = []
-    expanded: set[Op] = set()
-    work: list[tuple[Op, bool]] = [(root, False)]
-    while work:
-        t, done = work.pop()
-        if done:
-            order.append(t)
-            continue
-        if t in expanded:
-            continue
-        expanded.add(t)
-        work.append((t, True))
-        work.extend(
-            (a, False)
-            for a in t.args
-            if isinstance(a, Op) and a not in expanded
-        )
-    return order
+    """Every op in ``root``'s DAG, children before parents, deduped.
+
+    Delegates to :func:`mlopt_core.traversal.postorder` — the shared
+    iterative deduped walker, whose right-to-left child order IS this
+    function's historical stack order (``op_repr_dag``'s ``#n``
+    bindings depend on it).  The historical quirk is preserved: a
+    non-Op *root* is yielded as-is (``[root]``), while non-Op
+    descendants never appear — only ``Op`` args were ever pushed.
+    """
+    from mlopt_core.traversal import postorder
+
+    return [
+        n for n in postorder(root) if isinstance(n, Op) or n is root
+    ]
 
 
 def _sexp(t: Op, arg_repr: Callable[[Any], str]) -> str:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 from typing import Any, cast
 
 from mlopt_core.egraph.certs import (
@@ -9,6 +10,7 @@ from mlopt_core.egraph.certs import (
     CertificateVerificationError,
 )
 from mlopt_core.ir import Op, op_repr_dag
+from mlopt_core.traversal import expand, postorder
 
 _MEMO_MISS = object()
 
@@ -22,8 +24,10 @@ def _term_eq(a: Any, b: Any, _memo: dict | None = None) -> bool:
     exponentially, so a single equality check is itself the
     certificate path's superlinear blowup (measured: a depth-22
     shared DAG cost ~15 s per compare; depth ~40 never finishes).
-    This compares the same structure directly and memoises decided
-    object pairs, so shared sub-DAGs are visited once.
+    This compares the same structure directly over an explicit
+    worklist — iterative, so deep terms cannot hit ``RecursionError``
+    — and memoises decided object pairs, so shared sub-DAGs are
+    visited once.
 
     Semantics mirror ``op_repr`` equality: Op nodes compare op name,
     the repr-keyed ``_ak`` attr signature (the interning identity —
@@ -32,6 +36,11 @@ def _term_eq(a: Any, b: Any, _memo: dict | None = None) -> bool:
     compare by ``repr`` exactly as ``op_repr`` renders them.  An Op
     never equals a non-Op.  The ``_memo`` dict may be shared across
     calls to amortise repeated compares over the same cones.
+
+    The pair graph is walked children-before-parents (the
+    :func:`mlopt_core.traversal.postorder` convention applied to
+    ``(a, b)`` pairs), then evaluated in that order — every child
+    pair's verdict is in ``_memo`` before its parent is decided.
     """
     if a is b:
         return True
@@ -43,25 +52,90 @@ def _term_eq(a: Any, b: Any, _memo: dict | None = None) -> bool:
         hit = _MEMO_MISS  # unhashable leaf — skip memoisation
     if hit is not _MEMO_MISS:
         return cast("bool", hit)
-    if isinstance(a, Op) and isinstance(b, Op):
-        res = (
-            a.op == b.op
-            and a._ak == b._ak
-            and len(a.args) == len(b.args)
-            and all(
-                _term_eq(x, y, _memo)
-                for x, y in zip(a.args, b.args, strict=True)
+
+    def _pair_memo_get(pair: tuple) -> Any:
+        try:
+            return _memo.get(pair, _MEMO_MISS)
+        except TypeError:
+            return _MEMO_MISS  # unhashable leaf — skip memoisation
+
+    def _pair_val(x: Any, y: Any) -> bool:
+        """Decided verdict for a child pair (memo, else recompute)."""
+        try:
+            v = _memo.get((x, y), _MEMO_MISS)
+        except TypeError:
+            v = _MEMO_MISS
+        if v is _MEMO_MISS:
+            # Unhashable pair — the memo could not store it; the
+            # recursive entry point is itself iterative, so this
+            # nested call cannot recurse deeply.
+            return _term_eq(x, y, _memo)
+        return cast("bool", v)
+
+    # Collect the unresolved pair frontier: postorder over pairs,
+    # pruning pairs already decided in the shared memo.  The root
+    # pair's done-frame lands last, so ``order[-1]`` is ``(a, b)``.
+    order: list[tuple[Any, Any]] = []
+    expanded: set = set()
+    work: list[tuple[tuple[Any, Any], bool]] = [((a, b), False)]
+    while work:
+        pair, done = work.pop()
+        if done:
+            order.append(pair)
+            continue
+        x, y = pair
+        if _pair_memo_get(pair) is not _MEMO_MISS:
+            continue
+        try:
+            fresh = pair not in expanded
+        except TypeError:
+            fresh = True  # unhashable pair — cannot dedup
+        if not fresh:
+            continue
+        with contextlib.suppress(TypeError):
+            expanded.add(pair)  # unhashable pair — cannot dedup
+        work.append((pair, True))
+        if x is y:
+            continue  # identical objects — True at eval, no descent
+        if (
+            isinstance(x, Op)
+            and isinstance(y, Op)
+            and len(x.args) == len(y.args)
+        ):
+            work.extend(
+                ((xi, yi), False)
+                for xi, yi in zip(x.args, y.args, strict=True)
             )
-        )
-    elif isinstance(a, Op) or isinstance(b, Op):
-        res = False
-    else:
-        res = repr(a) == repr(b)
-    try:
-        _memo[(a, b)] = res
-    except TypeError:  # pragma: no cover — unhashable leaf
-        return res
-    return res
+        # Mismatched arity / Op-vs-leaf pairs have no children to
+        # decide — they evaluate False at their own frame.
+
+    # Evaluate children before parents; every child pair's verdict is
+    # memoised by the time its parent is reached.
+    result = False
+    for x, y in order:
+        if x is y:
+            res = True
+        elif isinstance(x, Op) and isinstance(y, Op):
+            res = (
+                x.op == y.op
+                and x._ak == y._ak
+                and len(x.args) == len(y.args)
+                and all(
+                    _pair_val(xi, yi)
+                    for xi, yi in zip(x.args, y.args, strict=True)
+                )
+            )
+        elif isinstance(x, Op) or isinstance(y, Op):
+            res = False
+        else:
+            res = repr(x) == repr(y)
+        with contextlib.suppress(
+            TypeError
+        ):  # pragma: no cover — unhashable leaf
+            _memo[(x, y)] = res
+        if x is a and y is b:
+            result = res
+    return result
 
 
 def _brief(term: Any, limit: int = 160) -> str:
@@ -77,20 +151,30 @@ def _brief(term: Any, limit: int = 160) -> str:
     return s
 
 
-def _term_paths(term: Any, prefix: tuple = ()):
-    """Yield the child-index path of every subterm, root first."""
-    yield prefix
-    if isinstance(term, Op):
-        for i, a in enumerate(term.args):
-            yield from _term_paths(a, (*prefix, i))
+def _term_paths(term: Any, prefix: tuple = ()) -> Any:
+    """Yield the child-index path of every subterm, root first.
+
+    Delegates to :func:`mlopt_core.traversal.expand` — the iterative
+    tree-spelling walk, yielding the identical pre-order sequence;
+    ``prefix`` prepends to every path exactly as the recursive walk
+    did (``prefix`` alone for the root).
+    """
+    for path, _node in expand(term):
+        yield prefix + path
 
 
 def _iter_ops(term: Any):
-    """Yield every Op node in a term (for the structural-size tie-break)."""
-    if isinstance(term, Op):
-        yield term
-        for a in term.args:
-            yield from _iter_ops(a)
+    """Yield every Op node in a term (for the structural-size tie-break).
+
+    Delegates to :func:`mlopt_core.traversal.expand` — the identical
+    pre-order, per-occurrence sequence as the historical recursive
+    walk, but iterative (no ``RecursionError`` on deep terms).  Note
+    this is the *tree* spelling: a shared subterm yields once per use
+    site; :func:`mlopt_core.traversal.ops` is the deduped DAG view.
+    """
+    for _path, node in expand(term):
+        if isinstance(node, Op):
+            yield node
 
 
 # ---------------------------------------------------------------------------
@@ -112,38 +196,52 @@ def _term_match(
     leniency, deliberately kept while term/enode *identity* is
     spelling-strict (see :class:`mlopt_core.ir.Op`).
     Returns the bindings dict, or ``None`` on mismatch.
+
+    Iterative pre-order DFS over an explicit stack — the identical
+    binding/check order as the historical recursion (node-local
+    checks, then args left-to-right), so deep patterns/terms cannot
+    hit ``RecursionError``.
     """
     subst = {} if _subst is None else _subst
-    if isinstance(pattern, str):
-        prev = subst.get(pattern)
-        if prev is None:
-            subst[pattern] = term
-            return subst
-        return subst if _term_eq(prev, term) else None
-    if isinstance(pattern, Op):
-        if not isinstance(term, Op) or term.op != pattern.op:
-            return None
-        if len(term.args) != len(pattern.args):
-            return None
-        if set(term.attrs) != set(pattern.attrs):
-            return None
-        for k, pv in pattern.attrs.items():
-            nv = term.attrs[k]
-            if isinstance(pv, str):
-                key = "$attr:" + pv
-                if key in subst:
-                    if subst[key] != nv:
-                        return None
-                else:
-                    subst[key] = nv
-            elif nv != pv:
+    stack = [(pattern, term)]
+    while stack:
+        p, t = stack.pop()
+        if isinstance(p, str):
+            prev = subst.get(p)
+            if prev is None:
+                subst[p] = t
+                continue
+            if not _term_eq(prev, t):
                 return None
-        for pa, ta in zip(pattern.args, term.args, strict=True):
-            if _term_match(pa, ta, subst) is None:
+            continue
+        if isinstance(p, Op):
+            if not isinstance(t, Op) or t.op != p.op:
                 return None
-        return subst
-    # concrete leaf (Const/Param/Var embedded in the pattern)
-    return subst if repr(pattern) == repr(term) else None
+            if len(t.args) != len(p.args):
+                return None
+            if set(t.attrs) != set(p.attrs):
+                return None
+            for k, pv in p.attrs.items():
+                nv = t.attrs[k]
+                if isinstance(pv, str):
+                    key = "$attr:" + pv
+                    if key in subst:
+                        if subst[key] != nv:
+                            return None
+                    else:
+                        subst[key] = nv
+                elif nv != pv:
+                    return None
+            # Push arg pairs reversed so the leftmost pops first —
+            # the recursive walk's left-to-right DFS order.
+            stack.extend(
+                reversed(list(zip(p.args, t.args, strict=True)))
+            )
+            continue
+        # concrete leaf (Const/Param/Var embedded in the pattern)
+        if repr(p) != repr(t):
+            return None
+    return subst
 
 
 def _term_instantiate(pattern: Any, subst: dict) -> Any:
@@ -152,19 +250,42 @@ def _term_instantiate(pattern: Any, subst: dict) -> Any:
     The term-level analogue of :meth:`EGraph._instantiate`: metavariable
     strings map to terms, ``"$attr:"`` keys resolve attribute
     metavariables, concrete leaves pass through unchanged.
+
+    Iterative: children are instantiated before parents over the
+    :func:`mlopt_core.traversal.postorder` walk (memoised per node —
+    ``Op.make`` interning made the old per-occurrence rebuild return
+    the same objects anyway), so deep patterns cannot hit
+    ``RecursionError``.
     """
-    if isinstance(pattern, str):
-        return subst[pattern]
-    if isinstance(pattern, Op):
-        args = [_term_instantiate(a, subst) for a in pattern.args]
-        attrs = {}
-        for k, v in pattern.attrs.items():
-            if isinstance(v, str):
-                attrs[k] = subst.get("$attr:" + v, v)
-            else:
-                attrs[k] = v
-        return Op.make(pattern.op, *args, **attrs)
-    return pattern
+    memo: dict = {}
+    out: Any = None
+    have_out = False
+    for n in postorder(pattern):
+        if isinstance(n, str):
+            val = subst[n]
+        elif isinstance(n, Op):
+            args = [memo[a] for a in n.args]
+            attrs = {}
+            for k, v in n.attrs.items():
+                if isinstance(v, str):
+                    attrs[k] = subst.get("$attr:" + v, v)
+                else:
+                    attrs[k] = v
+            val = Op.make(n.op, *args, **attrs)
+        else:
+            val = n
+        with contextlib.suppress(
+            TypeError
+        ):  # pragma: no cover — unhashable leaf
+            memo[n] = val
+        if n is pattern:
+            out = val
+            have_out = True
+    if have_out:
+        return out
+    # Unreachable for hash-consed terms (the root is always yielded),
+    # kept as the honest fallback for exotic unhashable inputs.
+    return memo.get(pattern, pattern)
 
 
 def _subterm(term: Any, path: tuple) -> Any:
@@ -177,17 +298,30 @@ def _subterm(term: Any, path: tuple) -> Any:
 
 
 def _replace_subterm(term: Any, path: tuple, new: Any) -> Any:
-    """*term* with the subterm at *path* replaced by *new*."""
+    """*term* with the subterm at *path* replaced by *new*.
+
+    Iterative: descend the spine once, then rebuild bottom-up — the
+    identical result and the identical ``CertificateVerificationError``
+    (naming the node where descent failed, via ``_brief``) as the
+    historical recursion, without the ``RecursionError`` on deep
+    paths.  Negative indices keep their Python indexing semantics.
+    """
     if not path:
         return new
-    if not isinstance(term, Op) or path[0] >= len(term.args):
-        raise CertificateVerificationError(
-            f"cannot descend path {list(path)} in {_brief(term)}"
-        )
-    i = path[0]
-    args = list(term.args)
-    args[i] = _replace_subterm(args[i], path[1:], new)
-    return Op.make(term.op, *args, **dict(term.attrs))
+    spine: list[tuple[Op, int]] = []
+    node = term
+    for i in path:
+        if not isinstance(node, Op) or i >= len(node.args):
+            raise CertificateVerificationError(
+                f"cannot descend path {list(path)} in {_brief(node)}"
+            )
+        spine.append((node, i))
+        node = node.args[i]
+    for parent, i in reversed(spine):
+        args = list(parent.args)
+        args[i] = new
+        new = Op.make(parent.op, *args, **dict(parent.attrs))
+    return new
 
 
 def verify_certificate(

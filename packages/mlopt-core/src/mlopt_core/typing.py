@@ -53,6 +53,7 @@ own module.
 
 from __future__ import annotations
 
+import contextlib
 import math
 from collections.abc import Callable
 from typing import Any, cast
@@ -60,6 +61,7 @@ from typing import Any, cast
 from mlopt_core.attrs import attr_of, is_positional_attr
 from mlopt_core.ir import Const, Op, Param, Var
 from mlopt_core.opmeta import COMMUTATIVE_OPS
+from mlopt_core.traversal import postorder
 
 #: The public shape-inference surface.  The underscore-prefixed names
 #: above/below are the implementation; these are the stable spellings
@@ -108,29 +110,69 @@ def _shape_of(
     results (``Const``, full-reduce ``sum``/``mean``, vector dot
     ``matmul``, scalar elementwise) still report ``()``.
     """
-    key = term  # content-keyed: interned terms hash by structure
-    if memo is not None and key in memo:
-        return memo[key]
+    if memo is None:
+        memo = {}
+    try:
+        if term in memo:
+            return memo[term]
+    except TypeError:
+        pass  # unhashable term — compute without memoisation
+    # Iterative frontier walk: every not-yet-memoised node under
+    # ``term``, children before parents, pruning at memoised nodes —
+    # the identical visit set and memo contents as the historical
+    # recursion (which memoised every node it reached, leaves
+    # included), but an explicit stack so deep terms cannot hit
+    # ``RecursionError``.  ``_infer_op_shape`` reads its operands'
+    # shapes through ``_shape_of(a, memo)`` — already memoised by the
+    # time each op node is evaluated.
+    for n in postorder(term, prune=lambda x: _memo_has(memo, x)):
+        _memo_set(memo, n, _shape_node(n, memo))
+    try:
+        return memo[term]
+    except (KeyError, TypeError):
+        # Unhashable root — its children are memoised; compute it
+        # directly (never happens for hash-consed Op terms).
+        return _shape_node(term, memo)
+
+
+def _memo_has(memo: dict, key: Any) -> bool:
+    """Return True iff *key* is memoised; unhashable keys are not."""
+    try:
+        return key in memo
+    except TypeError:
+        return False
+
+
+def _memo_set(memo: dict, key: Any, value: Any) -> None:
+    """Store *value* under *key*, skipping unhashable keys."""
+    with contextlib.suppress(TypeError):
+        memo[key] = value
+
+
+def _shape_node(term: Any, memo: dict):
+    """Compute one node's shape during the :func:`_shape_of` walk.
+
+    The per-node body of the historical recursive ``_shape_of`` —
+    identical dispatch and ``(TypeError, IndexError) -> None``
+    contract; the memo read/write moved to the iterative driver.
+    """
     if isinstance(term, (Var, Param)):
-        out = term.typ.shape
-    elif isinstance(term, Const):
-        out = ()
-    elif isinstance(term, Op):
+        return term.typ.shape
+    if isinstance(term, Const):
+        return ()
+    if isinstance(term, Op):
         try:
-            out = _infer_op_shape(term, memo)
+            return _infer_op_shape(term, memo)
         except (TypeError, IndexError):
             # A pattern fragment reached inference — a metavar attr
             # (``dim="D"``, ``index="I"``) or a derived shape attr a
             # rule can't resolve.  Same contract as the rank-0 case
-            # above: report ``None`` (unknown) — guards/derives
-            # decline on it rather than fabricate — never crash the
-            # ``d % len(base)`` arithmetic on a symbolic axis.
-            out = None
-    else:
-        out = None
-    if memo is not None:
-        memo[key] = out
-    return out
+            # in :func:`_shape_of`: report ``None`` (unknown) —
+            # guards/derives decline on it rather than fabricate —
+            # never crash the ``d % len(base)`` arithmetic on a
+            # symbolic axis.
+            return None
+    return None
 
 
 #: Ops whose result shape is invariant under operand swap — used to
@@ -1242,17 +1284,58 @@ def has_var_leaf(term: Any, memo: dict | None = None) -> bool:
     """
     memo = {} if memo is None else memo
     k = ("hv", term)
-    hit = memo.get(k)
+    try:
+        hit = memo.get(k)
+    except TypeError:
+        hit = None  # unhashable term — compute without memoisation
     if hit is not None:
         return hit
+    # Iterative frontier walk — the identical visit set and ``("hv",
+    # node)`` memo contents as the historical recursion (every
+    # reached node memoised, leaves included), over an explicit
+    # stack so deep terms cannot hit ``RecursionError``.  Children
+    # are memoised before parents, so ``_hv_node`` reads them back
+    # from ``memo``.
+    for n in postorder(term, prune=lambda x: _hv_done(memo, x)):
+        _memo_set(memo, ("hv", n), _hv_node(n, memo))
+    try:
+        return memo[k]
+    except (KeyError, TypeError):
+        return _hv_node(term, memo)
+
+
+def _hv_done(memo: dict, node: Any) -> bool:
+    """Return True iff ``("hv", node)`` is already memoised."""
+    try:
+        return memo.get(("hv", node)) is not None
+    except TypeError:
+        return False
+
+
+def _hv_node(term: Any, memo: dict) -> bool:
+    """Compute one node's ``has_var_leaf`` verdict during the walk.
+
+    The per-node body of the historical recursion: ``Var`` -> True,
+    ``Op`` -> any memoised child verdict, anything else -> False.
+    """
     if isinstance(term, Var):
-        out = True
-    elif isinstance(term, Op):
-        out = any(has_var_leaf(a, memo) for a in term.args)
-    else:
-        out = False
-    memo[k] = out
-    return out
+        return True
+    if isinstance(term, Op):
+        for a in term.args:
+            try:
+                v = memo.get(("hv", a))
+            except TypeError:
+                v = None
+            if v is None:
+                # Unmemoised child (unhashable — cannot be memoised;
+                # cannot occur as an ``Op`` arg in practice).  The
+                # entry point is itself iterative, so this nested
+                # call cannot recurse deeply.
+                v = has_var_leaf(a, memo)
+            if v:
+                return True
+        return False
+    return False
 
 
 def _concrete(shape: Any) -> bool:
