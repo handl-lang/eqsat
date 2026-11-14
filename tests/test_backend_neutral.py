@@ -477,6 +477,63 @@ def test_lower_extracted_routes_to_sink_executor():
 
 
 # ---------------------------------------------------------------------------
+#  corpus_probe — the injected per-model coverage hook (backend-neutral)
+# ---------------------------------------------------------------------------
+
+
+def test_corpus_probe_hook_runs_and_records():
+    """``corpus_probe=`` is invoked once as ``(name, model, x)`` and its
+    report lands in ``stats["corpus_probe"]`` — through ``optimize``."""
+    calls = []
+
+    def probe(name, model, x):
+        calls.append((name, model, x))
+        return {"coverage": {"n_novel_op_tuples": 3}}
+
+    model = _ListModel()
+    x = [1.0, 2.0]
+    opt = Optimizer(backend=_fake_backend())
+    lr = opt.optimize(model, x, corpus_probe=probe, max_iterations=2)
+    assert calls == [("_ListModel", model, x)]
+    assert lr.stats["corpus_probe"] == {
+        "coverage": {"n_novel_op_tuples": 3}
+    }
+
+
+def test_corpus_probe_default_is_inert():
+    """No probe passed → nothing runs, nothing recorded (both verbs)."""
+    opt = Optimizer(backend=_fake_backend())
+    lr = opt.optimize(_ListModel(), [1.0], max_iterations=2)
+    assert "corpus_probe" not in lr.stats
+    res = opt.search(_ListModel(), [1.0], max_iterations=2)
+    assert "corpus_probe" not in res.stats
+
+
+def test_corpus_probe_compositional_runs_once_on_whole_model():
+    """The Compositional strategy scopes the probe to the whole model —
+    once, never per block."""
+    calls = []
+
+    def probe(name, model, x):
+        calls.append((name, model, x))
+        return {"ok": True}
+
+    model = _ListModel(inner=_ListModel())
+    x = [1.0, 2.0]
+    opt = Optimizer(backend=_fake_backend())
+    lr = opt.optimize(
+        model,
+        x,
+        strategy=Compositional(max_cross_pairs=0),
+        corpus_probe=probe,
+        max_iterations=2,
+        verbose=False,
+    )
+    assert calls == [("_ListModel", model, x)]
+    assert lr.stats["corpus_probe"] == {"ok": True}
+
+
+# ---------------------------------------------------------------------------
 #  No-compat state — moved names do NOT resolve through the orchestrator
 # ---------------------------------------------------------------------------
 

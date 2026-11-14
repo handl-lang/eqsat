@@ -1924,6 +1924,7 @@ def search(
     task: TaskMetric | None = None,
     task_tol: float | None = None,
     policy: Any = None,
+    corpus_probe: Callable[[str, Any, Any], Any] | None = None,
 ) -> SearchResult:
     """Run the search phase: ``model -> SearchResult``.
 
@@ -2101,6 +2102,20 @@ def search(
         iteration (``EGraph.run(..., policy=...)``).  It may only
         *reorder* the rules, so the fixed point and the certificate are
         unchanged; the name is recorded in ``stats["policy"]``.
+    corpus_probe : callable, optional
+        An injected per-model corpus/coverage probe — the
+        backend-neutral seam downstream domain repos use (graphopt's
+        ``mlopt_discovery.model_corpus`` is the intended callable;
+        this package never imports it).  Invoked ONCE, right after
+        export, as ``corpus_probe(name, model, x)`` where ``name`` is
+        the model's ``__name__`` or class name; whatever it returns
+        is recorded verbatim under ``stats["corpus_probe"]`` (it
+        flows through ``lower`` into the delivery stats).  The probe
+        owns its own side effects — including any dtype cast its
+        intake performs on ``model`` — so a caller wiring a mutating
+        probe should wrap it to restore what it changed.  ``None``
+        (the default) runs nothing: the search is byte-for-byte the
+        historical path.
     verbose : bool
         Print progress.
 
@@ -2133,6 +2148,20 @@ def search(
         print(f"  IR root: {op_repr(ir.root)}")
         print(f"  Inputs:  {[str(v) for v in ir.inputs]}")
         print(f"  Params:  {list(ir.params.keys())}")
+
+    # -- Optional caller-injected corpus probe -------------------------
+    # Runs after export (the probe sees the same lifted boundary every
+    # corpus term crossed) and before saturation, so its cost never
+    # hides inside the search record's timings.  The report lands in
+    # ``stats["corpus_probe"]`` below; exceptions propagate — an
+    # opt-in diagnostic fails loudly, never silently.
+    probe_report: Any = None
+    if corpus_probe is not None:
+        probe_report = corpus_probe(
+            getattr(model, "__name__", None) or type(model).__name__,
+            model,
+            x,
+        )
 
     # -- Phase 2: Build e-graph and saturate -----------------------------
     if verbose:
@@ -2207,6 +2236,8 @@ def search(
 
     stats["rule_fires"] = dict(eg.rule_fires)
     stats["criteria"] = criteria_used
+    if probe_report is not None:
+        stats["corpus_probe"] = probe_report
     if fusion_epsilon:
         stats["fusion_epsilon"] = fusion_epsilon
     _task_declared(stats, contract)
@@ -3448,6 +3479,7 @@ def _optimize_compositional(
     detect_headshare: bool = False,
     task: TaskMetric | None = None,
     task_tol: float | None = None,
+    corpus_probe: Callable[[str, Any, Any], Any] | None = None,
     verbose: bool = True,
 ) -> tuple[Any, dict[str, Any]]:
     """Optimize a stacked/multi-block model one block at a time.
@@ -3501,6 +3533,12 @@ def _optimize_compositional(
     that calibration input), and the block report records
     ``task = {name, tolerance, distance, passed}``.
 
+    ``corpus_probe`` is the same injected hook :func:`search` takes,
+    but scoped to the WHOLE model — it runs once, before the
+    per-block loop, as ``corpus_probe(name, model, example_input)``
+    (never per block: a block's captured input is not the model's
+    feed), and its report lands in ``stats["corpus_probe"]``.
+
     ``cache`` (the :class:`Compositional` strategy resolves its
     ``cache=`` flag into this mapping): when a dict is given, each
     block's exported IR is canonicalised by :func:`structural_key` —
@@ -3544,6 +3582,16 @@ def _optimize_compositional(
     if cost_fn is None:
         cost_fn = _default_cost_fn()
     contract = _task_contract(task, task_tol)
+
+    # Whole-model corpus probe — once, before any per-block search
+    # (the hook contract is ``search``'s: ``(name, model, x)``).
+    probe_report: Any = None
+    if corpus_probe is not None:
+        probe_report = corpus_probe(
+            getattr(model, "__name__", None) or type(model).__name__,
+            model,
+            example_input,
+        )
 
     blocks = composer.blocks(model, predicate=block_pred)
     if verbose:
@@ -3865,6 +3913,8 @@ def _optimize_compositional(
             "misses": cache_misses,
             "fallbacks": cache_fallbacks,
         }
+    if probe_report is not None:
+        stats["corpus_probe"] = probe_report
 
     stats["wall_time_s"] = time.time() - t_start
     return new_model, stats
