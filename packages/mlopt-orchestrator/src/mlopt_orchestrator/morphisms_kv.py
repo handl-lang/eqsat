@@ -78,6 +78,13 @@ __all__ = ["KVLatentShare"]
 log = logging.getLogger("mlopt_orchestrator.morphisms_kv")
 
 
+#: Content-keyed shape memo — same precedent as
+#: ``mlopt_core.laws.base._SHAPE_MEMO``: extracted terms are shared-DAG
+#: interned objects and an unmemoised ``typing._shape_of`` walk is
+#: exponential on them.
+_SHAPE_MEMO: dict = {}
+
+
 def _usable_member(graph: Any, name: str) -> bool:
     """Check a record can join a family — lifted, sig-consistent.
 
@@ -923,7 +930,7 @@ def _kv_numbers(
     (an unfactored q-section of a ``qkv`` node persists on both
     sides and cancels).
     """
-    dshape = shape_of(data)
+    dshape = shape_of(data, _SHAPE_MEMO)
     tok = 1
     if isinstance(dshape, tuple):
         for dd in dshape[:-1]:

@@ -475,7 +475,9 @@ def _table_refs(root: Any, memo: dict) -> tuple[WeightRef, ...]:
     )
 
 
-def _norm_nodes(root: Any) -> list[tuple[Op, str, bool]]:
+def _norm_nodes(
+    root: Any, memo: dict | None = None
+) -> list[tuple[Op, str, bool]]:
     """Normalisation/diagonal nodes: ``(node, kind, affine)`` triples.
 
     ``layer_norm`` ops are affine when they carry a weight arg; a
@@ -509,7 +511,7 @@ def _norm_nodes(root: Any) -> list[tuple[Op, str, bool]]:
                 if va == vb:
                     continue
                 gain = b if va else a
-                gs = shape_of(gain)
+                gs = shape_of(gain, memo)
                 if isinstance(gs, tuple) and len(gs) <= 1:
                     out.append((n, "diag", _has_param(gain)))
     return out
@@ -553,7 +555,7 @@ def block_signature(
         _weight_ref(w, memo) for n, _, w in projs if n not in inside
     )
     tbl_refs = _table_refs(root, memo)
-    norm_nodes = _norm_nodes(root)
+    norm_nodes = _norm_nodes(root, memo)
     # Pre-norm: the norm node sits on the path into an in-projection.
     in_scope: set = set()
     for d in in_datas:

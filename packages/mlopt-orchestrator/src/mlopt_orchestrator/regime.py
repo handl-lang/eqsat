@@ -118,6 +118,13 @@ __all__ = [
 # ---------------------------------------------------------------------------
 
 
+#: Content-keyed shape memo for ``footprint_cost``'s ``shape_of`` calls —
+#: same precedent as ``mlopt_core.laws.base._SHAPE_MEMO``: extracted
+#: terms are shared-DAG interned objects and an unmemoised
+#: ``typing._shape_of`` walk is exponential on them.
+_SHAPE_MEMO: dict = {}
+
+
 def footprint_cost(term: Any, memo: dict | None = None) -> float:
     """Materialised-elements cost — a working-set proxy.
 
@@ -135,11 +142,11 @@ def footprint_cost(term: Any, memo: dict | None = None) -> float:
     if key in memo:
         return memo[key]
     if isinstance(term, (Var, Param, Const)):
-        out = float(numel(shape_of(term)))
+        out = float(numel(shape_of(term, _SHAPE_MEMO)))
     elif not isinstance(term, Op):
         out = 0.0
     else:
-        shape = shape_of(term)
+        shape = shape_of(term, _SHAPE_MEMO)
         if shape == INVALID:
             out = _INVALID_COST
         else:

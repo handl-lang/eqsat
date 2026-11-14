@@ -127,7 +127,7 @@ def _pair_shared_input(
     """
     from mlopt_core.egraph import ENode, _LeafRegistry
     from mlopt_core.ir import Var as _Var
-    from mlopt_core.typing import _shape_of as _so
+    from mlopt_core.laws.base import _shape_of as _so
 
     # Per-class "can some representative reach a Var leaf" — memoized and
     # cycle-guarded.  Replaces materializing any_term + _term_has_var per
@@ -262,7 +262,7 @@ def _pair_shared_input(
 
 
 def _wshape(t: Any):
-    from mlopt_core.typing import _shape_of as _so
+    from mlopt_core.laws.base import _shape_of as _so
 
     return _so(t)
 
@@ -276,7 +276,7 @@ def _select_tile(eg: Any, w_eid: int):
     ``select(W, 0, e)`` per expert; detected on the *enode* so a
     rule-introduced class representative cannot hide the tile.
     """
-    from mlopt_core.typing import _shape_of as _so
+    from mlopt_core.laws.base import _shape_of as _so
 
     for n in eg._classes[eg.find(w_eid)].nodes:
         if n.op != "select" or len(n.children) != 1:
@@ -515,7 +515,7 @@ def _uniform_input(eg: Any, lfs: list):
     ``torch.stack`` needs equal shapes and the flatten-to-rank-3
     reshape needs literal dims.
     """
-    from mlopt_core.typing import _shape_of as _so
+    from mlopt_core.laws.base import _shape_of as _so
 
     hs = [_so(eg._any_term_cached(lf[3])) for lf in lfs]
     h0 = hs[0]
@@ -536,7 +536,7 @@ def _gates_uniform(eg: Any, lfs: list, h0: tuple):
     factors must be per-token scalars ``(…, 1)`` — the only shape that
     broadcasts against the flattened ``(E, N, o)`` bmm output.
     """
-    from mlopt_core.typing import _shape_of as _so
+    from mlopt_core.laws.base import _shape_of as _so
 
     gated = all(lf[4] is not None for lf in lfs)
     if not gated and any(lf[4] is not None for lf in lfs):
@@ -554,7 +554,7 @@ def _cover_check(eg: Any, base: int, lfs: list):
     On success returns
     ``(base_eid, base_shape, ordered_leaves, h_shape, gated)``.
     """
-    from mlopt_core.typing import _shape_of as _so
+    from mlopt_core.laws.base import _shape_of as _so
 
     idxs = sorted(lf[2] for lf in lfs)
     bs = _so(eg._any_term_cached(base))
