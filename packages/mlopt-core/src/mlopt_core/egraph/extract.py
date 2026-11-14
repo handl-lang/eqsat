@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import itertools
 import logging
+from collections import OrderedDict
 from typing import TYPE_CHECKING, Any, cast
 
 from mlopt_core.cost import (
@@ -58,6 +59,67 @@ _PAIRING_EXHAUSTIVE_MAX = 3
 #: where an O(G) sweep would cost ~90 extractions).
 _PAIRING_GREEDY_BUDGET = 4
 
+#: Entry cap for ONE shared cost memo (``_CostMemo`` default).  Every
+#: entry is a pure function of ``(cost_fn, term)`` — terms are
+#: interned, cost models are deterministic — so eviction is always
+#: safe: an evicted key is simply recomputed on next use.  The bound
+#: exists because ``EGraph._cost_memos`` lives as long as the e-graph,
+#: and long discovery loops (``stop="improving"`` re-extractions,
+#: repeated ``extract_best`` passes over a growing graph) would
+#: otherwise pin every priced term forever.
+_COST_MEMO_LIMIT = 100_000
+
+#: Entry cap for the outer ``_cost_memos`` map itself — one slot per
+#: distinct cost-fn object seen on this e-graph.  Cost fns are few in
+#: practice (module-level models plus a handful of ``*_for`` closures),
+#: but factory-made cost fns in a long loop would otherwise accumulate
+#: unboundedly; evicting a slot just rebuilds that model's memo.
+_COST_FN_MEMO_LIMIT = 1_024
+
+
+class _CostMemo(OrderedDict):
+    """Bounded LRU-ish memo mapping for the extraction cost memos.
+
+    An :class:`~collections.OrderedDict` capped at ``limit`` entries:
+    inserting past the cap evicts the least-recently-*used* entry
+    (``__getitem__``/``get`` refresh recency via ``move_to_end``;
+    plain ``in`` checks do not).  Used for both levels of
+    ``EGraph._cost_memos`` — the per-cost-fn entry map and each model's
+    term→cost dict.
+
+    Eviction is semantics-preserving: every value is a pure function
+    of its key (the memo key carries the cost model's identity — the
+    ``(tag, term)`` / ``("rc", pf, bw, ls, term)`` / ``("eo", …,
+    term)`` conventions), so a dropped entry is recomputed identically
+    on the next miss.  The only cost is the recompute.
+    """
+
+    def __init__(self, limit: int = _COST_MEMO_LIMIT) -> None:
+        super().__init__()
+        self._limit = limit
+
+    def __getitem__(self, key: Any) -> Any:
+        value = super().__getitem__(key)
+        self.move_to_end(key)
+        return value
+
+    def get(self, key: Any, default: Any = None) -> Any:
+        # Route through __getitem__ so .get() hits refresh recency
+        # like [] reads do (OrderedDict.get would bypass the override).
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+    def __setitem__(self, key: Any, value: Any) -> None:
+        super().__setitem__(key, value)
+        # OrderedDict keeps an existing key's position on rewrite —
+        # refresh it so writes count as uses too (new keys are already
+        # at the end; the call is a no-op for them).
+        self.move_to_end(key)
+        if len(self) > self._limit:
+            self.popitem(last=False)
+
 
 class _ExtractMixin:
     if TYPE_CHECKING:
@@ -106,13 +168,20 @@ class _ExtractMixin:
         fresh dict.  The stored pair pins the callable so an
         ``id()``-recycled different function can never inherit a stale
         memo.
+
+        Both levels are bounded :class:`_CostMemo` maps — the outer at
+        ``_COST_FN_MEMO_LIMIT`` distinct cost fns, each inner memo at
+        ``_COST_MEMO_LIMIT`` entries — so a long discovery loop cannot
+        grow them without bound.  Eviction is safe (entries are pure
+        functions of their keys); it costs a recompute, never a wrong
+        value.
         """
         memos = getattr(self, "_cost_memos", None)
         if memos is None:
-            memos = self._cost_memos = {}
+            memos = self._cost_memos = _CostMemo(_COST_FN_MEMO_LIMIT)
         ent = memos.get(id(cost_fn))
         if ent is None or ent[0] is not cost_fn:
-            ent = (cost_fn, {})
+            ent = (cost_fn, _CostMemo())
             memos[id(cost_fn)] = ent
         return ent[1]
 

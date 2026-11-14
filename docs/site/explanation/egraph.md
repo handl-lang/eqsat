@@ -55,6 +55,44 @@ Inductor — so it is used for *ranking* candidates, never for *claims*.
 The measured lanes (fixtures, verify) are the graphopt side's job; see
 [the three costs](/graphopt/explanation/three-costs).
 
+## Congruence closes at `rebuild`, not mid-saturation
+
+A rewrite merge is not the only way two e-classes become equal:
+enodes that are identical once their children are canonicalised must
+share a class (congruence). `EGraph` maintains the machinery
+incrementally — `_cong_owner` / `_cong_pend`, the lever-2c worklist —
+but drains it only in `_close_congruence`, which runs on the
+*unrestricted* `rebuild()`. Inside `run`, each iteration calls
+`rebuild(dirty_frontier)`, which canonicalises children but does NOT
+close congruence; the unrestricted `rebuild()` at the end of `run`
+(and explicit `eg.rebuild()` calls between passes, as the
+orchestrator makes) performs the closure.
+
+Consequence: the per-iteration fixed point is **not**
+congruence-closed. Two classes that only become structurally identical
+through merges made late in a run stay apart while the remaining rules
+fire, so a rewrite chain that needs the merged class (e.g. a repeated-
+metavariable LHS whose two occurrences sit in congruent-but-unmerged
+classes) can be missed until a later `run`. This is a completeness
+gap, not a soundness one: congruence merges are always valid, they are
+never skipped — the final `rebuild()` still performs them, and merged
+classes carry the union of both member sets into extraction. Closing
+congruence inside the loop would grow the fixed point (more members,
+more rewrites reachable) at the cost of re-firing rules on merged
+classes; it is a deliberate deferred-closure trade-off, matching how
+`rebuild(classes=...)` documents the restricted pass.
+
+## Cost memos are bounded
+
+`extract_best` keeps one content-keyed cost memo per cost function on
+the e-graph (`_cost_memo_for`), shared across every extraction pass so
+repeat pricing is a memo hit. Both levels are bounded `_CostMemo`
+maps — 100k entries per cost model, 1,024 distinct cost fns per
+e-graph — with LRU-ish eviction. Eviction is semantics-preserving:
+every entry is a pure function of `(cost_fn, term)` and terms are
+interned, so a dropped entry is recomputed identically on the next
+miss; the bound only caps memory on long discovery loops.
+
 ## Where it lives
 
 `eqsat/packages/mlopt-core/src/mlopt_core/egraph/` (`core`, `match`,

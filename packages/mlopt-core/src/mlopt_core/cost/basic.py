@@ -336,29 +336,66 @@ def _local_cost(
     return float(base)
 
 
-def flops_cost(term: Any, memo: dict | None = None) -> float:
-    """Cost = estimated FLOPs using shape inference.
+def _additive_cost(local_fn, tag: str):
+    """Build a memoized additive cost fn: ``local(term) + Σ children``.
 
-    For matmul, uses the standard 2*M*N*K formula.
-    For element-wise ops, uses 1 FLOP per output element.
-
-    ``memo`` (content-keyed) makes repeated calls over a shared-subterm DAG
-    linear instead of exponential; callers doing many evaluations
-    (e.g. extraction) should pass a shared dict.
+    The skeleton shared by :func:`flops_cost`, :func:`launch_aware_cost`
+    and :func:`count_cost`: a per-node local contribution plus the sum
+    over the node's args, memoized on ``(tag, term)`` in the
+    caller-supplied content-keyed dict (a fresh dict per call when
+    ``memo`` is ``None``).  ``tag`` namespaces the entries so different
+    models can share one memo dict without colliding — the same
+    convention the roofline/executor models use with their own key
+    shapes.  Terms are interned (content-hashed), so the memo key is
+    the term itself; non-``Op`` leaves price at ``0.0``.  The returned
+    callable conforms to the extraction ``CostFn`` convention
+    ``fn(term, memo=None)`` — ``memo`` stays an inspectable parameter
+    so :func:`_memo_dispatch` threads the shared extraction memo in.
     """
-    memo = {} if memo is None else memo
-    key = term  # content-keyed: interned terms hash by structure
-    ck = ("c", key)
-    if ck in memo:
-        return memo[ck]
-    if isinstance(term, Op):
-        base = _local_cost(term, memo=memo)
-        for arg in term.args:
-            base += flops_cost(arg, memo)
-        memo[ck] = float(base)
-        return memo[ck]
-    memo[ck] = 0.0
-    return 0.0
+
+    def cost(term: Any, memo: dict | None = None) -> float:
+        memo = {} if memo is None else memo
+        ck = (tag, term)
+        if ck in memo:
+            return memo[ck]
+        if isinstance(term, Op):
+            base = local_fn(term, memo)
+            for arg in term.args:
+                base += cost(arg, memo)
+            memo[ck] = float(base)
+            return memo[ck]
+        memo[ck] = 0.0
+        return 0.0
+
+    return cost
+
+
+def _flops_local(term: Op, memo: dict | None) -> float:
+    """Per-node contribution for :func:`flops_cost`."""
+    return _local_cost(term, memo=memo)
+
+
+def _launch_local(term: Op, memo: dict | None) -> float:
+    """Per-node contribution for :func:`launch_aware_cost`."""
+    return _local_cost(term, _LAUNCH_PENALTY, memo=memo)
+
+
+def _count_local(term: Op, memo: dict | None) -> float:
+    """Per-node contribution for :func:`count_cost`."""
+    return 0.0 if term.op in _VIEW_OPS else 1.0
+
+
+flops_cost = _additive_cost(_flops_local, "c")
+flops_cost.__name__ = "flops_cost"
+flops_cost.__doc__ = """Cost = estimated FLOPs using shape inference.
+
+For matmul, uses the standard 2*M*N*K formula.
+For element-wise ops, uses 1 FLOP per output element.
+
+``memo`` (content-keyed) makes repeated calls over a shared-subterm DAG
+linear instead of exponential; callers doing many evaluations
+(e.g. extraction) should pass a shared dict.
+"""
 
 
 def _memo_dispatch(cost_fn, memo: dict | None = None):
@@ -383,39 +420,19 @@ def _memo_dispatch(cost_fn, memo: dict | None = None):
     return lambda t: cost_fn(t)
 
 
-def launch_aware_cost(term: Any, memo: dict | None = None) -> float:
-    """flops_cost + _LAUNCH_PENALTY per non-view op.
+launch_aware_cost = _additive_cost(_launch_local, "lc")
+launch_aware_cost.__name__ = "launch_aware_cost"
+launch_aware_cost.__doc__ = """flops_cost + _LAUNCH_PENALTY per non-view op.
 
-    Two equivalent forms can have identical FLOPs yet differ in kernel
-    count (one fused GEMM vs two half-size GEMMs).  The penalty breaks
-    such ties deterministically toward fewer launches.  This is the
-    default extraction cost in :func:`mlopt_orchestrator.optimize.optimize_model`.
-    """
-    memo = {} if memo is None else memo
-    ck = ("lc", term)
-    if ck in memo:
-        return memo[ck]
-    if isinstance(term, Op):
-        base = _local_cost(term, _LAUNCH_PENALTY, memo=memo)
-        for arg in term.args:
-            base += launch_aware_cost(arg, memo)
-        memo[ck] = float(base)
-        return memo[ck]
-    memo[ck] = 0.0
-    return 0.0
+Two equivalent forms can have identical FLOPs yet differ in kernel
+count (one fused GEMM vs two half-size GEMMs).  The penalty breaks
+such ties deterministically toward fewer launches.  This is the
+default extraction cost in :func:`mlopt_orchestrator.optimize.optimize_model`.
+"""
 
 
-def count_cost(term: Any, memo: dict | None = None) -> float:
+count_cost = _additive_cost(_count_local, "cc")
+count_cost.__name__ = "count_cost"
+count_cost.__doc__ = (
     """Cost = number of non-view operations in the term tree."""
-    memo = {} if memo is None else memo
-    ck = ("cc", term)
-    if ck in memo:
-        return memo[ck]
-    if isinstance(term, Op):
-        n = 0 if term.op in _VIEW_OPS else 1
-        for arg in term.args:
-            n += count_cost(arg, memo)
-        memo[ck] = float(n)
-        return memo[ck]
-    memo[ck] = 0.0
-    return 0.0
+)
