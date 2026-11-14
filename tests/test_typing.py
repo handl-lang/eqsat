@@ -113,6 +113,40 @@ SHAPE_CASES = [
         (2, 3),
         id="concat/rank-mismatch-falls-back",
     ),
+    # --- concat numel-0 operands (decode step-1 empty cache) --------------
+    # torch.cat skips provably-empty operands: the (0,) lazy-init
+    # placeholder must not collapse the result to rank 1.
+    pytest.param(
+        Op.make(
+            "concat",
+            Var("empty", TensorType((0,))),
+            Var("k", TensorType((2, 3, 4, 5))),
+            dim=-2,
+        ),
+        (2, 3, 4, 5),
+        id="concat/empty-first-decode-cache",
+    ),
+    pytest.param(
+        Op.make(
+            "concat",
+            Var("k", TensorType((2, 3, 4, 5))),
+            Var("empty", TensorType((0,))),
+            Var("v", TensorType((2, 3, 6, 5))),
+            dim=-2,
+        ),
+        (2, 3, 10, 5),
+        id="concat/empty-among-live-sums-cat-axis",
+    ),
+    pytest.param(
+        Op.make(
+            "concat",
+            Var("e1", TensorType((0, 5))),
+            Var("e2", TensorType((0, 7))),
+            dim=1,
+        ),
+        (0, 12),
+        id="concat/all-empty-still-sums",
+    ),
     # --- reshape numel guard ----------------------------------------------
     pytest.param(
         Op.make("reshape", x234, shape=(4, 6)),
@@ -343,6 +377,41 @@ def test_memo_is_content_keyed_dag():
     memo: dict = {}
     assert _shape_of(term, memo) == (2, 3, 4)
     assert shared in memo
+
+
+def test_concat_empty_operand_decode_cache():
+    """Decode step-1 KV-cache append: ``concat(dim=-2)`` of the
+    ``(0,)`` lazy-init placeholder and the live ``(B,H,T,D)`` cache.
+
+    Before the numel-0 fix the empty FIRST operand collapsed the
+    inferred shape to ``(0,)`` — rank 1 — which vetoed every
+    shape-gated law (``axes-last2`` on the bound K transpose, the
+    ``sdpa_fold`` family, ``SDPA_CAT_LAWS``) on fresh-cache decode IR.
+    """
+    empty = Var("c_k_lifted", TensorType((0,)))
+    k = Op.make(
+        "transpose",
+        Op.make(
+            "reshape",
+            Var("k_new", TensorType((2, 3, 4, 5))),
+            shape=(2, 3, 4, 5),
+        ),
+        dim=(-2, -1),
+    )
+    cat = Op.make(
+        "concat",
+        Op.make("detach_", Op.make("contiguous", empty)),
+        k,
+        dim=-2,
+    )
+    # The concat itself reports the live rank-4 shape (cat axis
+    # summed: the empty operand contributes 0 along dim -2).
+    # k is the transposed cache: (2, 3, 5, 4).
+    assert _shape_of(cat) == (2, 3, 5, 4)
+    # Downstream consumers see rank 4, not the poisoned (0,): an
+    # axes-last-two transpose resolves instead of declining.
+    kt = Op.make("transpose", cat, dim=(-2, -1))
+    assert _shape_of(kt) == (2, 3, 4, 5)
 
 
 def test_partial_unknown_shape_not_operand0():

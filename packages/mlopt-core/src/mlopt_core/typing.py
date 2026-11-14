@@ -1090,14 +1090,24 @@ def _infer_op_shape(op: Op, memo: dict | None = None):
             return shapes[0]
         case "concat":
             # Variadic cat: sum every operand along the cat axis.
-            a = shapes[0]
+            # A provably-empty operand — a literal ``0`` dim, i.e.
+            # numel 0 (the ``(0,)`` lazy-init cache placeholder on
+            # decode step 1) — contributes nothing and ``torch.cat``
+            # skips it, so it must not set the result's rank or
+            # collapse the cat axis to ``(0,)``: resolve rank, dim,
+            # and the non-cat axes from the live operands.  When
+            # EVERY operand is empty the first shape still answers —
+            # the cat of empties is empty.
+            live = [s for s in shapes if not _cat_empty(s)]
+            pool = live or shapes
+            a = pool[0]
             if not a:
                 # () has no cat axis — carrier-internal operand.
                 return None
             dim = attr_of(op, "dim", default=0) % len(a)
             out = list(a)
             out[dim] = 0
-            for s in shapes:
+            for s in pool:
                 if not isinstance(s, tuple) or len(s) != len(a):
                     return a
                 out[dim] += s[dim] or 0
@@ -1258,6 +1268,24 @@ def _numel(shape) -> int:
     for d in shape:
         result *= d if d is not None else 1
     return result
+
+
+def _cat_empty(shape) -> bool:
+    """Return True iff *shape* is a provably numel-0 tensor shape.
+
+    Any literal ``0`` dim makes the numel 0 — e.g. the ``(0,)``
+    lazy-init cache placeholder decode IR carries.  ``torch.cat``
+    contributes nothing from such an operand, so the ``concat``
+    shape rule skips it when resolving rank/axis.  ``()`` (the
+    carrier-internal scalar convention) and shapes whose zero-ness
+    is not provable (``None``/unresolved dims) are NOT empty and
+    stay live.
+    """
+    return (
+        isinstance(shape, tuple)
+        and bool(shape)
+        and any(d == 0 for d in shape)
+    )
 
 
 # ---------------------------------------------------------------------------
