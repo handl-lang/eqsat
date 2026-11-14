@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 from mlopt_core import laws
@@ -42,6 +42,94 @@ from .laws import (
 from .signature import BlockSig, _act_index, _iter_ops, _param_only
 
 log = logging.getLogger("mlopt_orchestrator.morphisms")
+
+
+class ReifyResult(dict):
+    """One reify record — the graft payload or the honest decline.
+
+    Lifecycle: produced by :func:`_reify` (the morphism engine), the
+    ``family`` / ``cse`` sibling reifies
+    (``morphisms_kv._reify_family``, ``crossblock_cse._reify_cse``),
+    the diagram moves (``diagram._reify_merge`` /
+    ``diagram._reify_split``) and — as plain ``dict`` — by foreign
+    :class:`~mlopt_orchestrator.diagram.DiagramMove` implementations,
+    which the diagram driver normalises into this record on ingest
+    (``diagram._one_move``).  Consumed by ``_optimize_morphisms``
+    (the ``stats["matches"]`` entries and the graft set) and by the
+    diagram drivers (``diagram._apply_moves`` /
+    ``diagram_search``).
+
+    Keys: ``status`` (``"grafted"`` / ``"declined"``), ``reason`` /
+    ``error`` on declines, ``reps`` (per-slot lowered replacements)
+    and ``_terms`` (per-slot reified bodies ``{name: (root, params,
+    leaves)}`` — private machinery the diagram-state search writes
+    back) on grafts, plus the per-move info fields (``cost_before`` /
+    ``cost_after`` / ``rel_diff`` / ``joint`` / ``reified`` and the
+    family / cse / split extras — ``paired_*``, ``latent_*``,
+    ``members``, ``tied``, ``sites``, …).  The key surface is open:
+    each move family adds its own honest fields.
+
+    A ``dict`` subclass — the
+    :class:`~mlopt_orchestrator.bounds.ErrorBoundEntry` pattern:
+    foreign ``DiagramMove.reify`` implementations return plain dicts
+    and every consumer reads the record as a mapping (``r["status"]``,
+    ``r.get("reps")``, ``dict(r)``), so ``isinstance(r, dict)``,
+    item access, ``.get``, ``**r`` unpacking and dict equality are
+    all preserved while producers and the ingest boundary name the
+    type.  :meth:`to_dict` is the plain-dict escape hatch; the
+    properties are the typed read surface internal consumers use.
+    """
+
+    def __init__(
+        self,
+        fields: Mapping[str, Any] | None = None,
+        /,
+        **kw: Any,
+    ) -> None:
+        """Build a record from an existing mapping and/or kwargs."""
+        super().__init__(fields or {})
+        self.update(kw)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a plain ``dict`` copy of the record."""
+        return dict(self)
+
+    @property
+    def status(self) -> str:
+        """The verdict — ``"grafted"`` / ``"declined"`` (``""`` off-record)."""
+        return self.get("status", "")
+
+    @property
+    def reason(self) -> Any:
+        """The decline reason, when the record carries one."""
+        return self.get("reason")
+
+    @property
+    def grafted(self) -> bool:
+        """``True`` iff the record grafted (``status == "grafted"``)."""
+        return self.status == "grafted"
+
+    @property
+    def reps(self) -> dict[str, Any]:
+        """The per-slot lowered replacements — ``{}`` when absent."""
+        return self.get("reps") or {}
+
+    @property
+    def terms(self) -> dict[str, tuple]:
+        """The private ``_terms`` payload — per-slot reified bodies."""
+        return self.get("_terms") or {}
+
+
+class ReifyEntry(ReifyResult):
+    """One per-candidate stats entry.
+
+    A ``stats["moves"]`` / ``stats["matches"]`` row: ``boundary`` /
+    ``detail`` plus the result's *public* fields (``_res_stats``
+    strips ``reps`` and the ``_``-prefixed machinery).  Skipped and
+    error rows carry only ``status`` / ``reason`` / ``error`` — the
+    same record family, so the drivers store one type per row.
+    Inherits the dict surface and the typed accessors unchanged.
+    """
 
 
 #: The default morphism law family, in application order — widest
@@ -805,7 +893,7 @@ def _window_reps(
     return reps
 
 
-def _res_stats(res: dict[str, Any]) -> dict[str, Any]:
+def _res_stats(res: Mapping[str, Any]) -> dict[str, Any]:
     """Public fields of a reify result — minus ``reps``/``_terms``.
 
     The graft record's private ``_``-prefixed payload (the per-slot
@@ -873,7 +961,7 @@ def _reify(
     max_iterations: int,
     max_enodes: int,
     symmetry_budget: int | None,
-) -> dict[str, Any]:
+) -> ReifyResult:
     """Execute one morphism rewrite; return the graft record or a decline.
 
     Term-level reification: build the joint IR per the boundary mode,
@@ -923,7 +1011,7 @@ def _reify(
         )
     resolved, decline = _resolve_joint(match, graph)
     if resolved is None:
-        return {"status": "declined", "reason": decline}
+        return ReifyResult({"status": "declined", "reason": decline})
     term, var, mids, params, leaves, args, inputs = resolved
 
     offers = _distribute_offers(term, mids)
@@ -954,11 +1042,13 @@ def _reify(
         "reified": op_repr_dag(best),
     }
     if not best_cost < base_cost:
-        return {
-            "status": "declined",
-            "reason": "no_improvement",
-            **info,
-        }
+        return ReifyResult(
+            {
+                "status": "declined",
+                "reason": "no_improvement",
+                **info,
+            }
+        )
     vr = _verify_pair(
         sink,
         term,
@@ -972,11 +1062,13 @@ def _reify(
     )
     info["rel_diff"] = vr.max_rel
     if not vr.passed:
-        return {
-            "status": "declined",
-            "reason": f"reify verify failed: {vr.max_rel:.3e}",
-            **info,
-        }
+        return ReifyResult(
+            {
+                "status": "declined",
+                "reason": f"reify verify failed: {vr.max_rel:.3e}",
+                **info,
+            }
+        )
     if spec.mode == "intra":
         reps = {
             match.nodes[0]: _lower_term(
@@ -1008,12 +1100,14 @@ def _reify(
             b_name: _slot_filler(sink, var_b, spec.mode, ins_b),
         }
     terms = _reify_terms(match, spec, best, var, graph, params, leaves)
-    return {
-        "status": "grafted",
-        "reps": reps,
-        "_terms": terms,
-        **info,
-    }
+    return ReifyResult(
+        {
+            "status": "grafted",
+            "reps": reps,
+            "_terms": terms,
+            **info,
+        }
+    )
 
 
 def _reify_tie(
@@ -1023,7 +1117,7 @@ def _reify_tie(
     sink: Sink,
     cost_fn: CostFn,
     verify_tol: float,
-) -> dict[str, Any]:
+) -> ReifyResult:
     """Reify a weight-tying match: joint e-graph, exact share, verify.
 
     Interns the involved blocks' (namespaced) terms into one e-graph
@@ -1043,7 +1137,9 @@ def _reify_tie(
     eids: dict[str, int] = {}
     for r in recs:
         if r.ir is None:
-            return {"status": "declined", "reason": "opaque node"}
+            return ReifyResult(
+                {"status": "declined", "reason": "opaque node"}
+            )
         pre = _ns_prefix(r.name)
         eids[r.name] = eg.add_term(_prefix_params(r.ir.root, pre))
         params.update(
@@ -1057,7 +1153,9 @@ def _reify_tie(
         ins_[r.name] = tuple(r.ir.inputs)
     groups = share_duplicate_params(eg, leaves)
     if not groups:
-        return {"status": "declined", "reason": "no_tied_values"}
+        return ReifyResult(
+            {"status": "declined", "reason": "no_tied_values"}
+        )
     reps: dict[str, Any] = {}
     rels: dict[str, float] = {}
     terms: dict[str, tuple] = {}
@@ -1076,20 +1174,24 @@ def _reify_tie(
         vr = sink.verify(r.module, opt, r.args, rtol=verify_tol)
         rels[r.name] = vr.max_rel
         if not vr.passed:
-            return {
-                "status": "declined",
-                "reason": f"tie verify failed on {r.name}: "
-                f"{vr.max_rel:.3e}",
-            }
+            return ReifyResult(
+                {
+                    "status": "declined",
+                    "reason": f"tie verify failed on {r.name}: "
+                    f"{vr.max_rel:.3e}",
+                }
+            )
         reps[r.name] = opt
         terms[r.name] = (extracted, params, leaves)
-    return {
-        "status": "grafted",
-        "reps": reps,
-        "_terms": terms,
-        "tied": groups,
-        "rel_diff": max(rels.values()),
-    }
+    return ReifyResult(
+        {
+            "status": "grafted",
+            "reps": reps,
+            "_terms": terms,
+            "tied": groups,
+            "rel_diff": max(rels.values()),
+        }
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1315,17 +1417,19 @@ def _optimize_morphisms(
         )
 
     replacements: dict[str, Any] = {}
-    match_stats: dict[str, dict[str, Any]] = {}
+    match_stats: dict[str, ReifyEntry] = {}
     consumed: set[str] = set()
     consumed_by: dict[str, str] = {}
     morphism_fires: dict[str, int] = {}
     for m in matches:
         key = f"{m.law}:{'+'.join(m.nodes)}"
         if any(n in consumed for n in m.nodes):
-            match_stats[key] = {
-                "status": "skipped",
-                "reason": "node already rewritten",
-            }
+            match_stats[key] = ReifyEntry(
+                {
+                    "status": "skipped",
+                    "reason": "node already rewritten",
+                }
+            )
             continue
         try:
             res = _reify(
@@ -1339,19 +1443,23 @@ def _optimize_morphisms(
                 symmetry_budget=symmetry_budget,
             )
         except Exception as e:
-            match_stats[key] = {
-                "status": "declined",
-                "reason": "error",
-                "error": f"{type(e).__name__}: {e}",
-            }
+            match_stats[key] = ReifyEntry(
+                {
+                    "status": "declined",
+                    "reason": "error",
+                    "error": f"{type(e).__name__}: {e}",
+                }
+            )
             continue
-        match_stats[key] = {
-            "boundary": m.boundary,
-            "detail": m.detail,
-            **_res_stats(res),
-        }
-        if res["status"] == "grafted":
-            replacements.update(res["reps"])
+        match_stats[key] = ReifyEntry(
+            {
+                "boundary": m.boundary,
+                "detail": m.detail,
+                **_res_stats(res),
+            }
+        )
+        if res.grafted:
+            replacements.update(res.reps)
             for n in m.nodes:
                 consumed.add(n)
                 consumed_by[n] = m.law

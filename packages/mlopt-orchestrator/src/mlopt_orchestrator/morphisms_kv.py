@@ -1306,7 +1306,7 @@ def _reify_family(
     max_iterations: int,
     max_enodes: int,
     symmetry_budget: int | None,
-) -> dict[str, Any]:
+) -> M.ReifyResult:
     """Reify a KV-latent match; return the graft record or a decline.
 
     Factor the member weights' common row space, rewrite the shared
@@ -1329,7 +1329,7 @@ def _reify_family(
     data = extra.get("data")
     prep = _family_prep(match, graph)
     if prep.get("status") == "declined":
-        return prep
+        return M.ReifyResult(prep)
     recs = prep["recs"]
     irs = prep["irs"]
     x = prep["x"]
@@ -1346,10 +1346,9 @@ def _reify_family(
         if s.data == data
     ]
     if len(sites) < 2:
-        return {
-            "status": "declined",
-            "reason": "no shared-data kv sites",
-        }
+        return M.ReifyResult(
+            {"status": "declined", "reason": "no shared-data kv sites"}
+        )
     fac, why = _latent_rewrite(
         sites,
         tol,
@@ -1362,10 +1361,12 @@ def _reify_family(
         budget=budget,
     )
     if fac is None:
-        return {
-            "status": "declined",
-            "reason": why or "no certified common factor",
-        }
+        return M.ReifyResult(
+            {
+                "status": "declined",
+                "reason": why or "no certified common factor",
+            }
+        )
     joint2, r, d_in, bound, site_max, kept = fac
     if budget is not None:
         eff_tol, suffix, bstats = _bounded_ctx(
@@ -1445,7 +1446,7 @@ def _family_gate(
     params: dict,
     leaves: dict,
     info: dict,
-) -> dict[str, Any]:
+) -> M.ReifyResult:
     """Cost-gate, shape-check, fp64-verify, emit the slot reps.
 
     The graft record also carries ``_terms`` — the per-slot reified
@@ -1457,15 +1458,19 @@ def _family_gate(
     info["cost_before"] = dag_cost(joint, cost_fn)
     info["cost_after"] = dag_cost(best, cost_fn)
     if not info["cost_after"] < info["cost_before"]:
-        return {
-            "status": "declined",
-            "reason": "no_improvement",
-            **info,
-        }
+        return M.ReifyResult(
+            {
+                "status": "declined",
+                "reason": "no_improvement",
+                **info,
+            }
+        )
     if not intra:
         decline = _family_shape_check(recs)
         if decline is not None:
-            return {"status": "declined", "reason": decline, **info}
+            return M.ReifyResult(
+                {"status": "declined", "reason": decline, **info}
+            )
     vr = M._verify_pair(
         sink,
         joint,
@@ -1479,11 +1484,13 @@ def _family_gate(
     )
     info["rel_diff"] = vr.max_rel
     if not vr.passed:
-        return {
-            "status": "declined",
-            "reason": f"reify verify failed: {vr.max_rel:.3e}",
-            **info,
-        }
+        return M.ReifyResult(
+            {
+                "status": "declined",
+                "reason": f"reify verify failed: {vr.max_rel:.3e}",
+                **info,
+            }
+        )
     reps = {
         match.nodes[0]: M._lower_term(
             best, x, params, leaves, sink, inputs
@@ -1505,9 +1512,11 @@ def _family_gate(
                 {},
                 {},
             )
-    return {
-        "status": "grafted",
-        "reps": reps,
-        "_terms": terms,
-        **info,
-    }
+    return M.ReifyResult(
+        {
+            "status": "grafted",
+            "reps": reps,
+            "_terms": terms,
+            **info,
+        }
+    )

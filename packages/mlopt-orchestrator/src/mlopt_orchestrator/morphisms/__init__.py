@@ -161,6 +161,12 @@ from .reify import (
     MorphismSearch as MorphismSearch,
 )
 from .reify import (
+    ReifyEntry as ReifyEntry,
+)
+from .reify import (
+    ReifyResult as ReifyResult,
+)
+from .reify import (
     _arm_law_budgets as _arm_law_budgets,
 )
 from .reify import (
@@ -331,6 +337,8 @@ __all__ = [
     "NormCascade",
     "NormSig",
     "OutInCompose",
+    "ReifyEntry",
+    "ReifyResult",
     "ReifySpec",
     "ResidualAbsorb",
     "ResidualReassoc",

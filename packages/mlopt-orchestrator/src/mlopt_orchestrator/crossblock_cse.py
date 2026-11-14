@@ -311,7 +311,7 @@ def _reify_cse(
     max_iterations: int,
     max_enodes: int,
     symmetry_budget: int | None,
-) -> dict[str, Any]:
+) -> M.ReifyResult:
     """Reify a shared-subterm match; return the graft record or decline.
 
     Rebuilds the family bodies and the share mapping (deterministic —
@@ -327,7 +327,7 @@ def _reify_cse(
     """
     prep = _family_prep(match, graph)
     if prep.get("status") == "declined":
-        return prep
+        return M.ReifyResult(prep)
     recs = prep["recs"]
     x = prep["x"]
     bodies = prep["bodies"]
@@ -337,7 +337,9 @@ def _reify_cse(
     names = list(match.nodes)
     shares, _ = _family_shares(bodies, names, leaves)
     if not shares:
-        return {"status": "declined", "reason": "no shared subterm"}
+        return M.ReifyResult(
+            {"status": "declined", "reason": "no shared subterm"}
+        )
     bodies2 = {
         n: _replace_nodes(bodies[n], shares.get(n, {})) for n in names
     }

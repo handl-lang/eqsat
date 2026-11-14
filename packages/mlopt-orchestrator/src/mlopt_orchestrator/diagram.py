@@ -490,7 +490,14 @@ class DiagramMove(Protocol):
         max_enodes: int,
         symmetry_budget: int | None,
     ) -> dict[str, Any]:
-        """Reify one candidate; return the graft record or a decline."""
+        """Reify one candidate; return the graft record or a decline.
+
+        The record is a
+        :class:`~mlopt_orchestrator.morphisms.ReifyResult` — or a
+        plain ``dict`` of the same shape, which the driver normalises
+        on ingest (``_one_move``), so foreign implementations keep
+        returning bare dicts.
+        """
         ...
 
 
@@ -508,7 +515,7 @@ class _MorphismReify:
         max_iterations: int,
         max_enodes: int,
         symmetry_budget: int | None,
-    ) -> dict[str, Any]:
+    ) -> M.ReifyResult:
         """Delegate to the morphism engine's certified reify."""
         return M._reify(
             match,
@@ -635,7 +642,7 @@ class MergeProjs:
         max_iterations: int,
         max_enodes: int,
         symmetry_budget: int | None,
-    ) -> dict[str, Any]:
+    ) -> M.ReifyResult:
         """Fuse the shared-input projections; certify + cost-gate."""
         return _reify_merge(
             match,
@@ -659,7 +666,7 @@ def _reify_merge(
     max_iterations: int,
     max_enodes: int,
     symmetry_budget: int | None,
-) -> dict[str, Any]:
+) -> M.ReifyResult:
     """Reify a merge_projs match; return the graft record or a decline.
 
     Build the family joint (the additive ``Σ b_i(x)`` — the same
@@ -674,7 +681,7 @@ def _reify_merge(
     spec = match.reify
     prep = K._family_prep(match, graph)
     if prep.get("status") == "declined":
-        return prep
+        return M.ReifyResult(prep)
     joint, params, leaves = (
         prep["joint"],
         prep["params"],
@@ -691,11 +698,13 @@ def _reify_merge(
     groups = pair_shared_input_linears(eg) + pair_shared_input_convs(eg)
     info: dict[str, Any] = {"joint": op_repr_dag(joint)}
     if not groups:
-        return {
-            "status": "declined",
-            "reason": "no shared-input projections",
-            **info,
-        }
+        return M.ReifyResult(
+            {
+                "status": "declined",
+                "reason": "no shared-input projections",
+                **info,
+            }
+        )
     eg.rebuild()
     # Brief re-saturation so the fused members see the recipe rules —
     # same ordering as the monolithic ``_pairing_and_lifts``.
@@ -1120,7 +1129,7 @@ class SplitLeaf:
         max_iterations: int,
         max_enodes: int,
         symmetry_budget: int | None,
-    ) -> dict[str, Any]:
+    ) -> M.ReifyResult:
         """Split the shared leaf; certify + cost-gate per member."""
         return _reify_split(
             match,
@@ -1260,7 +1269,7 @@ def _reify_split(
     sink: Sink,
     cost_fn: CostFn,
     verify_tol: float,
-) -> dict[str, Any]:
+) -> M.ReifyResult:
     """Reify a split_leaf match — per-member materialisation + verify.
 
     No joint term: the members' inputs need not coincide (the leaf is
@@ -1292,17 +1301,21 @@ def _reify_split(
             terms[name] = st.pop("_term")
     info: dict[str, Any] = {"members": members}
     if not reps:
-        return {
-            "status": "declined",
-            "reason": "no member split",
+        return M.ReifyResult(
+            {
+                "status": "declined",
+                "reason": "no member split",
+                **info,
+            }
+        )
+    return M.ReifyResult(
+        {
+            "status": "grafted",
+            "reps": reps,
+            "_terms": terms,
             **info,
         }
-    return {
-        "status": "grafted",
-        "reps": reps,
-        "_terms": terms,
-        **info,
-    }
+    )
 
 
 #: The default move set, in claim order: family-level structure first
@@ -1587,7 +1600,7 @@ def _body_costs(graph: MorphismGraph, cost_fn: Any) -> dict[str, float]:
 
 
 def _graft_contrib(
-    contrib: dict[str, float], res: dict[str, Any], cost_fn: Any
+    contrib: dict[str, float], res: M.ReifyResult, cost_fn: Any
 ) -> None:
     """Update per-node body costs after a grafted move, in place.
 
@@ -1599,12 +1612,12 @@ def _graft_contrib(
     reports no number at all.  Heuristic only — it ranks search
     states, never gates correctness.
     """
-    terms = res.get("_terms") or {}
-    for name in res["reps"]:
+    terms = res.terms
+    for name in res.reps:
         term = terms.get(name)
         if term is not None:
             contrib[name] = dag_cost(term[0], cost_fn)
-    unpriced = [n for n in res["reps"] if n not in terms]
+    unpriced = [n for n in res.reps if n not in terms]
     if unpriced:
         after = res.get("cost_after")
         if isinstance(after, (int, float)):
@@ -1753,7 +1766,7 @@ def _apply_moves(
     contrib = _body_costs(diagram.graph, cost_fn)
     initial_cost = sum(contrib.values())
     replacements: dict[str, Any] = {}
-    move_stats: dict[str, dict[str, Any]] = {}
+    move_stats: dict[str, M.ReifyEntry] = {}
     consumed: set[str] = set()
     consumed_by: dict[str, str] = {}
     move_fires: dict[str, int] = {}
@@ -1772,9 +1785,9 @@ def _apply_moves(
             symmetry_budget=symmetry_budget,
         )
         move_stats[key] = entry
-        if res is None or res["status"] != "grafted":
+        if res is None or not res.grafted:
             continue
-        replacements.update(res["reps"])
+        replacements.update(res.reps)
         _graft_contrib(contrib, res, cost_fn)
         for n in m.nodes:
             consumed.add(n)
@@ -1861,18 +1874,23 @@ def _one_move(
     joint_max_iterations: int,
     joint_max_enodes: int,
     symmetry_budget: int | None,
-) -> tuple[dict | None, dict]:
+) -> tuple[M.ReifyResult | None, M.ReifyEntry]:
     """Reify one candidate → ``(result | None, stats entry)``.
 
     ``None`` when the candidate's nodes are already claimed or its
     reify raised — the stats entry carries the honest verdict either
-    way.
+    way.  A foreign move's plain-``dict`` result is normalised into
+    :class:`~mlopt_orchestrator.morphisms.ReifyResult` here — the
+    single ingest boundary — so every downstream consumer reads the
+    typed record.
     """
     if any(n in consumed for n in m.nodes):
-        return None, {
-            "status": "skipped",
-            "reason": "node already rewritten",
-        }
+        return None, M.ReifyEntry(
+            {
+                "status": "skipped",
+                "reason": "node already rewritten",
+            }
+        )
     try:
         res = mv.reify(
             m,
@@ -1885,16 +1903,22 @@ def _one_move(
             symmetry_budget=symmetry_budget,
         )
     except Exception as e:
-        return None, {
-            "status": "declined",
-            "reason": "error",
-            "error": f"{type(e).__name__}: {e}",
+        return None, M.ReifyEntry(
+            {
+                "status": "declined",
+                "reason": "error",
+                "error": f"{type(e).__name__}: {e}",
+            }
+        )
+    if res is not None and not isinstance(res, M.ReifyResult):
+        res = M.ReifyResult(res)
+    entry = M.ReifyEntry(
+        {
+            "boundary": m.boundary,
+            "detail": m.detail,
+            **M._res_stats(res),
         }
-    entry = {
-        "boundary": m.boundary,
-        "detail": m.detail,
-        **M._res_stats(res),
-    }
+    )
     return res, entry
 
 

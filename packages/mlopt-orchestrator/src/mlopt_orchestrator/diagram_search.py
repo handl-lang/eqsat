@@ -100,7 +100,7 @@ class _DState:
     contrib: dict[str, float]
     applied: tuple[tuple[str, tuple[str, ...]], ...]
     consumed_by: dict[str, str]
-    entries: dict[str, dict[str, Any]]
+    entries: dict[str, M.ReifyEntry]
     cost: float
     key: tuple
 
@@ -183,8 +183,8 @@ def _candidate_key(mv: Any, m: Any, st: _DState) -> tuple:
 def _advance(
     state: _DState,
     m: MorphismMatch,
-    res: dict[str, Any],
-    entry: dict[str, Any],
+    res: M.ReifyResult,
+    entry: M.ReifyEntry,
     *,
     cost_fn: CostFn,
 ) -> _DState:
@@ -199,10 +199,10 @@ def _advance(
     proved.
     """
     graph = state.graph
-    terms = res.get("_terms") or {}
+    terms = res.terms
     records = dict(graph._records)
     sealed = set(state.sealed)
-    for name in res["reps"]:
+    for name in res.reps:
         rec = records.get(name)
         if rec is None:
             continue
@@ -235,13 +235,13 @@ def _advance(
     return _DState(
         graph=g2,
         diagram=dg2,
-        reps={**state.reps, **res["reps"]},
+        reps={**state.reps, **res.reps},
         sealed=frozenset(sealed),
         contrib=contrib,
         applied=(*state.applied, (m.law, m.nodes)),
         consumed_by={
             **state.consumed_by,
-            **{n: m.law for n in res["reps"]},
+            **{n: m.law for n in res.reps},
         },
         entries={**state.entries, key: entry},
         cost=sum(contrib.values()),
@@ -293,7 +293,7 @@ def _expand_one(
     else:
         stats.cache_hits += 1
     res, entry = got
-    if res is None or res.get("status") != "grafted":
+    if res is None or not res.grafted:
         stats.moves_declined += 1
         return None
     return _advance(st, m, res, entry, cost_fn=cost_fn)
