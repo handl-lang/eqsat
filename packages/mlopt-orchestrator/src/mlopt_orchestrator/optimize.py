@@ -1926,6 +1926,7 @@ def search(
     task_tol: float | None = None,
     policy: Any = None,
     corpus_probe: Callable[[str, Any, Any], Any] | None = None,
+    device_policy: Any = None,
 ) -> SearchResult:
     """Run the search phase: ``model -> SearchResult``.
 
@@ -2117,6 +2118,19 @@ def search(
         probe should wrap it to restore what it changed.  ``None``
         (the default) runs nothing: the search is byte-for-byte the
         historical path.
+    device_policy : DevicePolicy, optional
+        The placement/refusal policy (Phase B) — a
+        :class:`~mlopt_core.ports.DevicePolicy`-shaped value such as
+        ``mlopt_torch.device.DevicePolicy``.  Invoked ONCE, before
+        export, as ``device_policy.resolve(model, x)``: the resolved
+        placement is recorded under ``stats["device"]``
+        (``str()``-rendered — the substrate stores no device type)
+        and any refusal the policy raises propagates — a mixed or
+        distributed placement fails loudly before the e-graph is
+        built, never delivers a silently wrong-device module.
+        ``None`` (the default) runs the historical unpoliced path.
+        The delivery side re-checks through ``lower``'s
+        ``device_policy`` argument.
     verbose : bool
         Print progress.
 
@@ -2132,6 +2146,16 @@ def search(
         cost_fn, criteria, capabilities
     )
     contract = _task_contract(task, task_tol)
+
+    # -- Optional device/placement policy ------------------------------
+    # Phase B: runs BEFORE export so a refusal (mixed devices,
+    # distributed wrappers, sharded params — whatever the backend's
+    # policy names) fails before the e-graph is built.  The resolved
+    # placement lands in ``stats["device"]`` below; the substrate
+    # never interprets it.
+    device_resolved: Any = None
+    if device_policy is not None:
+        device_resolved = device_policy.resolve(model, x)
 
     # Recursive walks (extraction, member resolution) descend the
     # e-class DAG, whose depth grows with the saturation closure —
@@ -2239,6 +2263,8 @@ def search(
     stats["criteria"] = criteria_used
     if probe_report is not None:
         stats["corpus_probe"] = probe_report
+    if device_policy is not None:
+        stats["device"] = str(device_resolved)
     if fusion_epsilon:
         stats["fusion_epsilon"] = fusion_epsilon
     _task_declared(stats, contract)
@@ -2297,6 +2323,7 @@ def lower(
     atol: float | None = None,
     task: TaskMetric | None = None,
     task_tol: float | None = None,
+    device_policy: Any = None,
     verbose: bool = False,
 ) -> LowerResult:
     """Run the lower phase: ``SearchResult -> LowerResult``.
@@ -2365,6 +2392,16 @@ def lower(
     task_tol : float, optional
         Tolerance override; defaults to the result's recorded
         tolerance, then the metric's own ``tolerance``.
+    device_policy : DevicePolicy, optional
+        The delivery-side placement/refusal policy (Phase B) — a
+        :class:`~mlopt_core.ports.DevicePolicy`-shaped value.  After
+        the runner produces the delivered module the policy's
+        ``check_module`` hook (when it provides one) runs on it —
+        DDP/FSDP/TP wrappers, collective bindings and sharded params
+        raise rather than deliver — and ``resolve`` answers the
+        delivery device under ``stats["delivery_device"]``
+        (``str()``-rendered).  ``None`` skips both; pass the same
+        policy :func:`search` ran for end-to-end coverage.
     verbose : bool
         Print progress.
 
@@ -2403,6 +2440,19 @@ def lower(
         else getattr(runner, "name", type(runner).__name__)
     )
     optimized_module = runner.apply(optimized_module, x, stats)
+
+    # -- Optional device/placement policy (delivery side) -------------
+    # The search checked the SOURCE placement; here the DELIVERED
+    # module is checked — a runner may have wrapped or moved it, and
+    # the policy's refusal must see what actually ships.  ``check``
+    # is duck-typed: a resolve-only policy stays valid.
+    if device_policy is not None:
+        check = getattr(device_policy, "check_module", None)
+        if callable(check):
+            check(optimized_module)
+        stats["delivery_device"] = str(
+            device_policy.resolve(optimized_module, x)
+        )
 
     # Verify semantic equivalence — the delivered module against the
     # un-optimized IR lowered by the same sink (backend-neutral: the
@@ -2698,6 +2748,13 @@ class Optimizer:
     #: ``mlopt_native.NativeEngine``) selects explicitly.  Never
     #: auto-detected.
     engine: Any = None
+    #: The default placement/refusal policy (Phase B) — a
+    #: :class:`~mlopt_core.ports.DevicePolicy`-shaped value.  ``None``
+    #: resolves from ``backend.device_policy`` when the backend
+    #: carries one; ``search``/``lower``/``optimize`` forward it
+    #: unless a call overrides it.  ``None`` end-to-end runs the
+    #: historical unpoliced path.
+    device_policy: Any = None
 
     def __post_init__(self) -> None:
         """Resolve ports — explicit args override the backend's.
@@ -2720,6 +2777,15 @@ class Optimizer:
                 )
             if self.meter is None:
                 object.__setattr__(self, "meter", self.backend.meter)
+            # Phase B: the backend may carry a placement policy; an
+            # explicit ``device_policy=`` always wins (same
+            # precedence as the four ports).
+            if self.device_policy is None:
+                object.__setattr__(
+                    self,
+                    "device_policy",
+                    getattr(self.backend, "device_policy", None),
+                )
         missing = [
             n for n in ("source", "sink") if getattr(self, n) is None
         ]
@@ -2751,6 +2817,7 @@ class Optimizer:
         )
         kw.setdefault("meter", self.meter)
         kw.setdefault("engine", self.engine)
+        kw.setdefault("device_policy", self.device_policy)
         return _search(model, x, **kw)
 
     def lower(
@@ -2765,6 +2832,7 @@ class Optimizer:
         kw.setdefault("sink", self.sink)
         if kw.get("runner") is None:
             kw["runner"] = self.runner
+        kw.setdefault("device_policy", self.device_policy)
         return _lower(result, x, **kw)
 
     def optimize(
@@ -2818,6 +2886,7 @@ def discover_alternatives(
     rules: RuleSet | str | Iterable | None = None,
     max_iterations: int = 6,
     cost_fn: CostFn | None = None,
+    device_policy: Any = None,
 ) -> SearchResult:
     """Enumerate the frontier — return the :class:`SearchResult`.
 
@@ -2858,6 +2927,7 @@ def discover_alternatives(
         cost_fn=cost_fn,
         rules=rules,
         max_iterations=max_iterations,
+        device_policy=device_policy,
     )
 
 

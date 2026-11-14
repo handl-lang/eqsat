@@ -882,6 +882,44 @@ class Policy(Protocol):
 
 
 @runtime_checkable
+class DevicePolicy(Protocol):
+    """The placement/refusal policy port — Phase B device layer.
+
+    Adapter port.  ``mlopt_torch.device.DevicePolicy`` is the
+    canonical implementation; the substrate never interprets *what*
+    a policy resolves — only that it may refuse.
+
+    * ``resolve(module=None, inputs=None) -> Any`` — answer the one
+      device (or placement descriptor) this delivery may run on.
+      Called once per :func:`search` before export and once per
+      :func:`lower` on the delivered module; the return value is
+      recorded under ``stats["device"]`` / ``stats["delivery_device"]``
+      (``str()``-rendered — the substrate stores no device type of
+      its own).  A policy that
+      cannot honour the placement raises — the refusal propagates,
+      never degrades to a silent wrong-device delivery.
+    * ``check_module(module) -> None`` — refuse modules the policy
+      cannot reason about (distributed wrappers, collective-op
+      bindings, sharded parameters).  ``lower`` calls it on the
+      delivered module when the policy provides it; the substrate
+      duck-types the hook so a resolve-only policy stays valid.
+
+    A policy is side-effect free by contract: it names the target,
+    the caller moves tensors.
+    """
+
+    def resolve(
+        self, module: Any = None, inputs: Any = None
+    ) -> Any:
+        """Return the resolved placement for ``module``/``inputs``."""
+        ...
+
+    def check_module(self, module: Any) -> None:
+        """Refuse *module* when the policy cannot honour it."""
+        ...
+
+
+@runtime_checkable
 class PerformanceModel(Protocol):
     """Predicts runtime from program features and a hardware target.
 

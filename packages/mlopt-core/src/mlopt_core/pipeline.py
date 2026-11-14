@@ -77,12 +77,20 @@ class Backend:
     each individual port from it; explicit ``source=``/``sink=``/
     ``composer=``/``meter=`` arguments override a port the backend
     carries.
+
+    ``device_policy`` (Phase B — ``docs/reports/
+    production_readiness.md``) is the optional placement/refusal
+    policy: a :class:`~mlopt_core.ports.DevicePolicy`-shaped value
+    such as ``mlopt_torch.device.DevicePolicy``.  ``Optimizer``
+    forwards it to ``search``/``lower`` unless a call overrides it;
+    ``None`` (the default) runs the historical unpoliced path.
     """
 
     source: Source
     sink: Sink
     composer: Composer
     meter: Meter
+    device_policy: Any = None
 
 
 def _cost_vector(
