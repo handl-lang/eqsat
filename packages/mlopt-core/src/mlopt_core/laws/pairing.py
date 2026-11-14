@@ -50,6 +50,37 @@ def _exact_equal(a: Any, b: Any) -> bool:
     return bool((a == b).all())
 
 
+def _raw_bytes(t: Any) -> bytes:
+    """Bitwise content signature of a tensor-like leaf or slice.
+
+    The dedup convention shared by ``share_duplicate_param_slices``,
+    ``specials._sig`` and the orchestrator's ``_dedup_blocks``: raw
+    bytes are stricter than ``torch.equal`` (``-0.0``/``+0.0`` and NaN
+    payloads stay distinct), so dedup on this signature is always
+    exact.
+
+    ``numpy().tobytes()`` where the backend/dtype allows it.  dtypes
+    numpy cannot hold (``bfloat16`` — ``TypeError: Got unsupported
+    ScalarType``) widen through ``.float()`` first: the widening is
+    *exact* (every bf16 value is representable in fp32), so distinct
+    inputs still give distinct signatures and the dedup stays
+    bitwise-exact.  A tensor-like object with no ``float`` escape
+    re-raises — the caller sees the same failure it would have seen
+    from ``numpy()`` directly.
+    """
+    d = getattr(t, "detach", None)
+    if callable(d):
+        t = d()
+    t = t.cpu().contiguous()
+    try:
+        return t.numpy().tobytes()
+    except TypeError:
+        to_float = getattr(t, "float", None)
+        if not callable(to_float):
+            raise
+        return to_float().numpy().tobytes()
+
+
 # ---------------------------------------------------------------------------
 #  Diagram-level pairing pass — the product law in full generality.
 #
@@ -864,15 +895,11 @@ def share_duplicate_param_slices(
                 continue
             d = o // h
             # Group head-blocks by raw bytes — bitwise equality, not
-            # torch.equal's value equality.
+            # torch.equal's value equality.  ``_raw_bytes`` widens
+            # dtypes numpy cannot hold (bf16) exactly, so the
+            # signature stays bitwise-faithful.
             sigs = [
-                t[j * d : (j + 1) * d]
-                .detach()
-                .cpu()
-                .contiguous()
-                .numpy()
-                .tobytes()
-                for j in range(h)
+                _raw_bytes(t[j * d : (j + 1) * d]) for j in range(h)
             ]
             uniq: list[bytes] = []
             imap_build: list[int] = []

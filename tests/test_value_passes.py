@@ -237,6 +237,82 @@ def test_share_duplicate_param_slices_halved_weight():
     assert tuple(src[off["dedup_param"]].shape) == (1, 3, 4)
 
 
+class _BF16Tensor(FakeTensor):
+    """bf16 stand-in for the numpy-hostile-dtype path.
+
+    ``numpy()`` refuses the dtype (``TypeError: Got unsupported
+    ScalarType BFloat16`` — the real torch failure); ``float()``
+    widens to an fp32-representable fake, mirroring bf16→fp32's exact
+    widening.  Slices stay bf16-like so the signature path sees the
+    hostile dtype at every level.
+    """
+
+    @property
+    def dtype(self) -> str:
+        return "fakebf16"
+
+    def numpy(self):  # type: ignore[override]
+        raise TypeError("Got unsupported ScalarType BFloat16")
+
+    def float(self) -> FakeTensor:
+        return FakeTensor(list(self._flat), self._shape)
+
+    def __getitem__(self, key):  # type: ignore[override]
+        sl = super().__getitem__(key)
+        return _BF16Tensor(sl._flat, sl.shape)
+
+
+def test_raw_bytes_widens_numpy_hostile_dtype():
+    """``_raw_bytes`` falls back through ``.float()`` when numpy
+    cannot hold the dtype — the signature stays bitwise-faithful."""
+    from mlopt_core.laws.pairing import _raw_bytes
+
+    a = _BF16Tensor([1.0, 2.0], (2,))
+    b = _BF16Tensor([1.0, 3.0], (2,))
+    # Distinct values -> distinct signatures (the widening is injective).
+    assert _raw_bytes(a) != _raw_bytes(b)
+    assert _raw_bytes(a) == _raw_bytes(_BF16Tensor([1.0, 2.0], (2,)))
+
+
+def test_raw_bytes_reraises_without_float_escape():
+    """A tensor-like object numpy refuses AND that has no ``float``
+    escape re-raises — honest failure, not a silent wrong signature."""
+    from mlopt_core.laws.pairing import _raw_bytes
+
+    class _Hostile(FakeTensor):
+        def numpy(self):  # type: ignore[override]
+            raise TypeError("unsupported dtype")
+
+    with pytest.raises(TypeError, match="unsupported dtype"):
+        _raw_bytes(_Hostile([1.0], (1,)))
+
+
+def test_share_duplicate_param_slices_bf16_dtype():
+    """bf16 (numpy-hostile) params dedup exactly like fp64 ones —
+    the whisper-turbo blocker: ``.numpy()`` used to raise
+    ``TypeError`` before any offer could be made."""
+    h, d, i = 4, 3, 5
+    blocks = [
+        [[1.0 + blk * 100 + j + k / 10 for k in range(i)]
+         for j in range(d)]
+        for blk in range(3)
+    ]
+    rows = [r for blk in (blocks[0], blocks[1], blocks[0], blocks[2])
+            for r in blk]
+    flat = [v for row in rows for v in row]
+    W = _BF16Tensor(flat, (h * d, i))
+    src = {"W": W}
+
+    eg = EGraph()
+    eg.add_term(_p("W", h * d, i))
+    offers = share_duplicate_param_slices(eg, src)
+
+    assert len(offers) == 1
+    off = offers[0]
+    assert off["unique"] == 3 and off["index_map"] == (0, 1, 0, 2)
+    assert off["stored_after"] == 3 * d * i < off["stored_before"]
+
+
 # ---------------------------------------------------------------------------
 #  specials.offer_weight_specials — structural members
 # ---------------------------------------------------------------------------

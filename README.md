@@ -27,7 +27,10 @@ The eqsat substrate for the mlopt game — extracted from
 
 Downstream: `handl-lang/graphopt` (tensor domain) and
 `handl-lang/kernelopt` (codegen domain) consume these as pinned
-git+ssh deps on `packages/` subdirectories.  `handl-lang/gamekit` is
+git deps on `packages/` subdirectories at the `v0.1.0` tag —
+git-URL-at-tag distribution; see
+`graphopt/docs/reports/git_url_distribution.md`.
+`handl-lang/gamekit` is
 the orthogonal game layer (`gamekit ⊥ eqsat` — the game kernel
 imports nothing from here).
 

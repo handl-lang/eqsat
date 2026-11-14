@@ -70,7 +70,7 @@ from mlopt_core.laws.factored import (
     _leaf_params,
     _site_orient,
 )
-from mlopt_core.laws.pairing import _exact_equal, _is_tensor
+from mlopt_core.laws.pairing import _exact_equal, _is_tensor, _raw_bytes
 
 __all__ = ["offer_weight_specials"]
 
@@ -88,8 +88,9 @@ def _sig(s: Any) -> bytes:
     Same convention as ``share_duplicate_param_slices``: raw bytes
     are stricter than ``torch.equal`` (``-0.0``/``+0.0`` and NaN
     payloads stay distinct) — dedup is therefore always exact.
+    ``_raw_bytes`` widens dtypes numpy cannot hold (bf16) exactly.
     """
-    return _detach(s).cpu().contiguous().numpy().tobytes()
+    return _raw_bytes(_detach(s))
 
 
 def _row_spans(w: Any, o: int, i: int) -> list[tuple[int, int] | None]:

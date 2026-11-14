@@ -70,6 +70,7 @@ from mlopt_core.laws import (
 from mlopt_core.laws import (
     tags as _law_tags,
 )
+from mlopt_core.laws.pairing import _raw_bytes
 from mlopt_core.pipeline import Backend, LowerResult, SearchResult
 from mlopt_core.ports import (
     Capabilities,
@@ -3095,16 +3096,15 @@ def _dedup_blocks(
     into ``h`` row-blocks, keep first occurrences by raw bytes, return
     ``(unique_blocks, index_map, d, i)`` — ``None`` when the split is
     degenerate.  Tensor ops are duck-typed (``new_zeros`` / slicing /
-    ``numpy().tobytes()``) — the orchestrator stays backend-neutral.
+    the shared ``_raw_bytes`` signature) — the orchestrator stays
+    backend-neutral.
     """
     o, i = int(t.shape[0]), int(t.shape[1])
     if h < 2 or o % h or o // h <= 0:
         return None
     d = o // h
     blocks = [t[j * d : (j + 1) * d] for j in range(h)]
-    sigs = [
-        b.detach().cpu().contiguous().numpy().tobytes() for b in blocks
-    ]
+    sigs = [_raw_bytes(b) for b in blocks]
     uniq_sigs: list[bytes] = []
     uniq_blocks: list = []
     imap: list[int] = []
