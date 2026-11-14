@@ -251,6 +251,47 @@ def test_op_repr_dag_exponential_dag_stays_linear():
     assert s.count("(add ") == depth
 
 
+def test_op_repr_shared_dag_truncates_instead_of_exploding(
+    monkeypatch,
+):
+    """``t_{i+1} = add(t_i, t_i)`` tree-expands as 2**n — the repr must
+    not.  Past the node budget elided subtrees render as an honest
+    ``…(+N nodes)`` marker (N = exact tree nodes hidden)."""
+    import mlopt_core.ir as ir
+
+    monkeypatch.setattr(ir, "_OP_REPR_BUDGET", 64)
+    x = Var("x", TensorType((1, 4)))
+    t: Op | Var = x
+    depth = 10  # tree size 2**10 - 1 = 1023 nodes > budget 64
+    for _ in range(depth):
+        t = Op.make("add", t, t)
+    s = op_repr(t)
+    assert s.startswith("(add ")
+    assert "…(+" in s and "nodes)" in s
+    # budget bounds the expanded nodes; the string stays small
+    assert s.count("(add ") <= 64
+    assert len(s) < 8_000
+    # the marker count is honest: an elided ``add(t,t)``-chain
+    # subtree of depth i hides exactly 2**i - 1 tree nodes, so
+    # n + 1 must be a power of two
+    import re
+
+    n = int(re.search(r"…\(\+(\d+) nodes\)", s).group(1))
+    assert n > 0 and (n & (n + 1)) == 0
+
+
+def test_op_repr_deep_unshared_chain_no_recursion_error():
+    """A deep *unshared* chain also defeated the recursive renderer
+    (RecursionError); the iterative walk handles it and stays exact."""
+    x = Var("x", TensorType((1, 4)))
+    depth = 3000  # > default recursion limit
+    t: Op | Var = x
+    for _ in range(depth):
+        t = Op.make("neg", t)
+    s = op_repr(t)
+    assert s == "(neg " * depth + "x" + ")" * depth
+
+
 def test_op_repr_dag_shared_leaf_stays_inline():
     """Only ``Op`` nodes get bindings — Var/Param/Const leaves do not."""
     x = Var("x", TensorType((1, 4)))

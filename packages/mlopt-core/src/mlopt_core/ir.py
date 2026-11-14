@@ -256,16 +256,99 @@ class Op:
 Op._INTERN = weakref.WeakValueDictionary()
 
 
+#: Op nodes ``op_repr`` expands before eliding subtrees.  Terms are
+#: hash-consed DAGs and a sharing-heavy one tree-expands exponentially
+#: (``add(t, t)`` chained n deep is 2**n tree nodes), so the repr
+#: itself used to exhaust memory on extracted decoder-scale terms.
+#: Past the budget a subtree renders as ``…(+N nodes)`` — N is the
+#: exact op-node count it would have contributed.
+_OP_REPR_BUDGET = 100_000
+
+
+def _tree_sizes(root: Op) -> dict[Op, int]:
+    """Exact tree-expansion size of every distinct op under ``root``.
+
+    ``size(t) = 1 + sum(size(a) for Op args a)`` — the number of Op
+    nodes the *tree* rendering of ``t`` emits, counting a shared
+    subterm once per occurrence.  Values are bigints (a depth-64
+    ``add(t, t)`` chain is 2**64) but each entry is one addition over
+    already-computed children, and the deduped post-order sizes each
+    distinct node once — O(distinct nodes), never O(tree size).
+    """
+    sizes: dict[Op, int] = {}
+    for t in _dag_postorder(root):
+        s = 1
+        for a in t.args:
+            if isinstance(a, Op):
+                s += sizes[a]
+        sizes[t] = s
+    return sizes
+
+
 def op_repr(term: Any) -> str:
-    """Compact S-expression-style rendering of a term."""
-    if isinstance(term, Op):
-        parts = [op_repr(a) for a in term.args]
-        if term.attrs:
-            parts.append(
-                ", ".join(f"{k}={v}" for k, v in term.attrs.items())
+    """Compact S-expression-style rendering of a term.
+
+    Renders the term as a *tree* — ``(op arg, …, k=v)`` — exactly like
+    the historical recursive version, but bounded and iterative:
+
+    * terms are hash-consed DAGs, and a sharing-heavy one tree-expands
+      exponentially, so expansion stops after ``_OP_REPR_BUDGET`` op
+      nodes; each elided subtree renders as ``…(+N nodes)`` where N is
+      its exact op-node tree count (see :func:`_tree_sizes`).  Note this
+      makes the output a *prefix-faithful* rendering, not an injective
+      key: two distinct terms larger than the budget can collide —
+      callers keying on ``op_repr`` over decoder-scale terms should
+      prefer ``op_repr_dag`` or ``_term_eq``.
+    * the walk is an explicit stack, so a deep *unshared* chain cannot
+      hit ``RecursionError`` either.
+
+    Terms under the budget render byte-identically to before.
+    """
+    if not isinstance(term, Op):
+        return repr(term)
+    sizes = _tree_sizes(term)
+    out: list[str] = []
+    emitted = 0
+    # Stack machine: ("emit", Op) decides expand-vs-elide, ("text", s)
+    # appends a literal.  Frames push reversed so parts render
+    # left-to-right, matching the recursive `', '.join` order.
+    stack: list[tuple[str, Any]] = [("emit", term)]
+    while stack:
+        kind, val = stack.pop()
+        if kind == "text":
+            out.append(cast("str", val))
+            continue
+        node = cast("Op", val)
+        if emitted >= _OP_REPR_BUDGET and node is not term:
+            out.append(f"…(+{sizes[node]} nodes)")
+            continue
+        emitted += 1
+        # The historical f"({op} {inside})" always emits the space,
+        # even for a zero-part node ("(op )").
+        out.append(f"({node.op} ")
+        seq: list[tuple[str, Any]] = []
+        first = True
+        for a in node.args:
+            if not first:
+                seq.append(("text", ", "))
+            first = False
+            seq.append(
+                ("emit", a) if isinstance(a, Op) else ("text", repr(a))
             )
-        return f"({term.op} {', '.join(parts)})"
-    return repr(term)
+        if node.attrs:
+            if not first:
+                seq.append(("text", ", "))
+            seq.append(
+                (
+                    "text",
+                    ", ".join(
+                        f"{k}={v}" for k, v in node.attrs.items()
+                    ),
+                )
+            )
+        seq.append(("text", ")"))
+        stack.extend(reversed(seq))
+    return "".join(out)
 
 
 def _dag_shared(root: Op) -> set[Op]:
