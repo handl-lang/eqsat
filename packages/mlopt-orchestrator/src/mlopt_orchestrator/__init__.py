@@ -63,6 +63,11 @@ from mlopt_orchestrator.diagram import (
     lift_diagram,
     optimize_diagram,
 )
+from mlopt_orchestrator.eqsat import (
+    EqsatEngine,
+    EqsatError,
+    EqsatUnavailableError,
+)
 from mlopt_orchestrator.morphisms import (
     DEFAULT_MORPHISM_LAWS,
     BlockSig,
@@ -125,6 +130,9 @@ __all__ = [
     "Diagram",
     "DiagramMove",
     "DiagramSearchStats",
+    "EqsatEngine",
+    "EqsatError",
+    "EqsatUnavailableError",
     "ErrorBoundEntry",
     "FactorShared",
     "FlopsCriterion",

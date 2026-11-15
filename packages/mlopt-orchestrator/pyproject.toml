@@ -11,3 +11,9 @@ dependencies = ["mlopt-core"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+# The shipped portable law set for `engine="eqsat"` — the
+# LAW_FORMAT=2 snapshot of engine-eqsat/laws/*.json minus the unsound
+# reshape_flatten_demo record (see `mlopt_orchestrator.eqsat`).
+mlopt_orchestrator = ["data/*.json"]
