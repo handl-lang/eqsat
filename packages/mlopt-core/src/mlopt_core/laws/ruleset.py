@@ -35,6 +35,7 @@ from dataclasses import dataclass, field, replace
 from typing import Any
 
 from mlopt_core.egraph import Rewrite
+from mlopt_core.ir import Op
 from mlopt_core.laws import tags
 from mlopt_core.laws.attention import ATTENTION_RULES
 from mlopt_core.laws.priorart import PRIOR_ART_RULES
@@ -48,6 +49,7 @@ from mlopt_core.laws.tensor import (
 
 __all__ = [
     "ATTENTION",
+    "BF16_SAFE",
     "CARRIERS",
     "CARRIER_SEARCH",
     "CATEGORICAL",
@@ -64,6 +66,7 @@ __all__ = [
     "WITH_LAYOUT",
     "RuleSet",
     "preset",
+    "sdpa_surface",
 ]
 
 #: Scheduling priorities — ``rule name -> int`` on the ``RuleSet``,
@@ -585,6 +588,77 @@ FULL = replace(
     description="DEFAULT + SYMMETRY — the complete core surface",
 )
 
+
+def _pattern_mentions(pat: Any, opname: str) -> bool:
+    """Return True when the pattern term *pat* mentions op *opname*.
+
+    Patterns are ``Op`` trees whose leaves are metavar strings or
+    ``Const`` leaves; only ``Op`` nodes carry an op name, so the walk
+    recurses ``args`` alone (attrs are scalars, never ops).
+    """
+    if not isinstance(pat, Op):
+        return False
+    return pat.op == opname or any(
+        _pattern_mentions(a, opname) for a in pat.args
+    )
+
+
+def sdpa_surface(rule: Rewrite) -> bool:
+    """Return True when *rule*'s lhs or rhs mentions the ``sdpa`` op.
+
+    The fused ``sdpa`` kernel evaluates softmax and the score
+    accumulation in the backend's *internal* precision, which can
+    differ from the dtype the spelled IR implies: the spelled path
+    rounds the softmax probabilities to the working dtype, the kernel
+    does not.  Measured on whisper-turbo bf16
+    (``graphopt:docs/reports/turbo_bf16_delivery.md``) the
+    spelled→``sdpa`` folds are mathematically exact (fp32 rel 8e-5,
+    fp64 bit-exact) yet compound past the bf16 verify floor by
+    ~16-32 layers — ``verify=True`` compares the delivered module
+    against a *spelled* lowering of the exported IR, so every rewrite
+    that changes whether a given attention block runs as the fused
+    kernel or spelled sits on a precision-sensitive surface:
+
+    * producers — ``sdpa_fold_*`` / ``attn_sdpa_*`` mint ``sdpa``
+      from spelled attention;
+    * decomposers — ``sdpa_expand*`` / ``sdpa_cat_*`` spell an
+      existing ``sdpa`` back out (the reference still runs the
+      kernel);
+    * in-kernel rewrites — ``gqa_absorb_repeat`` / ``qkv_fuse*``
+      change the ``sdpa`` node's attrs or its operand provenance.
+
+    The predicate is pattern-level, not name-level, so minted-store
+    and carrier-package rules are classified without a name registry.
+    """
+    return _pattern_mentions(rule.lhs, "sdpa") or _pattern_mentions(
+        rule.rhs, "sdpa"
+    )
+
+
+_BF16_SAFE_RULES = tuple(r for r in DEFAULT if not sdpa_surface(r))
+
+#: ``DEFAULT`` minus the sdpa-surface rules — the measured-safe set
+#: for reduced-precision (bf16/fp16) delivery under ``verify=True``.
+#: fp32/fp64 callers keep :data:`DEFAULT` (the folds are exact there);
+#: carrier-package rules are filtered by the same
+#: :func:`sdpa_surface` predicate when the orchestrator composes
+#: ``rules="bf16_safe"`` on top of :func:`default_rules`.
+BF16_SAFE = RuleSet(
+    "bf16_safe",
+    _BF16_SAFE_RULES,
+    DEFAULT._prio_for(_BF16_SAFE_RULES),
+    description=(
+        "DEFAULT minus every rule whose pattern touches the fused "
+        "``sdpa`` attention kernel — the bf16/fp16-safe delivery "
+        "set: the spelled-IR verify reference rounds softmax "
+        "probabilities to the working dtype while the sdpa kernel "
+        "keeps them in fp32 internally, and the gap compounds with "
+        "depth (graphopt turbo_bf16_delivery.md).  fp32/fp64 callers "
+        'keep DEFAULT; the orchestrator\'s ``rules="bf16_safe"`` '
+        "applies the same filter over the composed carrier set."
+    ),
+)
+
 #: Name -> preset lookup (a string may resolve to a preset for
 #: convenience — the ``RuleSet`` stays the first-class value).
 PRESETS: dict[str, RuleSet] = {
@@ -601,6 +675,7 @@ PRESETS: dict[str, RuleSet] = {
         WITH_LAYOUT,
         DEFAULT,
         FULL,
+        BF16_SAFE,
     )
 }
 

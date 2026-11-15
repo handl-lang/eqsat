@@ -269,6 +269,47 @@ def default_rules() -> RuleSet:
     return _DEFAULT_RULES
 
 
+_BF16_SAFE: RuleSet | None = None
+
+
+def bf16_safe_rules() -> RuleSet:
+    """Return the composed default minus the sdpa-surface rules.
+
+    The ``rules="bf16_safe"`` resolution: :func:`default_rules` (core
+    ``DEFAULT`` + the registered carrier preset) filtered by
+    :func:`mlopt_core.laws.sdpa_surface` — every rule whose lhs or rhs
+    pattern mentions the fused ``sdpa`` op.  Those rules are exact
+    laws but precision-sensitive at reduced precision: the verify
+    reference lowers the *spelled* exported IR while the ``sdpa``
+    kernel keeps softmax/accumulation in its internal dtype, and the
+    gap compounds with depth (measured: whisper-turbo bf16, 32
+    layers, rel 0.418 vs the 0.0625 floor —
+    ``graphopt:docs/reports/turbo_bf16_delivery.md``).  The filter is
+    pattern-level, so carrier-package producers/decomposers
+    (``attn_sdpa_*`` / ``sdpa_cat_*`` / …) are excluded without a
+    name registry.  fp32/fp64 callers keep :func:`default_rules`.
+    """
+    global _BF16_SAFE
+    if _BF16_SAFE is None:
+        from mlopt_core.laws.ruleset import sdpa_surface
+
+        base = default_rules()
+        kept = tuple(r for r in base if not sdpa_surface(r))
+        names = {r.name for r in kept}
+        _BF16_SAFE = RuleSet(
+            "bf16_safe",
+            kept,
+            {k: v for k, v in base.priorities.items() if k in names},
+            description=(
+                "default_rules minus the sdpa-surface rules — the "
+                "bf16/fp16-safe delivery set under verify=True "
+                "(the spelled-IR reference vs the fused kernel's "
+                "internal precision compounds with depth)"
+            ),
+        )
+    return _BF16_SAFE
+
+
 def __getattr__(name: str) -> Any:
     """Lazily materialise ``DEFAULT_RULES`` (carrier composition)."""
     if name == "DEFAULT_RULES":
@@ -283,8 +324,9 @@ def _resolve_rules(rules: Any) -> RuleSet:
 
     ``None`` → :data:`DEFAULT_RULES` (the composed default above).
     A string resolves to a named preset — the orchestrator-level
-    names (``default`` / ``carrier_search`` / ``xc``) first, then
-    :func:`mlopt_core.laws.preset`; anything else iterable becomes
+    names (``default`` / ``bf16_safe`` / ``carrier_search`` / ``xc``)
+    first, then :func:`mlopt_core.laws.preset`; anything else
+    iterable becomes
     an anonymous set.  The old ``ruleset: str`` switch and the hidden
     ``_SUBSUMED`` exclusion are gone — the preset itself says what
     is in.
@@ -304,6 +346,8 @@ def _resolve_rules(rules: Any) -> RuleSet:
             return _xc_rules()
         if rules in ("default", "default_rules"):
             return default_rules()
+        if rules in ("bf16_safe", "bf16-safe"):
+            return bf16_safe_rules()
         return preset(rules)
     return RuleSet("custom", tuple(rules))
 
@@ -537,7 +581,8 @@ def search(
         The saturation rule set — a first-class
         :class:`~mlopt_core.laws.RuleSet`, a preset *name* (resolved
         by :func:`mlopt_core.laws.preset` plus the orchestrator-level
-        ``"default"`` / ``"carrier_search"`` / ``"xc"``), or a plain
+        ``"default"`` / ``"bf16_safe"`` / ``"carrier_search"`` /
+        ``"xc"``), or a plain
         iterable of rewrites.  ``None`` resolves to
         :data:`DEFAULT_RULES` — ``core.DEFAULT + carriers.CARRIERS``.
         Subsumed/symmetry exclusion is the preset's business: pass

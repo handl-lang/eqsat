@@ -176,6 +176,7 @@ from mlopt_core.laws.provenance import (
     law_provenance,
 )
 from mlopt_core.laws.ruleset import (
+    BF16_SAFE,
     CARRIER_SEARCH,
     CARRIERS,
     CATEGORICAL,
@@ -192,6 +193,7 @@ from mlopt_core.laws.ruleset import (
     WITH_LAYOUT,
     RuleSet,
     preset,
+    sdpa_surface,
 )
 from mlopt_core.laws.scan import (  # noqa: F401
     _AFFD_UNIT,
@@ -385,6 +387,7 @@ __all__ = [
     "BATCH_NORM_EXPAND_NOBIAS",
     "BATCH_NORM_EXPAND_PLAIN",
     "BATCH_NORM_RULES",
+    "BF16_SAFE",
     "CARRIERS",
     "CARRIER_SEARCH",
     "CATEGORICAL",
@@ -505,6 +508,7 @@ __all__ = [
     "pair_shared_input_linears",
     "preset",
     "provenance",
+    "sdpa_surface",
     "share_duplicate_attention_heads",
     "share_duplicate_param_slices",
     "share_duplicate_params",
