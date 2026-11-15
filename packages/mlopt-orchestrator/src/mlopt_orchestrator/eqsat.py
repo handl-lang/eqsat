@@ -49,10 +49,13 @@ named rather than silent:
 
 **Law coverage is reported, never silently narrowed.**  The engine
 runs the *portable* law set — the 111 ``LAW_FORMAT = 2`` records of
-the full non-demo ``engine-eqsat/laws/*.json`` corpus (simplification,
+the full non-demo ``kit-eqsat`` corpus (simplification,
 categorical, attention, pointwise_factor, prior_art; the unsound
 ``reshape_flatten_demo`` matcher demo excluded; snapshot shipped as
-``data/eqsat_laws.json``, regenerate by concatenating the corpus).
+``data/eqsat_laws.json``, **generated** from the canonical
+``handl-lang/kit-eqsat`` checkout by
+``scripts/emit_eqsat_laws.py`` and drift-guarded by
+``tests/test_eqsat_laws_corpus.py`` — ADR-0177 §1).
 ``run(rules)`` intersects the caller's requested rule names with that
 set: requested names with no engine record are listed verbatim in
 ``stats["eqsat"]["laws"]["uncovered"]`` — the 282-law procedural-hook /
@@ -183,7 +186,7 @@ def eqsat_binary(binary: str | os.PathLike | None = None) -> Path:
 
 
 # ---------------------------------------------------------------------------
-#  The portable law set — shipped snapshot of engine-eqsat/laws/*.json
+#  The portable law set — generated snapshot of the kit-eqsat corpus
 # ---------------------------------------------------------------------------
 
 _LAWS_PATH = Path(__file__).with_name("data") / "eqsat_laws.json"
@@ -193,9 +196,9 @@ _LAWS_CACHE: tuple[dict, ...] | None = None
 def portable_laws() -> tuple[dict, ...]:
     """Return the shipped portable ``LAW_FORMAT = 2`` law records.
 
-    The snapshot is the engine-eqsat ``laws/*.json`` corpus minus the
-    unsound ``reshape_flatten_demo`` matcher demo — all 111 records
-    across the simplification / categorical / attention /
+    The snapshot is generated from the canonical ``kit-eqsat``
+    corpus (ADR-0177 §1) — all 111 non-demo records across the
+    simplification / categorical / attention /
     pointwise_factor / prior_art packs (the original 55 were the
     differential-proven parity subset;
     ``graphopt:bench/drivers/audit/eqsat_differential.py``).  Records
