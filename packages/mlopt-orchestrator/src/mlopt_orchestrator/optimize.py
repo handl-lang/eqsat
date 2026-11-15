@@ -56,7 +56,7 @@ from __future__ import annotations
 import inspect
 import logging
 import sys
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -84,6 +84,7 @@ from mlopt_core.ports import (
     Source,
     Strategy,
     TaskMetric,
+    VerifyOracle,
 )
 
 from mlopt_orchestrator.bounds import (
@@ -935,6 +936,33 @@ def search(
     )
 
 
+def _oracle_env(ir: IR, param_values: dict, x: Any) -> dict:
+    """Leaf bindings for a :class:`VerifyOracle` run.
+
+    ``param_values`` copies verbatim — its keys are the IR's
+    ``Param.name`` leaf names, the same contract ``sink.lower``
+    consumes.  The program inputs bind from ``x``: a ``Mapping``
+    binds by leaf name; a tuple pairs positionally with
+    ``ir.inputs``; any other value binds a single-input program's
+    one ``Var``.  A count mismatch is a loud ``TypeError`` — the
+    oracle never guesses which input is which.
+    """
+    env = dict(param_values)
+    inputs = list(ir.inputs)
+    if isinstance(x, Mapping):
+        env.update(x)
+        return env
+    xs = () if x is None else (x if isinstance(x, tuple) else (x,))
+    if len(xs) != len(inputs):
+        raise TypeError(
+            f"verify oracle: IR declares {len(inputs)} inputs but "
+            f"x supplies {len(xs)} values"
+        )
+    for v, val in zip(inputs, xs, strict=True):
+        env[v.name] = val
+    return env
+
+
 @_oom_to_resource_error
 def lower(
     result: SearchResult,
@@ -943,6 +971,7 @@ def lower(
     sink: Sink,
     runner: Runner | None = None,
     verify: bool = True,
+    verify_oracle: VerifyOracle | None = None,
     rtol: float = 1e-4,
     atol: float | None = None,
     task: TaskMetric | None = None,
@@ -983,6 +1012,22 @@ def lower(
         "the delivery preserves the IR the search certified", stated
         in the sink's own runtime so a non-torch backend works
         unchanged.  The report lands in ``LowerResult.verified``.
+        Passing a :class:`~mlopt_core.ports.VerifyOracle` here is
+        shorthand for ``verify=True, verify_oracle=oracle``.
+    verify_oracle : VerifyOracle, optional
+        Opt-in term-level verify gate (plan 0037/0039) for backends
+        whose artifacts have no torch runtime to verify in.  When
+        given, the pointwise equivalence check runs through the
+        oracle instead of ``sink.verify``: the oracle evaluates
+        ``result.ir.root`` (the source program) and ``result.term``
+        (the extracted program) under leaf bindings built from ``x``
+        and ``result.param_values`` (:func:`_oracle_env`) and its
+        ``compare`` produces the report — bound propagation and the
+        task gate are unchanged.  The oracle observes *terms*, not
+        the delivered module: it certifies the search's term-level
+        equivalence, so lowering correctness remains the sink's (or
+        the artifact's own) concern.  ``None`` keeps the
+        ``sink.verify`` path — zero behaviour change.
     rtol, atol
         The equivalence tolerances, forwarded to ``sink.verify``.
         When the search ran under ``error_budget`` and accepted
@@ -1032,6 +1077,11 @@ def lower(
     """
     if runner is None:
         runner = IdentityRunner()
+    # ``verify=<oracle>`` shorthand — an oracle passed in the verify
+    # slot IS the gate (and implies verify=True).
+    if verify_oracle is None and isinstance(verify, VerifyOracle):
+        verify_oracle = verify
+        verify = True
     stats: PipelineStats = PipelineStats(result.stats)
     # Task contract precedence — explicit ``task=`` wins; otherwise
     # the search's recorded contract governs (see ``_resolve_task``).
@@ -1094,9 +1144,38 @@ def lower(
         # tolerance opens (rtol=inf): the bound replaces it — honoring
         # it implies ``max_rel ≤ bound`` restated in rel units, so
         # ``max(rtol, bound)`` semantics are preserved.
-        report, output_bound = _block_bound_gate(
-            sink, ref, optimized_module, x, rtol, stats, result, atol
-        )
+        if verify_oracle is None:
+            report, output_bound = _block_bound_gate(
+                sink,
+                ref,
+                optimized_module,
+                x,
+                rtol,
+                stats,
+                result,
+                atol,
+            )
+        else:
+            # Term-level oracle gate: evaluate the source IR root and
+            # the extracted term under one leaf environment; the
+            # oracle's ``compare`` is the pointwise report.  Bound
+            # propagation and the task gate downstream are unchanged.
+            env = _oracle_env(result.ir, params, x)
+            oref = verify_oracle.run(result.ir.root, env)
+            oout = verify_oracle.run(result.term, env)
+            report, output_bound = _block_bound_gate(
+                sink,
+                ref,
+                optimized_module,
+                x,
+                rtol,
+                stats,
+                result,
+                atol,
+                verify_fn=lambda rt: verify_oracle.compare(
+                    oref, oout, rtol=rt, atol=atol
+                ),
+            )
         verified = _gate_delivery(
             stats,
             report,

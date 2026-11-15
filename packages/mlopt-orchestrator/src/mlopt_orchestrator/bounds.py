@@ -570,6 +570,8 @@ def _block_bound_gate(
     st: dict[str, Any],
     res: Any,
     atol: float | None = None,
+    *,
+    verify_fn: Any = None,
 ) -> tuple[Any, float | None]:
     """Verify one delivered module, propagating any bound first.
 
@@ -577,24 +579,32 @@ def _block_bound_gate(
     With no delivered bound members the plain ``verify_tol`` verify
     runs and ``output_bound`` is 0.  With them, the ledger's
     weight-space bound propagates to output units on the block's
-    captured inputs (:func:`_propagate_bounds`), the sink verify runs
-    at ``rtol=inf`` (the propagated bound replaces the relative
+    captured inputs (:func:`_propagate_bounds`), the verify runs at
+    ``rtol=inf`` (the propagated bound replaces the relative
     tolerance), and the ledger gains its measured/propagated fields
     via :func:`_bound_record` — ``output_bound`` is ``None`` when the
     bound could not be propagated, which fails the gate closed.
     ``inputs`` is a tensor or positional-args tuple.
+
+    ``verify_fn`` overrides the pointwise comparison: a
+    ``(rtol) -> VerifyResult`` callable (``atol`` is closed over by
+    the caller's contract — the oracle path binds it).  ``None``
+    keeps the ``sink.verify(block, mod, args, ...)`` call — the
+    default path is unchanged.
     """
     args = inputs if isinstance(inputs, tuple) else (inputs,)
+    if verify_fn is None:
+
+        def verify_fn(rtol_: float) -> Any:
+            return sink.verify(block, mod, args, rtol=rtol_, atol=atol)
+
     bound = float(st.get("error_bound_total", 0.0))
     if bound <= 0.0:
-        return (
-            sink.verify(block, mod, args, rtol=verify_tol, atol=atol),
-            0.0,
-        )
+        return verify_fn(verify_tol), 0.0
     out_b = _propagate_bounds(
         st, res.eg, res.ir, dict(res.param_values), sink, args
     )
-    report = sink.verify(block, mod, args, rtol=float("inf"), atol=atol)
+    report = verify_fn(float("inf"))
     _bound_record(st, report, out_b)
     return report, out_b
 

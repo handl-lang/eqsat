@@ -35,6 +35,10 @@ The ports (this file)
 * :class:`VerifyResult` — the core-owned structural view of a verify
   result (``max_abs`` / ``max_rel`` / ``passed``); the torch adapter's
   ``report.VerifyReport`` satisfies it without core naming it.
+* :class:`VerifyOracle` — the term-level equivalence gate for
+  backends with no torch runtime (plan 0037/0039): ``run(term, env)``
+  evaluates an IR term under leaf bindings and ``compare`` gates two
+  outputs, in the oracle's own value domain.
 * :class:`TaskMetric` — the task-level equivalence contract (plan
   0015): ``distance(ref_out, opt_out) -> float`` against a
   ``tolerance``, named by ``name``; the shipped implementations are
@@ -178,6 +182,7 @@ __all__ = [
     "TimingResult",
     "TorchBinding",
     "Verifier",
+    "VerifyOracle",
     "VerifyResult",
     "signature_conforms",
 ]
@@ -449,6 +454,75 @@ class Verifier(Protocol):
         atol: float | None = None,
     ) -> VerifyResult:
         """Compare ``ref_out`` and ``out`` under ``rtol``/``atol``."""
+        ...
+
+
+@runtime_checkable
+class VerifyOracle(Protocol):
+    """A backend-native term evaluator + equivalence comparator.
+
+    Domain port (plan 0037 phase 0 / plan 0039).  :meth:`Sink.verify`
+    compares two *runnables* inside the sink's runtime — torch eager
+    today.  A torch-free artifact (a native/kernel-ir term, a
+    host-tensor lowering) has no torch runtime to verify in; the
+    ``VerifyOracle`` is the alternative gate ``lower(verify_oracle=)``
+    consumes: it evaluates IR *terms* directly and compares the
+    outputs in the oracle's own value domain.
+
+    Contract
+    --------
+    * ``run(term, env) -> value`` — evaluate ``term`` — any IR term
+      node (``Op`` / ``Var`` / ``Param`` / ``Const``) — under ``env``,
+      a mapping from leaf names (``Var.name`` / ``Param.name``) to
+      oracle-runtime values, returning the output value(s): one
+      tensor value, or a pytree (``tuple`` / ``dict``) matching the
+      term's output structure (a ``pack`` root returns a tuple).
+      ``run`` MUST be deterministic for a fixed ``(term, env)``: an
+      oracle whose ops consume randomness derives the stream from the
+      environment so both sides of a comparison draw identically —
+      the seeded-RNG half of the contract (``verify_module``'s
+      RNG-alignment, moved inside the oracle).
+    * ``compare(ref, opt, *, rtol=1e-4, atol=None) -> VerifyResult``
+      — the equivalence gate over two :meth:`run` outputs.  The
+      comparison is dtype-aware: ``rtol`` / ``atol`` are denominated
+      in the oracle value's own precision, and a value domain that
+      cannot resolve the requested tolerance (sub-fp32-equivalent
+      dtypes) applies a machine-epsilon-derived floor the way
+      ``verify_equiv``'s ``_dtype_rtol_floor`` does — or documents
+      that its precision resolves ``rtol`` directly.
+      :class:`mlopt_core.oracle.FloatOracle` is the shipped reference
+      implementation (Python-float f64 tensors, the historical
+      ``max_rel`` / ``max_abs <= atol`` gate).
+
+    Shape discipline: operand shapes must match exactly — a mismatch
+    is a failed report, never a silent broadcast.  The historical
+    metric — ``max_rel = max|ref - opt| / (max|ref| + 1e-8)``,
+    ``passed = max_rel < rtol_eff`` plus ``max_abs <= atol`` when
+    ``atol`` is given — is the reference semantics every conforming
+    oracle restates in its own runtime.
+
+    Honest scope: the oracle observes *terms*, not the delivered
+    module — ``lower`` feeds it ``result.ir.root`` (the source
+    program) against ``result.term`` (the extracted program), so the
+    gate certifies the search's term-level equivalence under the
+    oracle's semantics.  A delivery ``runner`` that wraps the lowered
+    module is invisible to it; lowering correctness remains the
+    sink's (or the artifact's own) concern.
+    """
+
+    def run(self, term: Any, env: Mapping[str, Any]) -> Any:
+        """Evaluate ``term`` under leaf bindings ``env``."""
+        ...
+
+    def compare(
+        self,
+        ref: Any,
+        opt: Any,
+        *,
+        rtol: float = 1e-4,
+        atol: float | None = None,
+    ) -> VerifyResult:
+        """Gate two :meth:`run` outputs under ``rtol``/``atol``."""
         ...
 
 
