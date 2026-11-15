@@ -670,6 +670,8 @@ def _infer_op_shape(op: Op, memo: dict | None = None):
                 # broadcast guards — and it is a free view, so extraction
                 # can even prefer it.  Flag the mismatch instead so the
                 # member costs _INVALID_COST and can never be picked.
+                if any(isinstance(d, int) and d < 0 for d in shape):
+                    return _INVALID
                 base = shapes[0]
                 if (
                     isinstance(base, tuple)

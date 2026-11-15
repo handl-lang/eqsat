@@ -139,6 +139,12 @@ SHAPE_CASES = [
         _INVALID,
         id="reshape/minus-one-ambiguous-invalid",
     ),
+    # Non-(-1) negatives are malformed — never reach TensorType.
+    pytest.param(
+        Op.make("reshape", x234, shape=(-2, 4)),
+        _INVALID,
+        id="reshape/negative-dim-invalid",
+    ),
     # --- expand / broadcast_to ------------------------------------------
     # torch expand's -1 keeps the input extent, right-aligned against
     # the input's trailing dims (kokoro ``_M1Wrap`` respell
