@@ -549,3 +549,109 @@ def test_prim_extraction_honesty_unknown_op_pricing():
     assert unbound(call) == float("inf")
     assert bound(call) == 1.0
     assert flops_cost(call) > 0.0
+
+
+# ---------------------------------------------------------------------------
+#  synop shape rules — the denotation IS the op's shape spec
+# ---------------------------------------------------------------------------
+#
+# ``_any_term_cached`` resolves a bound e-class member to its
+# minimum-size term, so a folded ``synop_*`` call — one node against
+# the spelled subgraph's many — is what ``check``/``derive`` guards
+# see.  Shape-guarded laws then read ``_shape_of`` on a name
+# ``_SHAPE_RULES`` used to know nothing about and honestly declined
+# (``None``), poisoning every broadcast consumer downstream — the
+# graphopt ``zoo_time_cond_conv`` ``mul_unsq_pad_*`` strips.  The
+# substrate fix seats a denotation-evaluating shape rule with each
+# record at materialize time; these tests pin the mechanism.
+
+
+def _synop_bound_triple(fold: Any, expand: Any) -> tuple[Any, Any, Any]:
+    """Instantiate ``(site, call, denotation)`` under one binding.
+
+    Every leaf metavar binds a same-shaped ``Var``, every ``$attr:``
+    metavar ``-1`` — covering the fold LHS/RHS *and* the expand
+    premise's RHS (whose metavar set is the same alpha; verified
+    census-wide when the rule landed).
+    """
+    from mlopt_core.meta import instantiate_pattern, pattern_metavars
+
+    subst = {
+        mv: (-1 if mv.startswith("$attr:") else Var(mv, _T(2, 4)))
+        for mv in (
+            set(pattern_metavars(fold.lhs))
+            | set(pattern_metavars(fold.rhs))
+            | set(pattern_metavars(expand.rhs))
+        )
+    }
+    return (
+        instantiate_pattern(fold.lhs, subst),
+        instantiate_pattern(fold.rhs, subst),
+        instantiate_pattern(expand.rhs, subst),
+    )
+
+
+def test_synop_shape_rules_seated_for_every_shipped():
+    """Every shipped ``synop*`` op carries a ``_SHAPE_RULES`` entry."""
+    from mlopt_core.typing import _SHAPE_RULES
+
+    for name in sorted(minted.synop_shipped()):
+        fold, _expand = minted.prim_fold(name)
+        assert fold.rhs.op in _SHAPE_RULES, name
+
+
+def test_synop_shape_rule_answers_the_denotations_shape():
+    """``shape_of(call) == shape_of(denotation) == shape_of(site)``.
+
+    Census-wide over all four record families: the rule substitutes
+    the call's bound leaves/attrs into the ``.expand`` denotation —
+    the object the fold proves equal — so the inferred shape must
+    agree with BOTH the spelled site and the expanded denotation
+    instance, ``None``/``_INVALID`` declines included (an honest
+    unknown is still agreement, never a fabricated shape).
+    """
+    from mlopt_core.typing import shape_of
+
+    answered = 0
+    total = 0
+    for name in sorted(minted.synop_shipped()):
+        fold, expand = minted.prim_fold(name)
+        site, call, den = _synop_bound_triple(fold, expand)
+        s_call = shape_of(call)
+        assert s_call == shape_of(den), name
+        assert s_call == shape_of(site), name
+        total += 1
+        answered += isinstance(s_call, tuple)
+    # agreement on ``None`` is honest but proves nothing — the rule
+    # must actually ANSWER for the attr-light majority of the bank
+    # (53/60 under the standard ``-1`` attr binding today; the floor
+    # keeps the pin honest without freezing the census).
+    assert answered * 2 > total
+
+
+def test_shape_guard_sees_through_the_synop_member():
+    """The reported mechanism end-to-end, torch-free.
+
+    Saturate a spelled site under its fold: the site's e-class then
+    holds BOTH the spelled member and the folded ``synop_*`` call.
+    ``_any_term_cached`` — the resolver ``check``/``derive`` bindings
+    go through — picks the minimum-size member, the synop call, and
+    ``shape_of`` on THAT representative must still answer the folded
+    term's shape (the denotation-eval rule), not ``None``.
+    """
+    from mlopt_core.typing import shape_of
+
+    # ``synop_0b304215b3`` — the r4 AUTO_TIER admit whose
+    # ``detach_(contiguous …)`` folds poisoned the graphopt
+    # ``zoo_time_cond_conv`` ``mul_unsq_pad_*`` strips: one leaf arg,
+    # a concrete (2, 4) denotation shape under the standard binding.
+    fold, expand = minted.prim_fold("synop_0b304215b3")
+    site, _call, _den = _synop_bound_triple(fold, expand)
+    eg = EGraph()
+    root = eg.add_term(site)
+    eg.run([fold], root, max_iterations=4, max_nodes=20_000)
+    resolved = eg._any_term_cached(eg.find(root))
+    assert isinstance(resolved, Op)
+    assert resolved.op == "synop_0b304215b3"
+    assert shape_of(resolved) == (2, 4)
+    assert shape_of(resolved) == shape_of(site)

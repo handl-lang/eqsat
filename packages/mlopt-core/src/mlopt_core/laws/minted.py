@@ -134,11 +134,16 @@ from typing import Any
 
 from mlopt_core import meta
 from mlopt_core.egraph import Rewrite
-from mlopt_core.ir import Op, op_def
+from mlopt_core.ir import Op, Param, TensorType, op_def
 from mlopt_core.laws import store as _store
 from mlopt_core.laws import tags
 from mlopt_core.laws.serialize import object_from_data
 from mlopt_core.rulecache import _dec_binding
+from mlopt_core.typing import (
+    _SHAPE_RULES,
+    register_shape_rule,
+    shape_of,
+)
 
 #: The shipped records, loaded from the SQLite store
 #: (``laws/data/minted.db``).  Tier 0 is the promoted composite
@@ -422,6 +427,7 @@ def prim_fold(synop: str) -> tuple[Rewrite, Rewrite]:
     )
     object.__setattr__(out, "premises", (expand,))
     _PRIM_MATERIALIZED[synop] = (out, expand)
+    _seat_synop_shape_rule(synop, out, expand)
     op_def(
         synop,
         len(fold.rhs.args),
@@ -510,6 +516,121 @@ def prim2_premises() -> tuple[Rewrite, ...]:
 def prim3_premises() -> tuple[Rewrite, ...]:
     """Return the depth-3 ``synop3_*.expand`` premises — cert axioms."""
     return tuple(prim_fold(n)[1] for n in _depth_names("synop3_"))
+
+
+# ---------------------------------------------------------------------------
+#  shape rules — the denotation IS the op's shape spec
+# ---------------------------------------------------------------------------
+#
+# A ``prim:synop_*`` fold is a proved equality, so the op's output shape
+# is exactly its ``.expand`` denotation's — but ``typing._SHAPE_RULES``
+# has no entry for minted names and the substrate default reports
+# ``None``.  Since the honest-unknown change an unknown operand makes
+# every broadcast consumer ``None`` too, so ONE shape-blind synop
+# poisons every shape-guarded law downstream: the r4 AUTO_TIER admits
+# (``prim:synop_0b304215b3`` / ``prim:synop_f0576b5150``) started
+# folding ``detach_(contiguous …)`` / ``transpose(reshape …)`` sites
+# and the ``zoo_time_cond_conv`` ``mul_unsq_pad_*`` strips declined on
+# the fabricated-``None`` chain (graphopt a249ef2 seated this same
+# rule consumer-side in ``mlopt_torch.torch_bindings`` — this is the
+# substrate home; seating at materialize time also covers records
+# :func:`admit_prim_record` promotes mid-process, which an
+# import-time consumer pass cannot see).
+#
+# The rule substitutes the call's leaf/attr metavars into the
+# denotation and reads ``shape_of`` — pure term data, no backend.
+# Anything unresolvable declines to ``None`` like any other unknown
+# op; a domain that registers its own rule for a synop name keeps it
+# (first seat wins — the substrate never clobbers a domain override).
+
+#: Sentinel for a metavar the instantiated call does not bind — an
+#: honest decline, never a guess.
+_SYNOP_SHAPE_UNBOUND = object()
+
+
+def _synop_shape_rule(denotation: Any, call: Op) -> Any:
+    """Build the ``(op, shapes) -> shape`` rule for one synop record.
+
+    *denotation* is the ``.expand`` premise's RHS — the spelled
+    subgraph the op denotes, with metavar leaves; *call* is the fold's
+    RHS — the ``<name>(args)`` pattern whose leaf positions and attr
+    bindings map metavars onto the instantiated op's operands.
+    """
+    # leaf metavar -> position in the call's arg list; attr
+    # metavar -> the op-attr name carrying it (call.attrs maps
+    # op-attr name -> metavar name).
+    leaf_pos = {
+        m: i for i, m in enumerate(call.args) if isinstance(m, str)
+    }
+    attr_key = {
+        m: k for k, m in call.attrs.items() if isinstance(m, str)
+    }
+
+    def _rule(op: Op, shapes: list, /) -> Any:
+        leaf_map: dict[str, Any] = {}
+        for m, i in leaf_pos.items():
+            if i >= len(op.args):
+                return None
+            s = shapes[i] if i < len(shapes) else None
+            # A known operand shape rides a cheap Param placeholder
+            # — ``shape_of`` answers it without re-walking the arg
+            # term; anything else falls back to the real term.
+            leaf_map[m] = (
+                Param(m, TensorType(s))
+                if isinstance(s, tuple)
+                else op.args[i]
+            )
+
+        def _attr_val(v: Any) -> Any:
+            if isinstance(v, str):
+                key = attr_key.get(v)
+                if key is None:
+                    return v  # literal string attr, not a metavar
+                return op.attrs.get(key, _SYNOP_SHAPE_UNBOUND)
+            if isinstance(v, (tuple, list)):
+                return type(v)(_attr_val(x) for x in v)
+            return v
+
+        def _subst(node: Any) -> Any:
+            if isinstance(node, str):
+                return leaf_map.get(node, _SYNOP_SHAPE_UNBOUND)
+            if isinstance(node, Op):
+                args = tuple(_subst(a) for a in node.args)
+                attrs = {k: _attr_val(v) for k, v in node.attrs.items()}
+                if any(a is _SYNOP_SHAPE_UNBOUND for a in args) or any(
+                    v is _SYNOP_SHAPE_UNBOUND for v in attrs.values()
+                ):
+                    return _SYNOP_SHAPE_UNBOUND
+                return Op.make(node.op, *args, **attrs)
+            if isinstance(node, (tuple, list)):
+                return type(node)(_subst(x) for x in node)
+            return node
+
+        try:
+            term = _subst(denotation)
+            if term is _SYNOP_SHAPE_UNBOUND or term is None:
+                return None
+            return shape_of(term)
+        except Exception:
+            return None  # honest decline, never a guess
+
+    return _rule
+
+
+def _seat_synop_shape_rule(
+    name: str, fold: Rewrite, expand: Rewrite
+) -> None:
+    """Register the denotation-evaluating shape rule for *name*.
+
+    Called at materialize time — :func:`prim_fold` for the shipped
+    tiers, :func:`_materialize_rec` / :func:`prim_fold` for a live
+    :func:`admit_prim_record` — so every record that becomes a real
+    ``synop*`` op gets its shape semantics with it.  First seat wins:
+    a domain rule already registered under the name is kept.
+    """
+    if name in _SHAPE_RULES:
+        return
+    register_shape_rule(name, _synop_shape_rule(expand.rhs, fold.rhs))
 
 
 # ---------------------------------------------------------------------------
@@ -726,6 +847,7 @@ def _materialize_rec(name: str, rec: dict[str, Any]):
             f"subgraph {rec.get('alpha', '')}"
         ),
     )
+    _seat_synop_shape_rule(name, out, expand)
     return out, expand
 
 

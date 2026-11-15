@@ -231,6 +231,55 @@ def test_shipped_path_registers_live(
     finally:
         minted._AUTO_RECORDS.pop(name, None)
         minted._PRIM_MATERIALIZED.pop(name, None)
+        # the admit seated a denotation-eval shape rule — pop it too
+        from mlopt_core.typing import _SHAPE_RULES
+
+        _SHAPE_RULES.pop(name, None)
+
+
+def test_admit_seats_a_working_shape_rule(scratch_db: Path) -> None:
+    """A scratch admission's op gets the denotation-eval shape rule.
+
+    ``_materialize_rec`` seats ``_SHAPE_RULES[name]`` exactly like the
+    shipped tiers — the record's ``.expand`` denotation IS the shape
+    spec, so ``shape_of`` on the bare call answers what the spelled
+    LHS would.  The global registry entry is popped afterwards: the
+    suite must not leak rules for names no bank ships.
+    """
+    from mlopt_core.typing import _SHAPE_RULES, shape_of
+
+    name = "ksynop_admit_shape"
+    rec = _prim_record(name)
+    try:
+        minted.admit_prim_record(name, rec, db=scratch_db)
+        assert name in _SHAPE_RULES
+        x = Var("x", _T())
+        y = Var("y", _T())
+        z = Var("z", _T())
+        call = Op.make(name, x, y, z)
+        spelled = Op.make("add", Op.make("mul", x, y), z)
+        assert shape_of(call) == shape_of(spelled) == (2, 4)
+    finally:
+        _SHAPE_RULES.pop(name, None)
+
+
+def test_admit_keeps_a_domain_shape_rule(scratch_db: Path) -> None:
+    """First seat wins — the substrate never clobbers a domain rule.
+
+    A domain that registered its own ``synop*`` shape rule before the
+    record materialized keeps it: ``_seat_synop_shape_rule`` is a
+    no-op on an occupied name.
+    """
+    from mlopt_core.typing import _SHAPE_RULES, register_shape_rule
+
+    name = "ksynop_admit_shape_override"
+    sentinel = lambda op, shapes: (9, 9)  # noqa: E731
+    register_shape_rule(name, sentinel)
+    try:
+        minted.admit_prim_record(name, _prim_record(name), db=scratch_db)
+        assert _SHAPE_RULES[name] is sentinel
+    finally:
+        _SHAPE_RULES.pop(name, None)
 
 
 def test_shipped_tier_consistency() -> None:
