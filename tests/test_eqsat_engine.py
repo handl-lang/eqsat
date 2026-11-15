@@ -37,6 +37,7 @@ from mlopt_orchestrator.eqsat import (
     EqsatUnavailableError,
     _kterm,
     _pyterm,
+    _record_synops,
     eqsat_binary,
     portable_laws,
 )
@@ -257,6 +258,121 @@ def test_portable_laws_snapshot() -> None:
     )
     # LAW_FORMAT=2 records carry the pat authoring fields.
     assert all(r.get("version") == 2 for r in laws)
+
+
+def test_record_synops_census() -> None:
+    """The 60 ``prim:`` records each name minted ``synop*`` ops."""
+    prim = [r for r in portable_laws() if r["name"].startswith("prim:")]
+    assert len(prim) == 60
+    assert all(_record_synops(r) for r in prim)
+    comm_add = next(
+        r for r in portable_laws() if r["name"] == "comm_add"
+    )
+    assert _record_synops(comm_add) == frozenset()
+
+
+def test_prim_records_withheld_until_synops_seated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unseated ``synop*`` denotations keep ``prim:`` records off the wire.
+
+    Regression for the extraction crash: the minted ``prim:synop*``
+    records fired under the ``size`` CostSpec and extraction could
+    pick a ``synop_*`` member with no torch binding — ``lower`` then
+    died on ``ValueError: No torch binding``.  The bridge now
+    withholds any record naming an unseated ``synop*`` op — the same
+    census ``supported_ops`` gives the Python engine's
+    ``backend_cost`` — and reports it under
+    ``stats["eqsat"]["laws"]["unbound"]``.
+    """
+    import mlopt_core.ops as ops_mod
+
+    eng = EqsatEngine(binary="/bin/true")
+    requested = {
+        "comm_add",
+        "prim:synop_03889d8fe1",
+        "prim:synop3_04df5fd446",
+    }
+
+    # No backend ambient table -> nothing seated -> every prim record
+    # withheld; manual-op records are unaffected.
+    monkeypatch.setattr(ops_mod, "_AMBIENT_BINDINGS", None)
+    applied, uncovered, unbound = eng._select_laws(requested)
+    assert [r["name"] for r in applied] == ["comm_add"]
+    assert uncovered == []
+    assert unbound == [
+        "prim:synop3_04df5fd446",
+        "prim:synop_03889d8fe1",
+    ]
+
+    # Seating only the depth-1 op frees ITS record — the depth-3
+    # fold still names unseated embeds and stays withheld.
+    monkeypatch.setattr(
+        ops_mod,
+        "_AMBIENT_BINDINGS",
+        {"synop_03889d8fe1": object()},
+    )
+    applied, _, unbound = eng._select_laws(requested)
+    assert {r["name"] for r in applied} == {
+        "comm_add",
+        "prim:synop_03889d8fe1",
+    }
+    assert unbound == ["prim:synop3_04df5fd446"]
+
+    # The full shipped census seats every minted op -> all applied.
+    monkeypatch.setattr(
+        ops_mod,
+        "_AMBIENT_BINDINGS",
+        {
+            op: object()
+            for r in portable_laws()
+            for op in _record_synops(r)
+        },
+    )
+    applied, _, unbound = eng._select_laws(requested)
+    assert {r["name"] for r in applied} == requested
+    assert unbound == []
+
+
+def test_extract_best_refuses_unbound_synop_member(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A cached extraction naming an unseated ``synop*`` falls back.
+
+    The record-level filter keeps unbound synops out of the wire law
+    set, but a custom ``laws=`` file (or a census that changed between
+    ``run`` and ``extract_best``) can still surface one — the
+    extract-side floor returns the recorded input term instead, the
+    same never-deliver-an-unlowerable-member bound the cost floor
+    gives.
+    """
+    import mlopt_core.ops as ops_mod
+
+    monkeypatch.setattr(ops_mod, "_AMBIENT_BINDINGS", None)
+    x = Var("x", TensorType((2,)))
+    manual = Op.make("add", x, x)
+    minted = Op.make("synop_03889d8fe1", x, x)
+    eng = object.__new__(EqsatEngine)
+    eng._terms = [manual]
+    eng._results = {0: {"term": minted, "cost": 0.0}}
+    eng._n_enodes = eng._n_classes = 0
+    eng._rule_fires = {}
+
+    got = eng.extract_best(0, flops_cost)
+    assert got is manual
+    assert eng._results[0]["fell_back_to_input"] is True
+    assert eng._results[0]["unbound_synops"] == ["synop_03889d8fe1"]
+
+    # Once the denotation is seated the same pick is honoured —
+    # cost_fn=None skips the pricing floor entirely.
+    monkeypatch.setattr(
+        ops_mod,
+        "_AMBIENT_BINDINGS",
+        {"synop_03889d8fe1": object()},
+    )
+    eng._results = {0: {"term": minted, "cost": 0.0}}
+    assert eng.extract_best(0, None) is minted
+    assert "fell_back_to_input" not in eng._results[0]
 
 
 def test_codec_roundtrip() -> None:

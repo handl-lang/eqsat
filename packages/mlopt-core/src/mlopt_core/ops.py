@@ -98,6 +98,7 @@ from mlopt_core.ports import Binding, ShapeRule
 
 __all__ = [
     "OpTable",
+    "ambient_bindings",
     "carrier_torch_bindings",
     "register_ambient_bindings",
     "register_carrier",
@@ -139,6 +140,23 @@ def register_ambient_bindings(table: dict[str, Binding]) -> None:
     """
     global _AMBIENT_BINDINGS
     _AMBIENT_BINDINGS = table
+
+
+def ambient_bindings() -> dict[str, Binding] | None:
+    """Return the ambient lowering dict a backend registered, live.
+
+    ``None`` when no backend adapter has registered one (a
+    mlopt-core-only environment).  The returned dict is the LIVE
+    ambient table — iterating it yields exactly the *seated* binding
+    names (lazy carrier resolution is not triggered), which is the
+    same key set ``OpTable.full().torch_bindings`` /
+    ``Sink.supported_ops`` expose.  Read-only census use: a consumer
+    checking ``op in ambient_bindings()`` sees post-hoc
+    ``_IR_TO_TORCH[op] = fn`` seats (e.g. the discovery-side
+    ``synop_*`` denotations) exactly as a default sink's
+    ``supported_ops`` does.
+    """
+    return _AMBIENT_BINDINGS
 
 
 #: Built-in carrier modules folded into :meth:`OpTable.full`, in

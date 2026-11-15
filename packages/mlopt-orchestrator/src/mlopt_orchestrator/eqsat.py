@@ -76,7 +76,15 @@ conv_folds, prim_folds; the unsound
 ``run(rules)`` intersects the caller's requested rule names with that
 set: requested names with no engine record are listed verbatim in
 ``stats["eqsat"]["laws"]["uncovered"]`` — the residual
-procedural-hook / conv gap the census measured stays named.
+procedural-hook / conv gap the census measured stays named.  Records
+whose ``synop*`` ops have no seated lowering in this process (the
+60 ``prim_folds`` minted records — their denotations are
+discovery-side torch bindings, ``mlopt_core.ops.ambient_bindings`` is
+the census) are withheld per run and listed under
+``stats["eqsat"]["laws"]["unbound"]``: the Rust ``CostSpec`` cannot
+price a denotation it cannot see, so shipping them would let
+extraction pick an unlowerable member — the eqsat-side analogue of
+the Python engine's ``+inf`` ``supported_ops`` bound.
 
 **Term wire format.**  mlopt terms cross as kernel ``Term`` JSON:
 ``Op`` nodes carry ``dim = Const(1)``, ``source = "Native"``, and the
@@ -95,6 +103,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -274,6 +283,92 @@ def _check_records(records: list, what: str) -> tuple[dict, ...]:
                 f"{what}: every law record needs a string 'name'"
             )
     return tuple(records)
+
+
+# ---------------------------------------------------------------------------
+#  Minted-primitive (``synop*``) binding census
+# ---------------------------------------------------------------------------
+#
+# The ``prim_folds`` pack ships the 60 minted ``prim:synop_*`` /
+# ``prim:synop2_*`` / ``prim:synop3_*`` records.  They are *pattern*
+# data: a ``synop_*`` call is a name to the substrate, and the op's
+# denotation is the torch binding the discovery side seats
+# (``mlopt_discovery.shipped_primitives.register()`` writes
+# ``_IR_TO_TORCH[synop] = fn``).  In a process where that seat never
+# ran — every plain ``engine="eqsat"`` search — the Rust engine's
+# ``size`` CostSpec has no way to know the op is unlowerable, so
+# saturation can extract a ``synop_*`` member and ``lower`` dies on
+# ``ValueError: No torch binding for op 'synop_…'``.  The Python
+# engine never hits this: ``backend_cost`` prices any op outside the
+# sink's ``supported_ops`` at ``+inf``, and ``supported_ops`` IS the
+# seated-binding key set.  The bridge restores the same bound by
+# withholding records whose ``synop*`` ops are not seated in the
+# ambient binding table (:func:`mlopt_core.ops.ambient_bindings`) —
+# the exact census a default ``OpTable.full()`` sink exposes — and by
+# refusing an extracted member that still names an unseated ``synop*``
+# op.  Both checks run per ``run``/``extract_best`` call, so a
+# ``register()`` that lands after engine construction is honoured.
+
+#: Minted-primitive op names: ``synop_<sha>``, ``synop2_<sha>``,
+#: ``synop3_<sha>`` (``mlopt_core.laws.minted``'s naming family).
+_SYNOP_OP_RE = re.compile(r"synop\d*_")
+
+
+def _seated_binding_names() -> frozenset[str]:
+    """Op names with a seated lowering in this process's ambient table.
+
+    ``None`` ambient (no backend adapter imported) seats nothing —
+    the same empty ``supported_ops`` a binding-less environment
+    gives the Python engine's ``backend_cost`` bound.
+    """
+    from mlopt_core.ops import ambient_bindings
+
+    ambient = ambient_bindings()
+    if ambient is None:
+        return frozenset()
+    # Iterating the dict yields materialized keys only — the same
+    # census ``Sink.supported_ops`` (``frozenset(torch_bindings)``)
+    # computes; lazy carrier resolution is never triggered.
+    return frozenset(ambient)
+
+
+def _record_synops(record: dict) -> frozenset[str]:
+    """``synop*`` op names a law record's ``lhs``/``rhs`` mention."""
+    found: set[str] = set()
+
+    def walk(node: Any) -> None:
+        if isinstance(node, dict):
+            op = node.get("op")
+            if isinstance(op, str) and _SYNOP_OP_RE.match(op):
+                found.add(op)
+            for v in node.values():
+                walk(v)
+        elif isinstance(node, list):
+            for v in node:
+                walk(v)
+
+    walk(record.get("lhs"))
+    walk(record.get("rhs"))
+    return frozenset(found)
+
+
+def _pyterm_synops(term: Any) -> frozenset[str]:
+    """``synop*`` op names an mlopt term uses (DAG-safe)."""
+    found: set[str] = set()
+    seen: set[int] = set()
+
+    def walk(node: Any) -> None:
+        if id(node) in seen:
+            return
+        seen.add(id(node))
+        if isinstance(node, Op):
+            if _SYNOP_OP_RE.match(node.op):
+                found.add(node.op)
+            for a in node.args:
+                walk(a)
+
+    walk(term)
+    return frozenset(found)
 
 
 # ---------------------------------------------------------------------------
@@ -595,6 +690,32 @@ class EqsatEngine:
         """No incremental graph exists between runs — nothing to close."""
         return False
 
+    def _select_laws(
+        self, requested: set[str]
+    ) -> tuple[list[dict], list[str], list[str]]:
+        """Split *requested* into applied / uncovered / unbound.
+
+        ``applied`` are the records that go on the wire; ``uncovered``
+        are requested names with no record at all (the residual
+        procedural-hook gap); ``unbound`` are requested names whose
+        record exists but names a ``synop*`` op with no seated
+        lowering in this process — withheld because the Rust
+        ``CostSpec`` cannot price a denotation it cannot see, exactly
+        the bound ``backend_cost`` gives the Python engine through
+        ``supported_ops``.  The census is read per call so a
+        ``shipped_primitives.register()`` that lands after engine
+        construction is honoured.
+        """
+        seated = _seated_binding_names()
+        eligible = [
+            r for r in self._laws if _record_synops(r) <= seated
+        ]
+        eligible_names = {r["name"] for r in eligible}
+        applied = [r for r in eligible if r["name"] in requested]
+        uncovered = sorted(requested - self._law_names)
+        unbound = sorted((requested & self._law_names) - eligible_names)
+        return applied, uncovered, unbound
+
     def run(
         self,
         rules: Any,
@@ -621,8 +742,7 @@ class EqsatEngine:
                 "(stop='improving' needs per-iteration extraction)"
             )
         requested = {getattr(r, "name", str(r)) for r in rules}
-        applied = [r for r in self._laws if r["name"] in requested]
-        uncovered = sorted(requested - self._law_names)
+        applied, uncovered, unbound = self._select_laws(requested)
         self._run_laws = applied
         self._run_options = {
             **self._options,
@@ -646,6 +766,11 @@ class EqsatEngine:
                 "requested": len(requested),
                 "applied": [r["name"] for r in applied],
                 "uncovered": uncovered,
+                # Requested records withheld because their ``synop*``
+                # denotations are not seated in this process — the
+                # eqsat-side analogue of the Python engine's
+                # ``+inf``-priced ``supported_ops`` bound.
+                "unbound": unbound,
             },
             "cost": self._cost,
             "cost_fn": (
@@ -722,6 +847,19 @@ class EqsatEngine:
                 "incremental e-classes to extract from"
             ) from e
         term = rec["term"]
+        if eid < len(self._terms):
+            # Hard capability floor, checked before pricing: an
+            # extracted member naming a ``synop*`` op with no seated
+            # lowering can never ``lower`` in this process (the
+            # ``ValueError: No torch binding`` crash) — the same bound
+            # ``_select_laws`` applies to the records, enforced here
+            # for extra law sets (``laws=``) or a census that changed
+            # between ``run`` and ``extract_best``.
+            unbound = _pyterm_synops(term) - _seated_binding_names()
+            if unbound:
+                rec["fell_back_to_input"] = True
+                rec["unbound_synops"] = sorted(unbound)
+                term = self._terms[eid]
         if cost_fn is not None and eid < len(self._terms):
             # Never-worse-than-input: the input term IS a member of
             # the saturated root e-class, so under the caller's own
