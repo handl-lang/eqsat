@@ -340,8 +340,15 @@ def test_lower_verify_oracle_records_the_terms_it_saw():
     assert seen[1] == res.term
 
 
-def test_lower_verify_oracle_failure_is_the_verdict():
-    """A dishonest oracle that reports a diff declines delivery."""
+def test_lower_verify_oracle_failure_declines_delivery():
+    """A dishonest oracle that reports a diff refuses the delivery.
+
+    The verify gate is substrate-enforced: ``lower(verify=True)``
+    raises :class:`VerifyDeclinedError` — the declined
+    ``LowerResult`` rides the exception as ``.result`` so the failing
+    report stays inspectable.
+    """
+    from mlopt_orchestrator import VerifyDeclinedError
 
     class Liar(FloatOracle):
         def compare(self, ref, opt, *, rtol=1e-4, atol=None):
@@ -352,8 +359,18 @@ def test_lower_verify_oracle_failure_is_the_verdict():
     opt, _sink = _opt()
     x = ([1.0, 1.0], [0.5, 0.5])
     res = opt.search(_Model(), x)
-    lr = opt.lower(res, x, verify_oracle=Liar())
-    assert lr.verified is not None and not lr.verified.passed
+    with pytest.raises(VerifyDeclinedError) as ei:
+        opt.lower(res, x, verify_oracle=Liar())
+    declined = ei.value.result
+    assert declined is not None
+    assert (
+        declined.verified is not None and not declined.verified.passed
+    )
+    assert declined.module is not None
+    assert declined.stats["accepted_by"] == "declined"
+    # The explicit opt-out still ships the module unverified.
+    lr = opt.lower(res, x, verify=False, verify_oracle=Liar())
+    assert lr.verified is None
 
 
 def test_lower_default_path_unchanged_without_oracle():

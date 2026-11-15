@@ -56,7 +56,6 @@ from mlopt_orchestrator import Compositional, Optimizer
 from mlopt_orchestrator.optimize import _lower_extracted
 
 
-
 _OPT_SRC = (
     pathlib.Path(__file__).resolve().parents[1]
     / "packages"
@@ -403,6 +402,111 @@ def test_fake_backend_phase_verbs_and_verify():
     assert lr2.verified is None
 
 
+# ---------------------------------------------------------------------------
+#  The verify gate is substrate-enforced — a failed/missing report declines
+# ---------------------------------------------------------------------------
+
+
+class _FailingSink(FakeSink):
+    """A sink whose equivalence gate always fails."""
+
+    def verify(self, ref, opt, inputs, *, rtol=1e-4, atol=None):
+        return _VerifyOut(1.0, 1.0, False)
+
+
+def _failing_backend() -> Backend:
+    b = _fake_backend()
+    return Backend(
+        source=b.source,
+        sink=_FailingSink(),
+        composer=b.composer,
+        meter=b.meter,
+    )
+
+
+def test_failed_verify_declines_lower_and_optimize():
+    """``lower(verify=True)`` refuses a failed operative verdict."""
+    from mlopt_orchestrator import VerifyDeclinedError
+
+    model, x = _ListModel(), [1.0, 2.0]
+    opt = Optimizer(backend=_failing_backend())
+    res = opt.search(model, x, max_iterations=2)
+    with pytest.raises(
+        VerifyDeclinedError, match="delivery declined"
+    ) as ei:
+        opt.lower(res, x)
+    declined = ei.value.result
+    # The declined LowerResult stays inspectable on the exception.
+    assert declined.verified is not None
+    assert not declined.verified.passed
+    assert declined.stats["accepted_by"] == "declined"
+    assert declined.module is not None
+    # The same gate guards the composed verb.
+    with pytest.raises(VerifyDeclinedError):
+        opt.optimize(model, x, max_iterations=2)
+    # The explicit opt-out ships unverified — verified stays None.
+    lr = opt.lower(res, x, verify=False)
+    assert lr.verified is None and lr.module is not None
+
+
+def test_missing_verify_report_declines():
+    """A ``verify=True`` run that yields no report is a decline."""
+    import mlopt_orchestrator.optimize as O
+
+    from mlopt_orchestrator import VerifyDeclinedError
+
+    model, x = _ListModel(), [1.0, 2.0]
+    opt = Optimizer(backend=_fake_backend())
+    res = opt.search(model, x, max_iterations=2)
+
+    def no_report(*a, **kw):
+        return None
+
+    orig = O._gate_delivery
+    O._gate_delivery = no_report
+    try:
+        with pytest.raises(
+            VerifyDeclinedError, match="no verify report"
+        ):
+            opt.lower(res, x)
+    finally:
+        O._gate_delivery = orig
+
+
+class _AlwaysFar:
+    """A task metric whose distance always exceeds tolerance."""
+
+    name = "always_far"
+    tolerance = 0.5
+
+    def distance(self, ref, opt):
+        return 1.0
+
+
+def test_task_gate_verdict_is_the_operative_one():
+    """Under ``task=`` the task distance — not the pointwise report —
+    decides ship/decline."""
+    from mlopt_orchestrator import VerifyDeclinedError
+
+    model, x = _ListModel(), [1.0, 2.0]
+    opt = Optimizer(backend=_fake_backend())
+    res = opt.search(model, x, max_iterations=2)
+    # Pointwise verify passes; the task contract fails → decline.
+    with pytest.raises(VerifyDeclinedError, match="task 'always_far'"):
+        opt.lower(res, x, task=_AlwaysFar())
+
+    # A passing task metric ships even though it replaced the verdict.
+    class _AlwaysNear(_AlwaysFar):
+        name = "always_near"
+
+        def distance(self, ref, opt):
+            return 0.0
+
+    lr = opt.lower(res, x, task=_AlwaysNear())
+    assert lr.verified is not None and lr.verified.passed
+    assert lr.stats["accepted_by"] == "task"
+
+
 def test_fake_backend_autotuned():
     model = _ListModel()
     x = [1.0, 2.0, 3.0, 4.0]
@@ -610,8 +714,6 @@ def test_shim_modules_are_gone():
             importlib.import_module(mod)
 
 
-
-
 # ---------------------------------------------------------------------------
 #  Regime / adapter error + fallback arms
 # ---------------------------------------------------------------------------
@@ -644,19 +746,16 @@ def test_frontier_build_without_dispatch(monkeypatch):
         frontier.build()
 
 
-
-
-
-
-
-
 def test_runner_candidate_requires_ir():
-    from mlopt_orchestrator.autotune import AutotuneContext, CandidateUnavailableError
+    from mlopt_orchestrator.autotune import (
+        AutotuneContext,
+        CandidateUnavailableError,
+    )
 
-
-    from mlopt_orchestrator.runners import IdentityRunner, runner_candidate
-
-
+    from mlopt_orchestrator.runners import (
+        IdentityRunner,
+        runner_candidate,
+    )
 
     ctx = AutotuneContext(
         model=None,
@@ -756,7 +855,3 @@ def test_lower_extracted_empty_executor_table():
 # ---------------------------------------------------------------------------
 #  The real Backend — TorchBackend is a plain value
 # ---------------------------------------------------------------------------
-
-
-
-

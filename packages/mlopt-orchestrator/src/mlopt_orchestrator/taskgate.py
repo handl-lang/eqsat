@@ -321,6 +321,70 @@ def _block_gate(
     return vr, out_b, bool(trec["passed"])
 
 
+class VerifyDeclinedError(RuntimeError):
+    """The delivery verify gate refused the lowered module.
+
+    ``lower(verify=True)`` raises this when the *operative* verdict —
+    the pointwise/bound gate, replaced by the task distance under a
+    ``task=`` contract — does not pass, or when no verify report was
+    produced at all (a missing report is a decline, never a ship).
+    The refused :class:`~mlopt_core.pipeline.LowerResult` rides the
+    exception as ``.result`` — module, stats and the failing report
+    stay inspectable — so a caller that deliberately wants the
+    unverified module can still reach it, but only by catching the
+    decline: unverified shipping is an explicit act, not an omission.
+    ``verify=False`` remains the opt-out that skips the gate entirely
+    (``LowerResult.verified`` is then ``None``).
+    """
+
+    def __init__(self, message: str, *, result: Any = None) -> None:
+        """Store the refusal message and the declined result."""
+        super().__init__(message)
+        self.result = result
+
+
+def _require_verified_delivery(lr: Any) -> None:
+    """Raise :class:`VerifyDeclinedError` unless *lr* may ship.
+
+    The operative verdict is ``LowerResult.verified.passed`` —
+    :func:`_gate_delivery` has already composed the pointwise gate,
+    the propagated-bound substitution and the task-distance
+    replacement into that one flag, and ``stats["accepted_by"]`` /
+    ``stats["verify_metric"]`` name which contract decided.  A
+    ``None`` report is a decline too: under ``verify=True`` a missing
+    gate is never a pass.
+    """
+    verified = getattr(lr, "verified", None)
+    if verified is not None and bool(
+        getattr(verified, "passed", False)
+    ):
+        return
+    stats = getattr(lr, "stats", None) or {}
+    metric = stats.get("verify_metric", "verify")
+    task = stats.get("task")
+    if isinstance(task, dict) and "distance" in task:
+        msg = (
+            f"delivery declined: task {task.get('name', metric)!r} "
+            f"distance {task['distance']:.3e} exceeds tolerance "
+            f"{task.get('tolerance', '?')} (accepted_by="
+            f"{stats.get('accepted_by', 'declined')})"
+        )
+    elif verified is None:
+        msg = (
+            "delivery declined: verify=True produced no verify "
+            "report — a missing gate is a decline, not a pass"
+        )
+    else:
+        msg = (
+            f"delivery declined: verify failed — max_abs="
+            f"{getattr(verified, 'max_abs', '?')}, max_rel="
+            f"{getattr(verified, 'max_rel', '?')} "
+            f"(verify_metric={metric!r}, accepted_by="
+            f"{stats.get('accepted_by', 'declined')!r})"
+        )
+    raise VerifyDeclinedError(msg, result=lr)
+
+
 def _block_decline(
     rep: dict[str, Any], vr: Any, out_b: float | None
 ) -> None:

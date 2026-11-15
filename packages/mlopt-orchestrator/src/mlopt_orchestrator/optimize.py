@@ -19,7 +19,10 @@ object (plan 0006), and the orchestrator is backend-neutral
   stats, all inspectable).
 * :func:`lower` — phase 3 (+verify): ``SearchResult -> LowerResult``;
   re-lowering the same result under different runners delivers
-  different executables from ONE search.
+  different executables from ONE search.  ``verify=True`` (the
+  default) is substrate-enforced — a failed or missing verify report
+  raises :class:`VerifyDeclinedError` instead of returning an
+  unverified module.
 * :class:`Optimizer` — the configured entry point: an explicit
   :class:`~mlopt_core.pipeline.Backend` (or explicit
   ``source``/``sink``/``composer``/``meter`` ports — no default
@@ -178,12 +181,14 @@ from mlopt_orchestrator.taskgate import (
     _contract_tol as _contract_tol,
     _gate_delivery as _gate_delivery,
     _resolve_task as _resolve_task,
+    _require_verified_delivery as _require_verified_delivery,
     _run_exec as _run_exec,
     _task_contract as _task_contract,
     _task_declared as _task_declared,
     _task_verify as _task_verify,
     _TaskVerify as _TaskVerify,
     _verify_metric as _verify_metric,
+    VerifyDeclinedError as VerifyDeclinedError,
 )
 
 #: Bounded saturation: the rules tagged
@@ -1014,6 +1019,12 @@ def lower(
         unchanged.  The report lands in ``LowerResult.verified``.
         Passing a :class:`~mlopt_core.ports.VerifyOracle` here is
         shorthand for ``verify=True, verify_oracle=oracle``.
+        The gate is enforced, not advisory: a failed operative
+        verdict (pointwise/bound, or the task distance under a
+        ``task=`` contract) — or a missing report — raises
+        :class:`VerifyDeclinedError` carrying the declined
+        ``LowerResult`` as ``.result``.  ``verify=False`` is the
+        explicit opt-out: no gate runs and ``verified`` is ``None``.
     verify_oracle : VerifyOracle, optional
         Opt-in term-level verify gate (plan 0037/0039) for backends
         whose artifacts have no torch runtime to verify in.  When
@@ -1195,9 +1206,18 @@ def lower(
             else:
                 print("  ✗ WARNING: large difference detected!")
 
-    return LowerResult(
+    delivered = LowerResult(
         module=optimized_module, stats=stats, verified=verified
     )
+    if verify:
+        # The verify gate is substrate-enforced: a failed operative
+        # verdict — or a missing report — refuses the delivery with
+        # VerifyDeclinedError carrying the declined result.  Shipping
+        # unverified takes an explicit act: ``verify=False`` (no gate,
+        # ``verified=None``) or catching the decline and using
+        # ``exc.result``.
+        _require_verified_delivery(delivered)
+    return delivered
 
 
 # ---------------------------------------------------------------------------
