@@ -22,7 +22,24 @@ downstream `uv sync`, so the frozen surface in
   bank-vs-machinery is a later sub-package split.
 - `packages/mlopt-orchestrator` — the backend-neutral pipeline
   (`search`/`lower`/`Optimizer`/strategies/criteria).  Renames to
-  `pipeline` later; name kept for now.
+  `pipeline` later; name kept for now.  **Engine default (WP4 v4
+  GO):** `engine=None` resolves to `"eqsat"` — the engine-eqsat
+  (Rust) search interpretation via the `eqsat-run` CLI bridge
+  (`mlopt_orchestrator.eqsat`); `"python-egraph"` (aliases
+  `"python"`/`"egraph"`) is the explicit opt-out for the reference
+  `EGraph`.  A missing `eqsat-run` binary is a named
+  `EqsatUnavailableError`, never a silent fallback.  Capabilities
+  that exist only on the Python engine refuse or skip by name:
+  non-local pairing/lift passes (`stats["nonlocal_passes"]`),
+  certificates, `policy=`, `stop="improving"`, `error_budget`, and
+  the `detect_*` passes (`TypeError` naming the opt-out).
+  `discover_alternatives`/`Optimizer.discover` pin
+  `"python-egraph"` — frontier inspection is proof-carrying
+  `EGraph` machinery.
+- `packages/mlopt-dtypes` — the dtype registry: one canonical
+  name → {torch, numpy, ONNX, safetensors, host-tensor wire} table
+  shared by every mlopt backend.  Pure stdlib; backends resolve the
+  foreign dtype objects locally.
 - `packages/mlopt-native` — the optional Rust engine behind
   `engine=` (maturin/PyO3; excluded from the uv workspace).
 - `tests/` — the substrate suite (124 test files whose imports stay

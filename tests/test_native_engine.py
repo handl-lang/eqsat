@@ -65,6 +65,23 @@ except ModuleNotFoundError:  # pragma: no cover — wheel absent
     NativeEngine = None
     _HAS_NATIVE = False
 
+from mlopt_orchestrator.eqsat import (
+    EqsatEngine,
+    EqsatUnavailableError,
+)
+
+try:
+    EqsatEngine()
+    _HAS_EQSAT = True
+except EqsatUnavailableError:  # pragma: no cover — binary absent
+    _HAS_EQSAT = False
+
+requires_eqsat = pytest.mark.skipif(
+    not _HAS_EQSAT,
+    reason="eqsat-run binary not found (build engine-eqsat or set "
+    "MLOPT_EQSAT_RUN)",
+)
+
 requires_native = pytest.mark.skipif(
     not _HAS_NATIVE,
     reason="mlopt_native not built (maturin develop in packages/mlopt-native)",
@@ -218,8 +235,24 @@ def test_engine_protocol_conformance() -> None:
 
 
 def test_resolve_engine_forms() -> None:
-    """``_resolve_engine``: None→EGraph, class→instance, factory→called."""
-    assert isinstance(_resolve_engine(None), EGraph)
+    """``_resolve_engine``: names/instances/classes/factories."""
+    # ``None`` resolves to the WP4-v4 default — "eqsat" — or declines
+    # by name when no eqsat-run binary resolves.
+    if _HAS_EQSAT:
+        assert isinstance(_resolve_engine(None), EqsatEngine)
+    else:
+        with pytest.raises(EqsatUnavailableError):
+            _resolve_engine(None)
+    # The explicit opt-outs.
+    assert isinstance(_resolve_engine("python-egraph"), EGraph)
+    assert isinstance(_resolve_engine("python"), EGraph)
+    if _HAS_EQSAT:
+        assert isinstance(_resolve_engine("eqsat"), EqsatEngine)
+    else:
+        with pytest.raises(EqsatUnavailableError):
+            _resolve_engine("eqsat")
+    with pytest.raises(ValueError, match="unknown engine name"):
+        _resolve_engine("bogus")
     assert isinstance(_resolve_engine(_DoubleEngine), _DoubleEngine)
     assert isinstance(
         _resolve_engine(lambda: _DoubleEngine()), _DoubleEngine
@@ -228,8 +261,8 @@ def test_resolve_engine_forms() -> None:
     assert _resolve_engine(inst) is inst
 
 
-def test_search_default_engine_is_python() -> None:
-    """Without ``engine=`` the reference engine runs; non-local passes fire."""
+def test_search_python_egraph_engine() -> None:
+    """``engine="python-egraph"`` runs the reference engine; non-local passes fire."""
     ir_model = _toy_model()
     res = search(
         ir_model,
@@ -237,12 +270,61 @@ def test_search_default_engine_is_python() -> None:
         source=_FakeSource(),
         cost_fn=flops_cost,
         max_iterations=4,
+        engine="python-egraph",
     )
     assert res.stats["engine"] == "python"
     # The Python engine runs the non-local pairing pass — the two
     # shared-input linears pair into one fused GEMM.
     assert res.stats.get("pairing_groups", 0) >= 1
     assert res.term is not None
+
+
+@requires_eqsat
+def test_search_default_engine_is_eqsat() -> None:
+    """No ``engine=`` → the WP4-v4 default: eqsat, non-local skipped."""
+    res = search(
+        _toy_model(),
+        None,
+        source=_FakeSource(),
+        cost_fn=flops_cost,
+        max_iterations=4,
+    )
+    assert res.stats["engine"] == "eqsat"
+    assert res.stats["nonlocal_passes"] == (
+        "skipped (engine is not an EGraph)"
+    )
+    assert res.stats["eqsat"]["laws"]["requested"] > 0
+    assert res.term is not None
+
+
+def test_detect_flags_decline_on_non_egraph_engine() -> None:
+    """``detect_*`` opt-ins fail loudly off the Python engine."""
+    for kw in (
+        {"detect_factors": True},
+        {"detect_specials": True},
+        {"detect_headshare": True},
+    ):
+        with pytest.raises(TypeError, match="requires the reference"):
+            search(
+                _toy_model(),
+                None,
+                source=_FakeSource(),
+                cost_fn=flops_cost,
+                max_iterations=2,
+                engine=_DoubleEngine(),
+                **kw,
+            )
+    # … and the same opt-in is fine on the reference engine.
+    res = search(
+        _toy_model(),
+        None,
+        source=_FakeSource(),
+        cost_fn=flops_cost,
+        max_iterations=2,
+        engine="python-egraph",
+        detect_specials=True,
+    )
+    assert res.stats["engine"] == "python"
 
 
 def test_search_engine_double_skips_nonlocal() -> None:

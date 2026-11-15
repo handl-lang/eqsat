@@ -1,6 +1,8 @@
-"""``engine="eqsat"`` — the engine-eqsat (Rust) opt-in (ADR-0178 WP3).
+"""``engine="eqsat"`` — the engine-eqsat (Rust) engine (ADR-0178 WP3+).
 
-Two halves, mirroring ``test_native_engine.py``:
+Since the WP4 parity sweep v4 GO ``"eqsat"`` is the *default*
+(``engine=None`` resolves to it); ``engine="python-egraph"`` is the
+explicit opt-out.  Two halves, mirroring ``test_native_engine.py``:
 
 * **Seam tests** (always run): ``_resolve_engine("eqsat")`` materialises
   an :class:`~mlopt_core.ports.Engine`-conforming
@@ -191,6 +193,24 @@ def test_resolve_engine_eqsat_string() -> None:
     assert isinstance(eng, EqsatEngine)
 
 
+def test_resolve_engine_default_is_eqsat() -> None:
+    """``engine=None`` resolves to the WP4-v4 default — ``"eqsat"``.
+
+    With no ``eqsat-run`` binary the default declines by name (never
+    a silent Python fallback); ``engine="python-egraph"`` is the
+    explicit opt-out.
+    """
+    from mlopt_core.egraph import EGraph
+
+    assert isinstance(_resolve_engine("python-egraph"), EGraph)
+    try:
+        eng = _resolve_engine(None)
+    except EqsatUnavailableError:
+        pytest.skip("eqsat-run binary not found")
+    assert isinstance(eng, EqsatEngine)
+    assert eng.engine_name == "eqsat"
+
+
 def test_missing_binary_is_a_named_decline(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -204,16 +224,18 @@ def test_missing_binary_is_a_named_decline(
     with pytest.raises(EqsatUnavailableError, match="no eqsat-run"):
         EqsatEngine()
     # And through the search seam: the decline propagates, it does not
-    # silently degrade to the Python engine.
-    with pytest.raises(EqsatUnavailableError):
-        search(
-            _simplifying_model(),
-            None,
-            source=_FakeSource(),
-            cost_fn=flops_cost,
-            max_iterations=2,
-            engine="eqsat",
-        )
+    # silently degrade to the Python engine — for the explicit
+    # ``engine="eqsat"`` AND for the ``None`` default alike.
+    for eng in ("eqsat", None):
+        with pytest.raises(EqsatUnavailableError):
+            search(
+                _simplifying_model(),
+                None,
+                source=_FakeSource(),
+                cost_fn=flops_cost,
+                max_iterations=2,
+                engine=eng,
+            )
 
 
 def test_env_override_bad_path_declines(
@@ -532,7 +554,7 @@ def test_search_eqsat_vs_python_same_verified_outcome() -> None:
     lr_eq = opt_eq.lower(res_eq, x, verify_oracle=FloatOracle())
     assert lr_eq.verified is not None and lr_eq.verified.passed
 
-    opt_py, _ = _opt()
+    opt_py, _ = _opt(engine="python-egraph")
     res_py = opt_py.search(_Model(), x)
     lr_py = opt_py.lower(res_py, x, verify_oracle=FloatOracle())
     assert lr_py.verified is not None and lr_py.verified.passed

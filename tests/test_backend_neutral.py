@@ -48,13 +48,8 @@ from mlopt_core.ports import (
     Source,
     TimingResult,
 )
-from mlopt_orchestrator.optimize import Autotuned
-
 from mlopt_orchestrator import Compositional, Optimizer
-
-
-from mlopt_orchestrator.optimize import _lower_extracted
-
+from mlopt_orchestrator.optimize import Autotuned, _lower_extracted
 
 _OPT_SRC = (
     pathlib.Path(__file__).resolve().parents[1]
@@ -383,7 +378,7 @@ def test_optimizer_backend_vs_explicit_ports():
 def test_fake_backend_monolithic():
     model = _ListModel()
     x = [1.0, 2.0, 3.0, 4.0]
-    opt = Optimizer(backend=_fake_backend())
+    opt = Optimizer(backend=_fake_backend(), engine="python-egraph")
     lr = opt.optimize(model, x, max_iterations=2)
     assert lr.module(x) == model(x)
     assert lr.stats["runner"] == "identity"
@@ -394,7 +389,7 @@ def test_fake_backend_monolithic():
 def test_fake_backend_phase_verbs_and_verify():
     model = _ListModel()
     x = [1.0, 2.0]
-    opt = Optimizer(backend=_fake_backend())
+    opt = Optimizer(backend=_fake_backend(), engine="python-egraph")
     res = opt.search(model, x, max_iterations=2)
     lr = opt.lower(res, x, verify=True)
     assert lr.verified is not None and lr.verified.passed
@@ -429,7 +424,7 @@ def test_failed_verify_declines_lower_and_optimize():
     from mlopt_orchestrator import VerifyDeclinedError
 
     model, x = _ListModel(), [1.0, 2.0]
-    opt = Optimizer(backend=_failing_backend())
+    opt = Optimizer(backend=_failing_backend(), engine="python-egraph")
     res = opt.search(model, x, max_iterations=2)
     with pytest.raises(
         VerifyDeclinedError, match="delivery declined"
@@ -452,11 +447,10 @@ def test_failed_verify_declines_lower_and_optimize():
 def test_missing_verify_report_declines():
     """A ``verify=True`` run that yields no report is a decline."""
     import mlopt_orchestrator.optimize as O
-
     from mlopt_orchestrator import VerifyDeclinedError
 
     model, x = _ListModel(), [1.0, 2.0]
-    opt = Optimizer(backend=_fake_backend())
+    opt = Optimizer(backend=_fake_backend(), engine="python-egraph")
     res = opt.search(model, x, max_iterations=2)
 
     def no_report(*a, **kw):
@@ -489,7 +483,7 @@ def test_task_gate_verdict_is_the_operative_one():
     from mlopt_orchestrator import VerifyDeclinedError
 
     model, x = _ListModel(), [1.0, 2.0]
-    opt = Optimizer(backend=_fake_backend())
+    opt = Optimizer(backend=_fake_backend(), engine="python-egraph")
     res = opt.search(model, x, max_iterations=2)
     # Pointwise verify passes; the task contract fails → decline.
     with pytest.raises(VerifyDeclinedError, match="task 'always_far'"):
@@ -510,7 +504,7 @@ def test_task_gate_verdict_is_the_operative_one():
 def test_fake_backend_autotuned():
     model = _ListModel()
     x = [1.0, 2.0, 3.0, 4.0]
-    opt = Optimizer(backend=_fake_backend())
+    opt = Optimizer(backend=_fake_backend(), engine="python-egraph")
     lr = opt.optimize(
         model,
         x,
@@ -533,7 +527,9 @@ def test_fake_backend_autotuned():
 
 
 def test_autotuned_requires_meter():
-    opt = Optimizer(source=FakeSource(), sink=FakeSink())
+    opt = Optimizer(
+        source=FakeSource(), sink=FakeSink(), engine="python-egraph"
+    )
     with pytest.raises(TypeError, match="Meter"):
         opt.optimize(
             _ListModel(),
@@ -545,7 +541,7 @@ def test_autotuned_requires_meter():
 def test_fake_backend_compositional():
     model = _ListModel(inner=_ListModel())
     x = [1.0, 2.0]
-    opt = Optimizer(backend=_fake_backend())
+    opt = Optimizer(backend=_fake_backend(), engine="python-egraph")
     lr = opt.optimize(
         model,
         x,
@@ -567,7 +563,9 @@ def test_compositional_verify_decline_labels_block(capsys):
     model = _ListModel(inner=_ListModel())
     x = [1.0, 2.0]
     for verbose in (False, True):
-        opt = Optimizer(backend=_failing_backend())
+        opt = Optimizer(
+            backend=_failing_backend(), engine="python-egraph"
+        )
         lr = opt.optimize(
             model,
             x,
@@ -584,7 +582,9 @@ def test_compositional_verify_decline_labels_block(capsys):
 
 
 def test_compositional_requires_composer():
-    opt = Optimizer(source=FakeSource(), sink=FakeSink())
+    opt = Optimizer(
+        source=FakeSource(), sink=FakeSink(), engine="python-egraph"
+    )
     with pytest.raises(TypeError, match="Composer"):
         opt.optimize(
             _ListModel(inner=_ListModel()),
@@ -619,7 +619,7 @@ def test_corpus_probe_hook_runs_and_records():
 
     model = _ListModel()
     x = [1.0, 2.0]
-    opt = Optimizer(backend=_fake_backend())
+    opt = Optimizer(backend=_fake_backend(), engine="python-egraph")
     lr = opt.optimize(model, x, corpus_probe=probe, max_iterations=2)
     assert calls == [("_ListModel", model, x)]
     assert lr.stats["corpus_probe"] == {
@@ -629,7 +629,7 @@ def test_corpus_probe_hook_runs_and_records():
 
 def test_corpus_probe_default_is_inert():
     """No probe passed → nothing runs, nothing recorded (both verbs)."""
-    opt = Optimizer(backend=_fake_backend())
+    opt = Optimizer(backend=_fake_backend(), engine="python-egraph")
     lr = opt.optimize(_ListModel(), [1.0], max_iterations=2)
     assert "corpus_probe" not in lr.stats
     res = opt.search(_ListModel(), [1.0], max_iterations=2)
@@ -647,7 +647,7 @@ def test_corpus_probe_compositional_runs_once_on_whole_model():
 
     model = _ListModel(inner=_ListModel())
     x = [1.0, 2.0]
-    opt = Optimizer(backend=_fake_backend())
+    opt = Optimizer(backend=_fake_backend(), engine="python-egraph")
     lr = opt.optimize(
         model,
         x,
@@ -774,7 +774,6 @@ def test_runner_candidate_requires_ir():
         AutotuneContext,
         CandidateUnavailableError,
     )
-
     from mlopt_orchestrator.runners import (
         IdentityRunner,
         runner_candidate,

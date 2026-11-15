@@ -305,7 +305,14 @@ class _OracleSource:
 
 def _opt(oracle=None):
     sink = _OracleSink(oracle)
-    return Optimizer(source=_OracleSource(), sink=sink), sink
+    return (
+        Optimizer(
+            source=_OracleSource(),
+            sink=sink,
+            engine="python-egraph",
+        ),
+        sink,
+    )
 
 
 def test_lower_with_verify_oracle_passes():

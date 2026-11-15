@@ -495,7 +495,11 @@ def test_registered_source_sink_drive_optimizer():
     reg = BackendRegistry()
     reg.register(_registration())
     r = reg.get("fake")
-    opt = Optimizer(source=r.source_instance(), sink=r.sink())
+    opt = Optimizer(
+        source=r.source_instance(),
+        sink=r.sink(),
+        engine="python-egraph",
+    )
     result = opt.optimize(
         object(), [1.0, 2.0, 3.0, 4.0], max_iterations=2
     )

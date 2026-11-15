@@ -358,27 +358,49 @@ def _resolve_rules(rules: Any) -> RuleSet:
     return RuleSet("custom", tuple(rules))
 
 
+#: The named engine spellings ``_resolve_engine`` accepts.  ``None``
+#: resolves to :data:`_DEFAULT_ENGINE_NAME` — the engine-eqsat (Rust)
+#: interpretation since the WP4 parity sweep v4 GO
+#: (``host:project/reports/wp4_parity_sweep_v4.md``); the Python
+#: reference engine stays one explicit name away.
+_DEFAULT_ENGINE_NAME = "eqsat"
+_ENGINE_NAMES = ("eqsat", "python-egraph", "python", "egraph")
+
+
 def _resolve_engine(engine: Any) -> Any:
     """Materialise the saturation engine for :func:`search`.
 
-    ``None`` → the pure-Python reference :class:`EGraph` (the
-    default).  A class or zero-arg factory is called to produce the
-    engine; an engine instance — anything carrying the
-    :class:`~mlopt_core.ports.Engine` surface, duck-typed on
-    ``add_term`` — is used directly.  Engines are **never
-    auto-detected**: installing ``mlopt_native`` changes nothing
-    until ``engine=`` is passed.
+    ``None`` → :data:`_DEFAULT_ENGINE_NAME` — ``"eqsat"``, the
+    engine-eqsat (Rust) search interpretation behind the same
+    :class:`~mlopt_core.ports.Engine` port (ADR-0174/0178; the WP4
+    parity sweep v4 GO flipped the default).  A missing ``eqsat-run``
+    binary is a named :class:`~mlopt_orchestrator.eqsat.EqsatUnavailableError`
+    at construction — never a silent fallback; pass
+    ``engine="python-egraph"`` for the reference engine.  The string
+    names ``"eqsat"`` / ``"python-egraph"`` (aliases ``"python"`` /
+    ``"egraph"``) select the built-in engines; a class or zero-arg
+    factory is called to produce the engine; an engine instance —
+    anything carrying the :class:`~mlopt_core.ports.Engine` surface,
+    duck-typed on ``add_term`` — is used directly.  Engines are
+    **never auto-detected**: installing ``mlopt_native`` changes
+    nothing until ``engine=`` is passed.
     """
     if engine is None:
-        return EGraph()
-    if isinstance(engine, str) and engine == "eqsat":
-        # ADR-0178 WP3: the engine-eqsat (Rust) search interpretation
-        # behind the same Engine port — explicit opt-in only, resolved
-        # lazily so importing the orchestrator never requires the
-        # eqsat-run binary.
-        from mlopt_orchestrator.eqsat import EqsatEngine
+        engine = _DEFAULT_ENGINE_NAME
+    if isinstance(engine, str):
+        if engine == "eqsat":
+            # Resolved lazily so importing the orchestrator never
+            # requires the eqsat-run binary — construction is where
+            # the binary resolves (and declines by name).
+            from mlopt_orchestrator.eqsat import EqsatEngine
 
-        return EqsatEngine()
+            return EqsatEngine()
+        if engine in ("python-egraph", "python", "egraph"):
+            return EGraph()
+        raise ValueError(
+            f"unknown engine name {engine!r} — expected one of "
+            f"{_ENGINE_NAMES} or an Engine instance/class/factory"
+        )
     if isinstance(engine, type) or not hasattr(engine, "add_term"):
         engine = engine()
     return engine
@@ -499,6 +521,40 @@ def _select_best_term(
         eg, root_eid, src, cost_fn, stats, best_term, error_budget
     )
     return best_term
+
+
+def _check_detect_engine(
+    eg: Any,
+    detect_factors: bool,
+    detect_specials: bool,
+    detect_headshare: bool,
+) -> None:
+    """Refuse ``detect_*`` opt-ins on engines without witnessed unions.
+
+    The passes offer witnessed members through the proof-carrying
+    ``union(witness=...)`` surface — Python-``EGraph`` machinery the
+    ``Engine`` port does not require.  Like ``error_budget``, an
+    explicit opt-in that cannot run fails loudly rather than
+    silently skipping the pass.
+    """
+    if isinstance(eg, EGraph):
+        return
+    asked = [
+        n
+        for n, on in (
+            ("detect_factors", detect_factors),
+            ("detect_specials", detect_specials),
+            ("detect_headshare", detect_headshare),
+        )
+        if on
+    ]
+    if asked:
+        raise TypeError(
+            f"{', '.join(asked)} requires the reference EGraph engine "
+            "— the detect passes offer witnessed members through "
+            f"union(witness=...) (got {type(eg).__name__}; pass "
+            "engine='python-egraph' to opt out of the eqsat default)"
+        )
 
 
 def _policy_kwargs(policy: Any, engine: Any) -> dict[str, Any]:
@@ -643,19 +699,22 @@ def search(
         ``stop="improving"``.
     engine : Engine, optional
         The saturation engine — an instance, class, or zero-arg
-        factory conforming to :class:`mlopt_core.ports.Engine`.
-        ``None`` uses the pure-Python reference ``EGraph``.  The
-        optional native accelerator is
-        ``mlopt_native.NativeEngine``; the engine-eqsat (Rust)
-        interpretation is ``engine="eqsat"``
-        (:class:`mlopt_orchestrator.eqsat.EqsatEngine`, ADR-0178
-        WP3) — engines are never
-        auto-detected, and ``stats["engine"]`` records which ran.
-        The engine port covers the *search* only: the non-local
-        pairing/lift passes (which mutate through the proof-carrying
-        ``union(witness=...)`` surface) run only on the Python
-        engine and are skipped otherwise; certificates likewise stay
-        a Python-engine concern.
+        factory conforming to :class:`mlopt_core.ports.Engine`, or a
+        built-in name: ``"eqsat"`` (the engine-eqsat Rust
+        interpretation, :class:`mlopt_orchestrator.eqsat.EqsatEngine`,
+        ADR-0178) or ``"python-egraph"`` (the pure-Python reference
+        ``EGraph``; aliases ``"python"`` / ``"egraph"``).  ``None``
+        resolves to ``"eqsat"`` — the WP4 parity sweep v4 GO made it
+        the default; a missing ``eqsat-run`` binary declines loudly
+        with :class:`~mlopt_orchestrator.eqsat.EqsatUnavailableError`
+        (pass ``engine="python-egraph"`` to opt out).  The optional
+        native accelerator is ``mlopt_native.NativeEngine`` — engines
+        are never auto-detected, and ``stats["engine"]`` records
+        which ran.  The engine port covers the *search* only: the
+        non-local pairing/lift passes (which mutate through the
+        proof-carrying ``union(witness=...)`` surface) run only on
+        the Python engine and are skipped otherwise; certificates
+        likewise stay a Python-engine concern.
     detect_factors : bool, default False
         Opt-in low-rank detection pass
         (:func:`mlopt_core.laws.factored.offer_low_rank_factors`):
@@ -832,6 +891,9 @@ def search(
         )
     eg = _resolve_engine(engine)
     _check_budget_engine(eg, error_budget)
+    _check_detect_engine(
+        eg, detect_factors, detect_specials, detect_headshare
+    )
     root_eid = eg.add_term(ir.root)
     rules = _resolve_rules(rules)
     if verbose:
@@ -1476,10 +1538,11 @@ class Optimizer:
     #: The optimizer's default saturation rule set — ``None`` resolves
     #: to the composed :data:`DEFAULT_RULES` at search time.
     rules: RuleSet | str | Iterable | None = None
-    #: The default saturation engine — ``None`` uses the pure-Python
-    #: reference ``EGraph``; an instance, class, zero-arg factory, or
-    #: the ``"eqsat"`` name (engine-eqsat, ADR-0178 WP3) conforming to
-    #: :class:`mlopt_core.ports.Engine` (e.g.
+    #: The default saturation engine — ``None`` resolves to
+    #: ``"eqsat"`` (engine-eqsat, the WP4-v4 default);
+    #: ``"python-egraph"`` selects the pure-Python reference
+    #: ``EGraph``.  An instance, class, zero-arg factory, or engine
+    #: name conforming to :class:`mlopt_core.ports.Engine` (e.g.
     #: ``mlopt_native.NativeEngine`` / ``EqsatEngine``) selects
     #: explicitly.  Never auto-detected.
     engine: Any = None
@@ -1596,6 +1659,12 @@ class Optimizer:
         ``.certificate()`` / ``.eg`` / ``.stats``).
         """
         kw.setdefault("max_iterations", 6)
+        # Frontier inspection is proof-carrying EGraph machinery —
+        # an unconfigured optimizer pins the reference engine
+        # (mirrors ``discover_alternatives``); an explicit
+        # ``Optimizer(engine=...)`` or call keyword still wins.
+        if self.engine is None:
+            kw.setdefault("engine", "python-egraph")
         return self.search(model, x, **kw)
 
 
@@ -1621,6 +1690,7 @@ def discover_alternatives(
     rules: RuleSet | str | Iterable | None = None,
     max_iterations: int = 6,
     cost_fn: CostFn | None = None,
+    engine: Any = "python-egraph",
     device_policy: Any = None,
 ) -> SearchResult:
     """Enumerate the frontier — return the :class:`SearchResult`.
@@ -1653,6 +1723,13 @@ def discover_alternatives(
     preset name, a plain iterable, or ``None`` for the composed
     default.  The pairing-subsumed fusion rules are excluded by the
     presets, never by a filter inside the pipeline.
+
+    ``engine`` defaults to ``"python-egraph"`` — deliberately *not*
+    the ``search`` default: the frontier surface this verb exists for
+    (``res.alternatives()``, ``res.certificate()``,
+    ``res.eg.diverse_classes()``) is proof-carrying ``EGraph``
+    machinery the ``Engine`` port does not require.  Passing another
+    engine still runs the search, but those methods decline on it.
     """
     return search(
         model,
@@ -1662,6 +1739,7 @@ def discover_alternatives(
         cost_fn=cost_fn,
         rules=rules,
         max_iterations=max_iterations,
+        engine=engine,
         device_policy=device_policy,
     )
 

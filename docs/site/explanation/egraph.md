@@ -126,5 +126,9 @@ enumeration does not surface position to `check`.
 `extract`, `terms`, `types`, `proof`, `certs`) and
 `.../cost/` (`basic`, `backend`, `executor`, `fusion`, `params`,
 `roofline`). The frozen surface is the
-[eqsat slice of the manifest](../reference/frozen-api); the Rust engine
-behind `engine=` is `mlopt-native` in the same repo.
+[eqsat slice of the manifest](../reference/frozen-api). `EGraph` is
+the reference engine and the `engine="python-egraph"` opt-out; the
+*default* `engine=` interpretation is `"eqsat"` — the engine-eqsat
+(Rust) search behind `mlopt_orchestrator.eqsat`'s `eqsat-run` CLI
+bridge (the WP4 parity sweep v4 GO), with `mlopt-native` the other
+opt-in Rust engine in this repo.

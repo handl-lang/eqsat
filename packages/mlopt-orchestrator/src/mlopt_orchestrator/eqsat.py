@@ -1,4 +1,8 @@
-"""``engine-eqsat`` bridge — the ``engine="eqsat"`` opt-in (ADR-0178 WP3).
+"""``engine-eqsat`` bridge — the ``"eqsat"`` engine (ADR-0178 WP3+).
+
+Since the WP4 parity sweep v4 GO, ``"eqsat"`` is the *default*
+search interpretation (``engine=None`` resolves to it);
+``engine="python-egraph"`` is the explicit opt-out.
 
 The search interpretation of ADR-0174/0177 lives in the Rust crate
 ``hnl-engine-eqsat`` (repo ``handl-lang/engine-eqsat``).  This module is
@@ -122,9 +126,11 @@ class EqsatError(RuntimeError):
 class EqsatUnavailableError(EqsatError):
     """No ``eqsat-run`` binary could be resolved.
 
-    The opt-in is explicit: this error names the miss and the fix
-    (build ``engine-eqsat`` or set ``MLOPT_EQSAT_RUN``) rather than
-    silently falling back to the Python engine.
+    ``"eqsat"`` is the default engine (the WP4 parity sweep v4 GO),
+    so this error names the miss *and* the fix — build
+    ``engine-eqsat`` or set ``MLOPT_EQSAT_RUN`` — plus the explicit
+    opt-out (``engine="python-egraph"``) rather than silently
+    falling back to the Python engine.
     """
 
 
@@ -191,9 +197,11 @@ def eqsat_binary(binary: str | os.PathLike | None = None) -> Path:
         if cand.is_file():
             return cand
     raise EqsatUnavailableError(
-        'engine="eqsat" needs the eqsat-run binary: build it with '
-        "`cargo build --bin eqsat-run` in the handl-lang/engine-eqsat "
-        "checkout, put it on PATH, or set MLOPT_EQSAT_RUN=<path>.  "
+        'engine="eqsat" (the default) needs the eqsat-run binary: '
+        "build it with `cargo build --bin eqsat-run` in the "
+        "handl-lang/engine-eqsat checkout, put it on PATH, or set "
+        "MLOPT_EQSAT_RUN=<path>.  To use the pure-Python reference "
+        'engine instead, pass engine="python-egraph" explicitly.  '
         f"Probed: {', '.join(map(str, _BIN_CANDIDATES))}"
     )
 

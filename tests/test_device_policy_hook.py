@@ -68,6 +68,7 @@ def _opt(**kw):
         sink=FakeSink(),
         composer=FakeComposer(),
         meter=FakeMeter(),
+        engine="python-egraph",
         **kw,
     )
 
