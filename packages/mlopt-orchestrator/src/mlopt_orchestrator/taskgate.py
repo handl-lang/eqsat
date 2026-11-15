@@ -388,15 +388,21 @@ def _require_verified_delivery(lr: Any) -> None:
 def _block_decline(
     rep: dict[str, Any], vr: Any, out_b: float | None
 ) -> None:
-    """Raise the per-block verify failure — task or bound wording."""
+    """Raise the per-block verify failure — task or bound wording.
+
+    Raises :class:`VerifyDeclinedError` (a ``RuntimeError``) so the
+    compositional driver labels the block ``"declined"`` — the gate's
+    own taxonomy — rather than a generic ``"failed"``, matching the
+    ``lower(verify=True)`` refusal path.
+    """
     t = rep.get("task")
     if t is not None:
-        raise RuntimeError(
+        raise VerifyDeclinedError(
             f"block verification failed: task {t['name']} distance "
             f"{t['distance']:.3e} exceeds tolerance "
             f"{t['tolerance']:.3e}"
         )
-    raise RuntimeError(
+    raise VerifyDeclinedError(
         f"block verification failed: rel diff {vr.max_rel:.3e} "
         f"(accepted bound {_rel_bound(out_b, vr):.3e})"
     )

@@ -560,6 +560,29 @@ def test_fake_backend_compositional():
     assert stats["param_report"]["original_params"] == 0
 
 
+def test_compositional_verify_decline_labels_block(capsys):
+    """F10: a verify-gate refusal is ``declined``, not ``failed`` —
+    under BOTH raise sites: ``lower(verify=True)`` under verbose, and
+    the per-block gate's ``_block_decline`` when verify is off."""
+    model = _ListModel(inner=_ListModel())
+    x = [1.0, 2.0]
+    for verbose in (False, True):
+        opt = Optimizer(backend=_failing_backend())
+        lr = opt.optimize(
+            model,
+            x,
+            strategy=Compositional(max_cross_pairs=0),
+            max_iterations=2,
+            verbose=verbose,
+        )
+        rep = lr.stats["blocks"]["inner"]
+        assert rep["status"] == "declined", (verbose, rep)
+        assert rep["error"].startswith("VerifyDeclinedError")
+        assert lr.stats["n_declined"] == 1
+        assert lr.stats["n_failed"] == 0
+        capsys.readouterr()
+
+
 def test_compositional_requires_composer():
     opt = Optimizer(source=FakeSource(), sink=FakeSink())
     with pytest.raises(TypeError, match="Composer"):

@@ -32,6 +32,7 @@ from mlopt_orchestrator.resources import (
 )
 from mlopt_orchestrator.runners import IdentityRunner
 from mlopt_orchestrator.taskgate import (
+    VerifyDeclinedError,
     _block_decline,
     _block_gate,
     _task_contract,
@@ -466,7 +467,16 @@ def _optimize_compositional(
                     f"({rep['rel_diff']:.2e})"
                 )
         except Exception as e:
-            rep["status"] = "failed"
+            # A verify-gate refusal (``VerifyDeclinedError`` — raised
+            # by ``lower(verify=True)`` under verbose, or by
+            # ``_block_decline`` on a failed block gate) is a decline,
+            # not a failure: the block keeps its original either way,
+            # but the gate's own taxonomy label stays honest.
+            rep["status"] = (
+                "declined"
+                if isinstance(e, VerifyDeclinedError)
+                else "failed"
+            )
             rep["error"] = f"{type(e).__name__}: {e}"
             if isinstance(
                 e, OptimizationResourceError
@@ -577,6 +587,11 @@ def _optimize_compositional(
                 1
                 for r in block_reports.values()
                 if r["status"] == "failed"
+            ),
+            "n_declined": sum(
+                1
+                for r in block_reports.values()
+                if r["status"] == "declined"
             ),
             "n_skipped": sum(
                 1
