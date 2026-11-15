@@ -60,9 +60,10 @@ named rather than silent:
   ``search`` already skips/refuses them for non-``EGraph`` engines.
 
 **Law coverage is reported, never silently narrowed.**  The engine
-runs the *portable* law set — the 111 ``LAW_FORMAT = 2`` records of
+runs the *portable* law set — the 243 ``LAW_FORMAT = 2`` records of
 the full non-demo ``kit-eqsat`` corpus (simplification,
-categorical, attention, pointwise_factor, prior_art; the unsound
+categorical, prior_art, attention, pointwise_factor, batch_norm,
+conv_folds, prim_folds; the unsound
 ``reshape_flatten_demo`` matcher demo excluded; snapshot shipped as
 ``data/eqsat_laws.json``, **generated** from the canonical
 ``handl-lang/kit-eqsat`` checkout by
@@ -70,8 +71,8 @@ categorical, attention, pointwise_factor, prior_art; the unsound
 ``tests/test_eqsat_laws_corpus.py`` — ADR-0177 §1).
 ``run(rules)`` intersects the caller's requested rule names with that
 set: requested names with no engine record are listed verbatim in
-``stats["eqsat"]["laws"]["uncovered"]`` — the 282-law procedural-hook /
-conv / attention gap the census measured stays named.
+``stats["eqsat"]["laws"]["uncovered"]`` — the residual
+procedural-hook / conv gap the census measured stays named.
 
 **Term wire format.**  mlopt terms cross as kernel ``Term`` JSON:
 ``Op`` nodes carry ``dim = Const(1)``, ``source = "Native"``, and the
@@ -209,9 +210,10 @@ def portable_laws() -> tuple[dict, ...]:
     """Return the shipped portable ``LAW_FORMAT = 2`` law records.
 
     The snapshot is generated from the canonical ``kit-eqsat``
-    corpus (ADR-0177 §1) — all 111 non-demo records across the
-    simplification / categorical / attention /
-    pointwise_factor / prior_art packs (the original 55 were the
+    corpus (ADR-0177 §1) — all 243 non-demo records across the
+    simplification / categorical / prior_art / attention /
+    pointwise_factor / batch_norm / conv_folds / prim_folds packs
+    (the original 55 were the
     differential-proven parity subset;
     ``graphopt:bench/drivers/audit/eqsat_differential.py``).  Records
     are dicts in the ``pat`` authoring spelling; pass them to

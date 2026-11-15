@@ -66,5 +66,5 @@ def test_shipped_snapshot_matches_kit_corpus() -> None:
     assert _LAWS_PATH.read_text() == emit.render(records)
     # The corpus is the full non-demo set — the unsound matcher demo
     # stays engine-eqsat-only by design.
-    assert len(records) == 111
+    assert len(records) == 243
     assert "reshape_flatten_demo" not in {r["name"] for r in records}
