@@ -1,0 +1,3972 @@
+[
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Bilinearity: linear maps distribute over addition in BOTH slots.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    },
+    {
+     "mvar": "W"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "matmul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "right_distribute_matmul",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "W"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      },
+      {
+       "mvar": "W"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "categorical",
+   "expansive"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Factor a shared right-weight (the slot `x @ W` uses).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "W"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      },
+      {
+       "mvar": "W"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "right_factor_matmul",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    },
+    {
+     "mvar": "W"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "matmul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "categorical",
+   "expansive"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Factor a shared right-hand nn.Linear weight.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "W"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "linear",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      },
+      {
+       "mvar": "W"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "linear",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "right_factor_linear",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    },
+    {
+     "mvar": "W"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "linear",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "categorical",
+   "expansive"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Compose stacked nn.Linears: fused weight is B @ A (transposes flip the product order).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "A"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "linear",
+     "source": "native"
+    },
+    {
+     "mvar": "B"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "linear",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "assoc_linear",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "B"
+      },
+      {
+       "mvar": "A"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "linear",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "categorical",
+   "expansive"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Reverse linear composition: linear(x, B@A) = linear(linear(x, A), B) (eqsat weighs fused vs split).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "B"
+      },
+      {
+       "mvar": "A"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "linear",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "assoc_linear_rev",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "A"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "linear",
+     "source": "native"
+    },
+    {
+     "mvar": "B"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "linear",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "categorical",
+   "expansive"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Associativity of composition in a category: (f\u2218g)\u2218h = f\u2218(g\u2218h).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "A"
+    },
+    {
+     "args": [
+      {
+       "mvar": "B"
+      },
+      {
+       "mvar": "C"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "matmul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "assoc_matmul",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "A"
+      },
+      {
+       "mvar": "B"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    },
+    {
+     "mvar": "C"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "matmul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "categorical",
+   "expansive"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Reverse associativity: f\u2218(g\u2218h) = (f\u2218g)\u2218h.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "A"
+      },
+      {
+       "mvar": "B"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    },
+    {
+     "mvar": "C"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "matmul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "assoc_matmul_rev",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "A"
+    },
+    {
+     "args": [
+      {
+       "mvar": "B"
+      },
+      {
+       "mvar": "C"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "matmul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "categorical",
+   "expansive"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Triple pairing <q,k,v> : X -> V^3 \u2014 three projections of the same input are ONE GEMM into the product space, then three zero-cost chunk projections.  (Fused QKV.)",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "mvar": "x"
+          },
+          {
+           "mvar": "Q"
+          }
+         ],
+         "attrs": null,
+         "dim": null,
+         "lit": null,
+         "op": "linear",
+         "source": "native"
+        }
+       ],
+       "attrs": {
+        "bind": "S"
+       },
+       "dim": null,
+       "lit": null,
+       "op": "reshape",
+       "source": "native"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim0": 1,
+       "dim1": 2
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "transpose",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "mvar": "x"
+          },
+          {
+           "mvar": "K"
+          }
+         ],
+         "attrs": null,
+         "dim": null,
+         "lit": null,
+         "op": "linear",
+         "source": "native"
+        }
+       ],
+       "attrs": {
+        "bind": "S"
+       },
+       "dim": null,
+       "lit": null,
+       "op": "reshape",
+       "source": "native"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim0": 1,
+       "dim1": 2
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "transpose",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "mvar": "x"
+          },
+          {
+           "mvar": "V"
+          }
+         ],
+         "attrs": null,
+         "dim": null,
+         "lit": null,
+         "op": "linear",
+         "source": "native"
+        }
+       ],
+       "attrs": {
+        "bind": "S"
+       },
+       "dim": null,
+       "lit": null,
+       "op": "reshape",
+       "source": "native"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim0": 1,
+       "dim1": 2
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "transpose",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "bind": "SC"
+   },
+   "dim": null,
+   "lit": null,
+   "op": "sdpa",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "qkv_fuse",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "args": [
+            {
+             "mvar": "x"
+            },
+            {
+             "args": [
+              {
+               "args": [
+                {
+                 "mvar": "Q"
+                },
+                {
+                 "mvar": "K"
+                }
+               ],
+               "attrs": {
+                "lit": {
+                 "dim": 0
+                }
+               },
+               "dim": null,
+               "lit": null,
+               "op": "concat",
+               "source": "native"
+              },
+              {
+               "mvar": "V"
+              }
+             ],
+             "attrs": {
+              "lit": {
+               "dim": 0
+              }
+             },
+             "dim": null,
+             "lit": null,
+             "op": "concat",
+             "source": "native"
+            }
+           ],
+           "attrs": null,
+           "dim": null,
+           "lit": null,
+           "op": "linear",
+           "source": "native"
+          }
+         ],
+         "attrs": {
+          "lit": {
+           "chunks": 3,
+           "dim": -1,
+           "index": 0
+          }
+         },
+         "dim": null,
+         "lit": null,
+         "op": "chunk",
+         "source": "native"
+        }
+       ],
+       "attrs": {
+        "bind": "S"
+       },
+       "dim": null,
+       "lit": null,
+       "op": "reshape",
+       "source": "native"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim0": 1,
+       "dim1": 2
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "transpose",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "args": [
+            {
+             "mvar": "x"
+            },
+            {
+             "args": [
+              {
+               "args": [
+                {
+                 "mvar": "Q"
+                },
+                {
+                 "mvar": "K"
+                }
+               ],
+               "attrs": {
+                "lit": {
+                 "dim": 0
+                }
+               },
+               "dim": null,
+               "lit": null,
+               "op": "concat",
+               "source": "native"
+              },
+              {
+               "mvar": "V"
+              }
+             ],
+             "attrs": {
+              "lit": {
+               "dim": 0
+              }
+             },
+             "dim": null,
+             "lit": null,
+             "op": "concat",
+             "source": "native"
+            }
+           ],
+           "attrs": null,
+           "dim": null,
+           "lit": null,
+           "op": "linear",
+           "source": "native"
+          }
+         ],
+         "attrs": {
+          "lit": {
+           "chunks": 3,
+           "dim": -1,
+           "index": 1
+          }
+         },
+         "dim": null,
+         "lit": null,
+         "op": "chunk",
+         "source": "native"
+        }
+       ],
+       "attrs": {
+        "bind": "S"
+       },
+       "dim": null,
+       "lit": null,
+       "op": "reshape",
+       "source": "native"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim0": 1,
+       "dim1": 2
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "transpose",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "args": [
+            {
+             "mvar": "x"
+            },
+            {
+             "args": [
+              {
+               "args": [
+                {
+                 "mvar": "Q"
+                },
+                {
+                 "mvar": "K"
+                }
+               ],
+               "attrs": {
+                "lit": {
+                 "dim": 0
+                }
+               },
+               "dim": null,
+               "lit": null,
+               "op": "concat",
+               "source": "native"
+              },
+              {
+               "mvar": "V"
+              }
+             ],
+             "attrs": {
+              "lit": {
+               "dim": 0
+              }
+             },
+             "dim": null,
+             "lit": null,
+             "op": "concat",
+             "source": "native"
+            }
+           ],
+           "attrs": null,
+           "dim": null,
+           "lit": null,
+           "op": "linear",
+           "source": "native"
+          }
+         ],
+         "attrs": {
+          "lit": {
+           "chunks": 3,
+           "dim": -1,
+           "index": 2
+          }
+         },
+         "dim": null,
+         "lit": null,
+         "op": "chunk",
+         "source": "native"
+        }
+       ],
+       "attrs": {
+        "bind": "S"
+       },
+       "dim": null,
+       "lit": null,
+       "op": "reshape",
+       "source": "native"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim0": 1,
+       "dim1": 2
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "transpose",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "bind": "SC"
+   },
+   "dim": null,
+   "lit": null,
+   "op": "sdpa",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "subsumed"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Hadamard distributivity: c \u2299 (x+y) = c\u2299x + c\u2299y \u2014 the elementwise product distributes over the additive monoid.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "c"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "y"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "distribute_mul_add",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "c"
+      },
+      {
+       "mvar": "x"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "c"
+      },
+      {
+       "mvar": "y"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "categorical",
+   "expansive"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Factor a shared elementwise factor (reverse distributivity) \u2014 c\u2299x + c\u2299y = c\u2299(x+y); what the carrier fold chains consume.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "c"
+      },
+      {
+       "mvar": "x"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "c"
+      },
+      {
+       "mvar": "y"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "factor_mul_add",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "c"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "y"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "categorical",
+   "expansive"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "const-cmp",
+   "ONE",
+   "==",
+   1
+  ],
+  "derivation": [
+   "sigmoid_expand"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "1/(1+e\u207b\u02e3) folds to \u03c3(x) \u2014 the manual-spelling fold (softmax_fold's sibling one kernel over).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "ONE"
+      },
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "mvar": "x"
+          }
+         ],
+         "attrs": null,
+         "dim": null,
+         "lit": null,
+         "op": "neg",
+         "source": "native"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "exp",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "reciprocal",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "sigmoid_fold",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sigmoid",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-cmp",
+    "ONE",
+    "==",
+    1
+   ],
+   [
+    "const-cmp",
+    "ONE2",
+    "==",
+    1
+   ]
+  ],
+  "derivation": [
+   "sigmoid_expand"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "The div-spelled 1/(1+e\u207b\u02e3) folds to \u03c3(x).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "ONE"
+    },
+    {
+     "args": [
+      {
+       "mvar": "ONE2"
+      },
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "mvar": "x"
+          }
+         ],
+         "attrs": null,
+         "dim": null,
+         "lit": null,
+         "op": "neg",
+         "source": "native"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "exp",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "div",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "sigmoid_fold_div",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sigmoid",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-cmp",
+    "TWO",
+    "==",
+    2
+   ],
+   [
+    "const-cmp",
+    "TWO2",
+    "==",
+    2
+   ],
+   [
+    "const-cmp",
+    "ONE",
+    "==",
+    1
+   ]
+  ],
+  "derivation": [
+   "tanh_expand"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "2\u03c3(2x) \u2212 1 folds to tanh(x).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "TWO"
+      },
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "mvar": "TWO2"
+          },
+          {
+           "mvar": "x"
+          }
+         ],
+         "attrs": null,
+         "dim": null,
+         "lit": null,
+         "op": "mul",
+         "source": "native"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "sigmoid",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    },
+    {
+     "mvar": "ONE"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "tanh_fold",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "tanh",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-cmp",
+    "THREE",
+    "==",
+    3
+   ],
+   [
+    "const-cmp",
+    "SIX",
+    "==",
+    6
+   ]
+  ],
+  "derivation": [
+   "hardsigmoid_expand"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "relu6(x+3)/6 folds to hardsigmoid(x).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "mvar": "x"
+        },
+        {
+         "mvar": "THREE"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "add",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "relu6",
+     "source": "native"
+    },
+    {
+     "mvar": "SIX"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "div",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "hardsigmoid_fold",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "hardsigmoid",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "const-cmp",
+   "P",
+   "==",
+   1
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "pow(u, 1) = u.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "P"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "pow",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "pow_one",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "pow(u, 0) = ones(u) \u2014 IEEE-total including NaN bases (pow(nan,0)=1); spelled ones_like so the mint carries u's shape (the eval compare is shape-strict, not broadcast).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "const": 0
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "pow",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "pow_zero",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "ones_like",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "not",
+   [
+    "const-num",
+    "u"
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "pow(u, \u22121) = 1/u \u2014 the reciprocal spelling.  The Const-operand corner is excluded: an int-typed base does int exponentiation (pow(2,\u22121) \u2192 0), which the pattern language can't dtype-guard otherwise.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "const": -1
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "pow",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "pow_neg_one",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "reciprocal",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "const-cmp",
+   "P",
+   "==",
+   0.5
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "pow(u, 0.5) = sqrt(u) \u2014 the canonical square root.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "P"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "pow",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "pow_half",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sqrt",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [
+   "pow_half"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "sqrt(u) = u^0.5 \u2014 the pow spelling (bridge to the pow family).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sqrt",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "sqrt_to_pow",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "const": 0.5
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "pow",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "const-cmp",
+   "ONE",
+   "==",
+   1
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "1/u = reciprocal(u) \u2014 the div-spelled reciprocal folds.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "ONE"
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "div",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "div_one_recip",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "reciprocal",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [
+   "div_one_recip"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "reciprocal(u) = 1/u \u2014 the div spelling.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "reciprocal",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "recip_expand",
+  "rhs": {
+   "args": [
+    {
+     "const": 1
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "div",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "const-num",
+   "C"
+  ],
+  "derivation": [],
+  "dspec": {
+   "$leaf:NC": [
+    "neg",
+    [
+     "const",
+     "C"
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "\u2212c folds to the negated Const leaf.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "C"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "neg",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "neg_const",
+  "rhs": {
+   "mvar": "NC"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-num",
+    "C1"
+   ],
+   [
+    "const-num",
+    "C2"
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "$leaf:C3": [
+    "mul",
+    [
+     "const",
+     "C1"
+    ],
+    [
+     "const",
+     "C2"
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "(u\u00b7c1)\u00b7c2 = u\u00b7(c1c2) \u2014 the scalar-factor fold (Inductor const-fold).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      },
+      {
+       "mvar": "C1"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    },
+    {
+     "mvar": "C2"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mul_const_assoc_0",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "C3"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-num",
+    "C1"
+   ],
+   [
+    "const-num",
+    "C2"
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "$leaf:C3": [
+    "mul",
+    [
+     "const",
+     "C1"
+    ],
+    [
+     "const",
+     "C2"
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "(u\u00b7c1)\u00b7c2 = u\u00b7(c1c2) \u2014 the scalar-factor fold (Inductor const-fold).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "C1"
+      },
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    },
+    {
+     "mvar": "C2"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mul_const_assoc_1",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "C3"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-num",
+    "C1"
+   ],
+   [
+    "const-num",
+    "C2"
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "$leaf:C3": [
+    "mul",
+    [
+     "const",
+     "C1"
+    ],
+    [
+     "const",
+     "C2"
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "(u\u00b7c1)\u00b7c2 = u\u00b7(c1c2) \u2014 the scalar-factor fold (Inductor const-fold).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "C2"
+    },
+    {
+     "args": [
+      {
+       "mvar": "u"
+      },
+      {
+       "mvar": "C1"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mul_const_assoc_2",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "C3"
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-num",
+    "C1"
+   ],
+   [
+    "const-num",
+    "C2"
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "$leaf:C3": [
+    "mul",
+    [
+     "const",
+     "C1"
+    ],
+    [
+     "const",
+     "C2"
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "(u\u00b7c1)\u00b7c2 = u\u00b7(c1c2) \u2014 the scalar-factor fold (Inductor const-fold).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "C2"
+    },
+    {
+     "args": [
+      {
+       "mvar": "C1"
+      },
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mul_const_assoc_3",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "C3"
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-num",
+    "C1"
+   ],
+   [
+    "const-num",
+    "C2"
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "$leaf:C3": [
+    "add",
+    [
+     "const",
+     "C1"
+    ],
+    [
+     "const",
+     "C2"
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "(u+c1)+c2 = u+(c1+c2) \u2014 the offset fold.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      },
+      {
+       "mvar": "C1"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    },
+    {
+     "mvar": "C2"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "add_const_assoc_0",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "C3"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-num",
+    "C1"
+   ],
+   [
+    "const-num",
+    "C2"
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "$leaf:C3": [
+    "add",
+    [
+     "const",
+     "C1"
+    ],
+    [
+     "const",
+     "C2"
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "(u+c1)+c2 = u+(c1+c2) \u2014 the offset fold.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "C1"
+      },
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    },
+    {
+     "mvar": "C2"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "add_const_assoc_1",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "C3"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-num",
+    "C1"
+   ],
+   [
+    "const-num",
+    "C2"
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "$leaf:C3": [
+    "add",
+    [
+     "const",
+     "C1"
+    ],
+    [
+     "const",
+     "C2"
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "(u+c1)+c2 = u+(c1+c2) \u2014 the offset fold.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "C2"
+    },
+    {
+     "args": [
+      {
+       "mvar": "u"
+      },
+      {
+       "mvar": "C1"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "add_const_assoc_2",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "C3"
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-num",
+    "C1"
+   ],
+   [
+    "const-num",
+    "C2"
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "$leaf:C3": [
+    "add",
+    [
+     "const",
+     "C1"
+    ],
+    [
+     "const",
+     "C2"
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "(u+c1)+c2 = u+(c1+c2) \u2014 the offset fold.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "C2"
+    },
+    {
+     "args": [
+      {
+       "mvar": "C1"
+      },
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "add_const_assoc_3",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "C3"
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-num",
+    "C1"
+   ],
+   [
+    "const-num",
+    "C2"
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "$leaf:C3": [
+    "add",
+    [
+     "const",
+     "C1"
+    ],
+    [
+     "const",
+     "C2"
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "(u\u2212c1)\u2212c2 = u\u2212(c1+c2).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      },
+      {
+       "mvar": "C1"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "sub",
+     "source": "native"
+    },
+    {
+     "mvar": "C2"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "sub_const_sub",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "C3"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-num",
+    "C1"
+   ],
+   [
+    "const-num",
+    "C2"
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "$leaf:C3": [
+    "sub",
+    [
+     "const",
+     "C1"
+    ],
+    [
+     "const",
+     "C2"
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "(c1\u2212u)\u2212c2 = (c1\u2212c2)\u2212u.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "C1"
+      },
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "sub",
+     "source": "native"
+    },
+    {
+     "mvar": "C2"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "sub_const_sub_l",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "C3"
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-num",
+    "C1"
+   ],
+   [
+    "const-num",
+    "C2"
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "$leaf:C3": [
+    "mul",
+    [
+     "const",
+     "C1"
+    ],
+    [
+     "const",
+     "C2"
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "(u/c1)/c2 = u/(c1\u00b7c2).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      },
+      {
+       "mvar": "C1"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "div",
+     "source": "native"
+    },
+    {
+     "mvar": "C2"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "div",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "div_const_div",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "C3"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "div",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-num",
+    "C"
+   ],
+   [
+    "not",
+    [
+     "const-cmp",
+     "C",
+     "==",
+     0
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "$leaf:CI": [
+    "recip",
+    [
+     "const",
+     "C"
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "u/c = u\u00b7(1/c) \u2014 the div\u2192mul strength reduction (the softcap/quant scale's canonical form).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "C"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "div",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "div_const_to_mul",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "CI"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "const-num",
+    "C1"
+   ],
+   [
+    "const-num",
+    "C2"
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "$leaf:C3": [
+    "fdiv",
+    [
+     "const",
+     "C2"
+    ],
+    [
+     "const",
+     "C1"
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "(u/c1)\u00b7c2 = u\u00b7(c2/c1).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      },
+      {
+       "mvar": "C1"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "div",
+     "source": "native"
+    },
+    {
+     "mvar": "C2"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mul_const_div",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "C3"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Commutativity in a symmetric monoidal category: \u03c3 \u2218 (f \u2297 g) = g \u2297 f.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "mvar": "b"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "comm_add",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "b"
+    },
+    {
+     "mvar": "a"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "symmetry"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Hadamard product is commutative (SMC symmetry).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "mvar": "b"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "comm_mul",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "b"
+    },
+    {
+     "mvar": "a"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "symmetry"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Associativity of sequential composition in a category.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      },
+      {
+       "mvar": "c"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "assoc_add",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    },
+    {
+     "mvar": "c"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "symmetry"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Associativity of parallel composition in a monoidal category.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      },
+      {
+       "mvar": "c"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "assoc_mul",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    },
+    {
+     "mvar": "c"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "symmetry"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Additive identity: a + 0 = a.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "const": 0
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "id_add",
+  "rhs": {
+   "mvar": "a"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Multiplicative identity: a * 1 = a.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "const": 1
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "id_mul",
+  "rhs": {
+   "mvar": "a"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Double negation: \u00ac\u00aca = a (involution).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "neg",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "neg",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "double_neg",
+  "rhs": {
+   "mvar": "a"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Subtraction as addition of inverse: a - b = a + (-b).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "mvar": "b"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "sub_to_add",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "neg",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "SiLU definition: silu(x) = x \u00b7 \u03c3(x).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "silu",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "silu_expand",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "sigmoid",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "The manual-silu fold: x \u00b7 \u03c3(x) = silu(x) \u2014 the definitional inverse of silu_expand, and the mediating 3-cell of the silu_expand/silu_mul_form \u00d7 swiglu_fuse critical pairs.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "sigmoid",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "silu_fold",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "silu",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "SwiGLU: silu(g)*u = (g*sigmoid(g))*u (factor for prefix sharing).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "g"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "silu",
+     "source": "native"
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "silu_mul_form",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "g"
+      },
+      {
+       "args": [
+        {
+         "mvar": "g"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "sigmoid",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "x / (|x| + 1) = softsign(x) \u2014 the bounded rational map, written as a three-op decomposed spelling, folds into the one kernel.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "mvar": "x"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "abs",
+       "source": "native"
+      },
+      {
+       "const": 1
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "div",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "softsign_fold",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "softsign",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Self-composition: x\u00b2 = x \u00b7 x.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "square",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "square_expand",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "pow(x, 2) \u2261 square(x) \u2261 x\u00b7x (SwiGLU/RMSNorm bridge).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "const": 2
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "pow",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "pow_to_square",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "square",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Reverse: square(x) \u2261 pow(x, 2) for shape/cost reasons.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "square",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "square_to_pow",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "const": 2
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "pow",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "x\u00b7x = square(x): the mul spelling of x\u00b2 folds to the unary kernel \u2014 the definitional inverse of square_expand.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mul_square",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "square",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "const-cmp",
+   "ONE",
+   "==",
+   1
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "1 / sqrt(x) = rsqrt(x): the two-op reciprocal-root spelling folds to the dispatched kernel \u2014 the canonical form the RMSNorm fold's pattern pins.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "ONE"
+    },
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "sqrt",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "div",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "div_sqrt_to_rsqrt",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "rsqrt",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "const-cmp",
+   "P",
+   "==",
+   -0.5
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "pow(x, -0.5) = rsqrt(x): the negative-half-power spelling folds to the dispatched kernel \u2014 the same canonicalization as div_sqrt_to_rsqrt one op-family over.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "P"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "pow",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "pow_to_rsqrt",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "rsqrt",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "reciprocal(sqrt(x)) = rsqrt(x): the exported ``1/sqrt`` spelling \u2014 aten lowers scalar-over-tensor div to reciprocal \u2014 folds to the same canonical kernel.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "sqrt",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "reciprocal",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "recip_sqrt_to_rsqrt",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "rsqrt",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "(a/b)\u00b7c = (a\u00b7c)/b \u2014 pointwise div/mul naturality, exact for any broadcast (the decay-weighted score's scale slides out of the product).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "div",
+     "source": "native"
+    },
+    {
+     "mvar": "c"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mul_div_swap",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "c"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    },
+    {
+     "mvar": "b"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "div",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "simplification"
+  ],
+  "version": 2
+ }
+]

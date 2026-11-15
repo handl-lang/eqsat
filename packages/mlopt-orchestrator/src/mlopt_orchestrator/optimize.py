@@ -371,6 +371,14 @@ def _resolve_engine(engine: Any) -> Any:
     """
     if engine is None:
         return EGraph()
+    if isinstance(engine, str) and engine == "eqsat":
+        # ADR-0178 WP3: the engine-eqsat (Rust) search interpretation
+        # behind the same Engine port — explicit opt-in only, resolved
+        # lazily so importing the orchestrator never requires the
+        # eqsat-run binary.
+        from mlopt_orchestrator.eqsat import EqsatEngine
+
+        return EqsatEngine()
     if isinstance(engine, type) or not hasattr(engine, "add_term"):
         engine = engine()
     return engine
@@ -638,7 +646,10 @@ def search(
         factory conforming to :class:`mlopt_core.ports.Engine`.
         ``None`` uses the pure-Python reference ``EGraph``.  The
         optional native accelerator is
-        ``mlopt_native.NativeEngine`` — engines are never
+        ``mlopt_native.NativeEngine``; the engine-eqsat (Rust)
+        interpretation is ``engine="eqsat"``
+        (:class:`mlopt_orchestrator.eqsat.EqsatEngine`, ADR-0178
+        WP3) — engines are never
         auto-detected, and ``stats["engine"]`` records which ran.
         The engine port covers the *search* only: the non-local
         pairing/lift passes (which mutate through the proof-carrying
@@ -1466,10 +1477,11 @@ class Optimizer:
     #: to the composed :data:`DEFAULT_RULES` at search time.
     rules: RuleSet | str | Iterable | None = None
     #: The default saturation engine — ``None`` uses the pure-Python
-    #: reference ``EGraph``; an instance, class, or zero-arg factory
-    #: conforming to :class:`mlopt_core.ports.Engine` (e.g.
-    #: ``mlopt_native.NativeEngine``) selects explicitly.  Never
-    #: auto-detected.
+    #: reference ``EGraph``; an instance, class, zero-arg factory, or
+    #: the ``"eqsat"`` name (engine-eqsat, ADR-0178 WP3) conforming to
+    #: :class:`mlopt_core.ports.Engine` (e.g.
+    #: ``mlopt_native.NativeEngine`` / ``EqsatEngine``) selects
+    #: explicitly.  Never auto-detected.
     engine: Any = None
     #: The default placement/refusal policy (Phase B) — a
     #: :class:`~mlopt_core.ports.DevicePolicy`-shaped value.  ``None``
