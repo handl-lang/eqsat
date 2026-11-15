@@ -712,7 +712,35 @@ def _infer_op_shape(op: Op, memo: dict | None = None):
             return tuple(x for i, x in enumerate(base) if i != d)
         case "expand" | "broadcast_to":
             s = op.attrs.get("shape")
-            return tuple(s) if s is not None else shapes[0]
+            if s is None:
+                return shapes[0]
+            s = tuple(s)
+            # torch's ``expand`` right-aligns the target shape against
+            # the input's trailing dims and a ``-1`` target dim keeps
+            # the input extent (``x.expand(B, -1)`` — the kokoro
+            # ``_M1Wrap`` respell).  Resolve ``-1`` here against the
+            # input shape: propagating the attr verbatim leaks a
+            # negative dim that ``TensorType`` rejects downstream
+            # (``xcarrier._xshape_rec`` crash).  A ``-1`` in a leading
+            # position has no input dim to keep, and any other
+            # negative is not a legal extent — both are provably
+            # ill-typed.  Unresolvable ``-1`` (unknown input dim)
+            # degrades to a ``None`` dim, never a negative one.
+            if any(isinstance(d, int) and d < 0 for d in s):
+                base = cast("tuple", shapes[0])
+                resolved = []
+                for j, d in enumerate(s):
+                    if d == -1:
+                        k = j - (len(s) - len(base))
+                        if not 0 <= k < len(base):
+                            return _INVALID
+                        resolved.append(base[k])
+                    elif isinstance(d, int) and d < 0:
+                        return _INVALID
+                    else:
+                        resolved.append(d)
+                return tuple(resolved)
+            return s
         case "repeat":
             # repeat(*sizes): leading dims are new, each covered dim
             # multiplies its extent.  Not a view — materialises.

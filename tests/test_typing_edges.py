@@ -139,6 +139,45 @@ SHAPE_CASES = [
         _INVALID,
         id="reshape/minus-one-ambiguous-invalid",
     ),
+    # --- expand / broadcast_to ------------------------------------------
+    # torch expand's -1 keeps the input extent, right-aligned against
+    # the input's trailing dims (kokoro ``_M1Wrap`` respell
+    # ``x.expand(B, -1)`` — the verbatim attr leaked a negative dim
+    # that TensorType rejects downstream).
+    pytest.param(
+        Op.make("expand", _v("x", 1, 42), shape=(8, -1)),
+        (8, 42),
+        id="expand/minus-one-keeps-input-dim",
+    ),
+    pytest.param(
+        Op.make("broadcast_to", _v("x", 1, 42), shape=(8, -1)),
+        (8, 42),
+        id="broadcast_to/minus-one-keeps-input-dim",
+    ),
+    # -1 against an unknown input dim stays unknown, never negative.
+    pytest.param(
+        Op.make("expand", _v("x", 1, None), shape=(8, -1)),
+        (8, None),
+        id="expand/minus-one-unknown-input-dim",
+    ),
+    # -1 in a leading position has no input dim to keep — ill-typed.
+    pytest.param(
+        Op.make("expand", _v("v", 3), shape=(-1, 4)),
+        _INVALID,
+        id="expand/minus-one-leading-invalid",
+    ),
+    # Any other negative extent is not a legal expand size.
+    pytest.param(
+        Op.make("expand", _v("x", 1, 42), shape=(8, -2)),
+        _INVALID,
+        id="expand/minus-two-invalid",
+    ),
+    # No shape attr -> the input shape answers.
+    pytest.param(
+        Op.make("expand", x234),
+        (2, 3, 4),
+        id="expand/no-shape-attr",
+    ),
     # --- squeeze / unsqueeze ------------------------------------------
     pytest.param(
         Op.make("squeeze", _v("v", 2, 1, 4), dim=1),
