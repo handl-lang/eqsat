@@ -240,8 +240,11 @@ def test_laws_exports_every_rewrite():
     # + 1 auto-admitted prim:synop_* fold + 1 synop_*.expand premise
     # (the AUTO_TIER record ``synop_6ed0a07c7d`` — same shipped
     # convention: fold in DEFAULT, premise as cert-leg axiom only)
+    # + 2 more AUTO_TIER admits (mint r4 — ``synop_f0576b5150`` and
+    # ``synop_0b304215b3``, graphopt docs/reports/realcorpus_mint_r4.md):
+    # 2 folds + 2 premises.
     # rewrites.
-    assert len(found) == 600
+    assert len(found) == 604
 
 
 def test_all_rules_count_unchanged():
@@ -253,15 +256,16 @@ def test_all_rules_count_unchanged():
     # attached, never as saturation rules) — + the 2 depth-2
     # ``prim:synop2_*`` folds (the ``--prim-bootstrap`` mint)
     # + the 34 depth-3 ``prim:synop3_*`` folds (the
-    # ``--prim-vocab`` run) + the 1 auto-admitted ``prim:synop_*``
-    # fold (``synop_6ed0a07c7d`` — the ``--auto-admit`` promotion,
+    # ``--prim-vocab`` run) + 3 auto-admitted ``prim:synop_*`` folds
+    # (``synop_6ed0a07c7d`` — the ``--auto-admit`` promotion — plus
+    # the mint-r4 pair ``synop_f0576b5150`` / ``synop_0b304215b3``,
     # AUTO_TIER).
-    assert len(laws.all_rules()) == 144
+    assert len(laws.all_rules()) == 146
     assert laws.all_rules() == laws.ALL_RULES
     assert len(laws.ALL_RULES) == (
         len(laws.SIMPLIFICATION_RULES) + len(laws.CATEGORICAL_RULES)
     )
-    assert len(laws.ALL_RULES_WITH_LAYOUT) == 221
+    assert len(laws.ALL_RULES_WITH_LAYOUT) == 223
     # each call returns a fresh list, not the shared ALL_RULES object
     assert laws.all_rules() is not laws.ALL_RULES
 
@@ -278,8 +282,9 @@ def test_collections_split_by_domain():
     # + the 21 ``prim:synop_*`` folds (the zoo-prim mint, MINTED_RULES)
     # + the 2 depth-2 ``prim:synop2_*`` folds (the bootstrap mint)
     # + the 34 depth-3 ``prim:synop3_*`` folds (the vocab run)
-    # + the 1 auto-admitted ``prim:synop_*`` fold (AUTO_TIER).
-    assert len(laws.CATEGORICAL_RULES) == 109
+    # + 3 auto-admitted ``prim:synop_*`` folds (AUTO_TIER — the
+    # ``synop_6ed0a07c7d`` promotion plus the mint-r4 pair).
+    assert len(laws.CATEGORICAL_RULES) == 111
     assert len(laws.SCAN_LAWS) == 6
     assert len(laws.SCAN_DIAG_LAWS) == 16
     # layout: 12 unary + 4 binary pointwise commutations x 2 spellings
@@ -405,11 +410,12 @@ def test_axiom_lemma_marker_covers_all_rules():
     # + ``add_unsq_pad_r``: the real-corpus auto-cond admission carries
     # no derivation — an axiom like the other pad strips.
     # + the 21 ``prim:synop_*`` folds + 2 ``prim:synop2_*`` folds
-    # + 34 ``prim:synop3_*`` folds + the 1 auto-admitted
-    # ``prim:synop_*`` fold: axioms by the same convention —
+    # + 34 ``prim:synop3_*`` folds + 3 auto-admitted
+    # ``prim:synop_*`` folds (``synop_6ed0a07c7d`` plus the mint-r4
+    # pair): axioms by the same convention —
     # each carries its ``synop*_*.expand`` definitional premise as
     # ``rule.premises``, not a shipped ``derivation``.
-    assert len(kinds["axiom"]) == 120
+    assert len(kinds["axiom"]) == 122
     assert len(kinds["lemma"]) == 22
     assert len(kinds["redundant"]) == 2
     # the redundant kind rides on the tags.REDUNDANT constant

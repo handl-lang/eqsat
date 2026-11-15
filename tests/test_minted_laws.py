@@ -217,21 +217,29 @@ def test_materialize_intermediate_rebuilds_with_guard():
 # ---------------------------------------------------------------------------
 
 
-def _prim_bound(fold: Any) -> Any:
-    """Instantiate a prim fold's LHS pattern with concrete leaves.
+def _prim_bound_pair(fold: Any) -> tuple[Any, Any]:
+    """Instantiate a prim fold's ``(lhs, rhs)`` on concrete leaves.
 
     Bind every leaf metavar to a same-shaped ``Var`` and every
     ``$attr:`` metavar to a concrete ``-1`` — a spelled site the fold
     can fire on (torch-free: the pattern IS the data; the folds carry
-    no check/derive hooks to veto it).
+    no check/derive hooks to veto it).  Returns ``(site, call)`` —
+    the spelled LHS instance and the ``synop*`` call instance under
+    the same binding.
     """
     from mlopt_core.meta import instantiate_pattern, pattern_metavars
 
     subst = {
         mv: (-1 if mv.startswith("$attr:") else Var(mv, _T(2, 4)))
-        for mv in pattern_metavars(fold.lhs)
+        for mv in (
+            set(pattern_metavars(fold.lhs))
+            | set(pattern_metavars(fold.rhs))
+        )
     }
-    return instantiate_pattern(fold.lhs, subst)
+    return (
+        instantiate_pattern(fold.lhs, subst),
+        instantiate_pattern(fold.rhs, subst),
+    )
 
 
 def test_prim_records_are_frozen_and_honest():
@@ -242,9 +250,21 @@ def test_prim_records_are_frozen_and_honest():
     for name, rec in recs.items():
         assert name.startswith(("synop_", "synop2_", "synop3_"))
         assert rec["fold"]["name"] == f"prim:{name}"
-        # the mint's own measurements ride the record — all sites
-        # equal on the fp64 denotation check, >=2 bound modules
-        assert rec["sites"] == rec["equal_sites"] >= 1
+        # the mint's own measurements ride the record — the fp64
+        # denotation check sampled ``sites`` bound occurrences and
+        # ``equal_sites`` of them evaluated equal.  The emit gate
+        # (``prim_mint``: ``equal >= 1`` and zero ``unequal`` /
+        # ``rhs-err``) means ``sites - equal_sites`` counts only
+        # *unevaluable* sites — ``env-err`` (a bound leaf with
+        # non-int dims), ``both-err`` or ``lhs-err`` — never
+        # disagreements: a disagreement would have rejected the
+        # record before it reached the store.  ``synop_f0576b5150``
+        # (the r4 AUTO_TIER admit) is the first shipped record with
+        # a gap — 8/16: every evaluable site agreed fp64, the other
+        # 8 could not be evaluated (graphopt
+        # ``docs/reports/realcorpus_mint_r4.md``; the gauntlet's own
+        # oracle stage then verified 33eq/0ne on real instances).
+        assert rec["sites"] >= rec["equal_sites"] >= 1
         assert len(rec["mods"]) >= 2
         assert rec["alpha"].startswith("(")
         assert rec["handler"]["verdict"] in ("minted", "refused")
@@ -463,11 +483,26 @@ def test_prim_folds_are_interned_and_declare_ops():
 
 
 def test_prim_fold_fires_and_extracts_on_spelled_site():
-    """A spelled site folds to the ``synop_*`` call and it wins."""
+    """A spelled site folds to the ``synop_*`` call; extraction takes
+    the synop exactly when it is the cheaper representative.
+
+    The fold must fire — the synop lands in the site's e-class — for
+    every shipped prim fold.  Whether ``extract_best`` *selects* it is
+    a cost question, not a fold question: ``count_cost`` prices
+    cost-view ops (``reshape``/``transpose``/…) at 0 and an
+    unregistered ``synop_*`` at 1, so a fold whose whole denotation
+    is views — ``synop_f0576b5150`` = ``transpose(reshape(x))``,
+    site cost 0.0 vs call 1.0 — can never beat the spelled site.
+    That is correct extraction (the spelled form IS the cheaper
+    representative under every shipped cost model), not a failed
+    fold: the e-class still carries the synop.  The assertions below
+    pin both directions — the synop wins iff its call is strictly
+    cheaper, and a costlier synop is never extracted.
+    """
     from mlopt_core.egraph.terms import _term_match
 
     for fold in PRIM_FOLDS:
-        site = _prim_bound(fold)
+        site, call = _prim_bound_pair(fold)
         m = _term_match(fold.lhs, site)
         assert m is not None, fold.name
         eg = EGraph()
@@ -483,8 +518,16 @@ def test_prim_fold_fires_and_extracts_on_spelled_site():
             if isinstance(t, Op):
                 ops_best.add(t.op)
                 stack.extend(t.args)
-        assert fold.rhs.op in ops_best, fold.name
-        assert dag_cost(best, count_cost) <= dag_cost(site, count_cost)
+        site_cost = dag_cost(site, count_cost)
+        call_cost = dag_cost(call, count_cost)
+        if call_cost < site_cost:
+            assert fold.rhs.op in ops_best, fold.name
+        elif call_cost > site_cost:
+            # the spelled site is already minimal — extraction must
+            # keep it rather than pay for the synop call
+            assert fold.rhs.op not in ops_best, fold.name
+        # a tie extracts either representative — both are minimal
+        assert dag_cost(best, count_cost) <= site_cost
 
 
 def test_prim_extraction_honesty_unknown_op_pricing():

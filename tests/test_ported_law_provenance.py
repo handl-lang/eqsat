@@ -78,12 +78,14 @@ def test_machine_shipped_is_exactly_the_promotion_table():
     assert shipped_names.isdisjoint(_PRIM_PREMISE_NAMES)
     assert shipped_names >= MACHINE_SHIPPED - _PRIM_PREMISE_NAMES
     # 73 human-authored + 13 promoted + 21 prim folds + 2 depth-2
-    # prim folds + 34 depth-3 prim folds + 1 auto-admitted prim fold
+    # prim folds + 34 depth-3 prim folds + 3 auto-admitted prim folds
     # (``synop_6ed0a07c7d`` — the ``--auto-admit`` promotion,
-    # docs/reports/results_overnight_prim_auto_admit.md) = the
-    # 144-rule library (``add_unsq_pad_r`` — the auto-cond candidate
+    # docs/reports/results_overnight_prim_auto_admit.md — plus the
+    # mint-r4 pair ``synop_f0576b5150`` / ``synop_0b304215b3``,
+    # graphopt docs/reports/realcorpus_mint_r4.md) = the
+    # 146-rule library (``add_unsq_pad_r`` — the auto-cond candidate
     # admitted off the real-corpus funnel, docs/results_realcorpus.md).
-    assert len(ALL_RULES) == 144
+    assert len(ALL_RULES) == 146
     assert len(shipped_names - MACHINE_SHIPPED) == 73
 
 def test_machine_stored_objects_are_unshipped_names():

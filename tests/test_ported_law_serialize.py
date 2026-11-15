@@ -185,7 +185,7 @@ def test_serializability_census_of_shipped_library():
             need_derive.append(rule.name)
         else:
             need_check.append((rule.name, missing))
-    assert len(ALL_RULES) == 144
+    assert len(ALL_RULES) == 146
     # the authored library stays full-data: the four stragglers went
     # declarative in stage 0 of plan 0017 — glu_fold's parity on a
     # dim-mod predicate, the rms pair's trailing block on the
@@ -199,9 +199,9 @@ def test_serializability_census_of_shipped_library():
     # ``prim:synop_*`` folds join the full-data majority — pure
     # pattern records, no hooks at all; the 2 depth-2
     # ``prim:synop2_*`` + 34 depth-3 ``prim:synop3_*`` folds are the
-    # same class — as is the auto-admitted ``prim:synop_*`` fold
+    # same class — as are the 3 auto-admitted ``prim:synop_*`` folds
     # (AUTO_TIER).
-    assert len(full) == 143
+    assert len(full) == 145
     assert transported == ["conv_bn_fold"]
     assert need_derive == []
     assert need_check == []
@@ -273,12 +273,12 @@ def test_law_record_roundtrip_rewrite_equality_unguarded():
             rebuilt = law_from_data(_json_roundtrip(law_to_data(rule)))
             assert rebuilt == rule, rule.name
             n += 1
-    # 84 = 26 hook-free bank laws + the 21 ``prim:synop_*`` folds +
+    # 86 = 26 hook-free bank laws + the 21 ``prim:synop_*`` folds +
     # the 2 depth-2 ``prim:synop2_*`` folds + the 34 depth-3
-    # ``prim:synop3_*`` folds + the 1 auto-admitted ``prim:synop_*``
-    # fold (pure pattern records — no check/derive anywhere in the
+    # ``prim:synop3_*`` folds + the 3 auto-admitted ``prim:synop_*``
+    # folds (pure pattern records — no check/derive anywhere in the
     # family)
-    assert n == 84
+    assert n == 86
 
 def test_law_record_flagged_hooks_drop_on_rebuild():
     """A check/derive law stores pattern+cond, flagged honestly."""

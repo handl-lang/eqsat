@@ -190,7 +190,7 @@ def test_preset_contents():
     assert (
         len(laws.FUSION)
         == sum(1 for r in all_rules() if tags.FUSION in r.tags)
-        == 79  # 21 bank fusion laws + the 58 prim:synop*/synopN_* folds
+        == 81  # 21 bank fusion laws + the 60 prim:synop*/synopN_* folds
     )
     assert {r.name for r in laws.SYMMETRY} == SYMMETRY_NAMES
     # CARRIERS names the carrier-package families — empty core-side;
