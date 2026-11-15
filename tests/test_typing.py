@@ -425,13 +425,62 @@ def test_partial_unknown_shape_not_operand0():
     assert _shape_of(Op.make("linear", known, unknown)) is None
     assert _shape_of(Op.make("concat", known, unknown, dim=0)) is None
     assert _shape_of(Op.make("select", known, unknown)) is None
-    # Broadcast / shape-preserving ops keep the operand-0 answer —
-    # the unknown sibling is a wildcard under ``_broadcast``.
-    assert _shape_of(Op.make("add", known, unknown)) == (4, 8)
-    assert _shape_of(Op.make("sub", known, unknown)) == (4, 8)
+    # Broadcast binaries ALSO decline: their output is the broadcast
+    # of EVERY operand and can exceed the known one, so a ``None``
+    # sibling means genuinely unknown — borrowing the known shape
+    # fabricates a too-small concrete shape (the kokoro
+    # ``transpose_noop`` miscompile: an LSTM-unknown F0 path
+    # inferred ``(1, 1, 1)`` and a required transpose was proven a
+    # no-op and deleted).
+    assert _shape_of(Op.make("add", known, unknown)) is None
+    assert _shape_of(Op.make("sub", known, unknown)) is None
+    assert _shape_of(Op.make("add", unknown, known)) is None
+    assert _shape_of(Op.make("mul", known, unknown)) is None
+    # Shape-preserving unary ops keep the operand-0 answer.
+    assert _shape_of(Op.make("neg", known)) == (4, 8)
     assert _shape_of(
-        Op.make("neg", Op.make("add", known, unknown))
-    ) == (
-        4,
-        8,
+        Op.make("relu", Op.make("transpose", known, dim0=0, dim1=1))
+    ) == (8, 4)
+
+
+def test_broadcast_binop_unknown_operand_declines():
+    """Kokoro ``transpose_noop`` miscompile regression.
+
+    The F0Ntrain→decoder term carried ``mul(style_param(1,256,1),
+    lstm_output)`` where the LSTM output's shape is unshapeable
+    (``None``).  The partial-unknown fallback reported the param's
+    ``(1, 256, 1)``; the ``conv1d`` then inferred ``(1, 1, 1)``, the
+    ``upsample``/``squeeze``/``unsqueeze`` chain propagated it, and
+    ``transpose(1, 2)`` on the fabricated ``(1, 1, 1)`` satisfied
+    ``axes-noop`` ("both swapped extents are 1") — so the law deleted
+    a REQUIRED transpose and the delivered module crashed on
+    ``multiply (1,1,38400) x (1,1,9)``.  With the fallback removed
+    the whole chain stays ``None`` and the guard declines.
+    """
+    unknown = Op.make(
+        "einsum",
+        a=Param("w", TensorType((2, 2))),
+        b=Param("v", TensorType((2, 2))),
+        equation="ij,jk->ik",
+    )
+    assert _shape_of(unknown) is None
+    fused = Op.make("mul", Param("g", TensorType((1, 256, 1))), unknown)
+    assert _shape_of(fused) is None
+    conv = Op.make(
+        "conv1d",
+        fused,
+        Param("cw", TensorType((1, 256, 1))),
+        Param("cb", TensorType((1,))),
+        stride=(1,),
+        padding=(0,),
+    )
+    assert _shape_of(conv) is None
+    tr = Op.make("transpose", conv, dim0=1, dim1=2)
+    assert _shape_of(tr) is None
+    # The guard that fired wrongly now declines on the unknown shape.
+    from mlopt_core.laws.cond import eval_cond
+
+    assert not eval_cond(
+        ("axes-noop", "u", "D0", "D1"),
+        {"u": conv, "$attr:D0": 1, "$attr:D1": 2},
     )

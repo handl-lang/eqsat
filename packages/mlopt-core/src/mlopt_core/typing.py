@@ -60,7 +60,6 @@ from typing import Any, cast
 
 from mlopt_core.attrs import attr_of, is_positional_attr
 from mlopt_core.ir import Const, Op, Param, Var
-from mlopt_core.opmeta import COMMUTATIVE_OPS
 from mlopt_core.traversal import postorder
 
 #: The public shape-inference surface.  The underscore-prefixed names
@@ -175,31 +174,18 @@ def _shape_node(term: Any, memo: dict):
     return None
 
 
-#: Ops whose result shape is invariant under operand swap — used to
-#: keep unknown-shape pricing symmetric for ``add``/``mul``/``eq``/``ne``.
-#: A projection of :mod:`mlopt_core.opmeta` (the ``commutative`` tag).
-_COMMUTATIVE_BROADCAST = COMMUTATIVE_OPS
-
-#: Ops whose result shape IS operand 0's shape no matter what the
-#: other operands' shapes are.  This is the *only* set the
-#: partial-unknown early return in :func:`_infer_op_shape` may answer
-#: ``shapes[0]`` for: returning it for any other op fabricates a
-#: shape — ``matmul(x, ?)`` is not ``x.shape``, ``concat`` grows the
-#: cat axis, ``select`` drops one.  Membership mirrors the ``match``
-#: arms below that return ``shapes[0]`` (or a broadcast that
-#: degenerates to it when the sibling operands are unknown):
-#: elementwise/broadcast binaries, the shape-preserving unary
-#: family, the axis-anchored in-place-shape family, and the explicit
-#: arg0-passthroughs.  Everything else — ``matmul``/``linear``/
-#: ``concat``/views/reductions/carrier rules — must see ``None``
-#: (unknown), never a borrowed operand-0 shape.  When a new
-#: shape-preserving op is added to the ``match`` it belongs here too;
-#: the failure direction for a missing entry is ``None`` (honest
-#: unknown), never a wrong shape.
-_ARG0_SHAPE_OPS = frozenset(
+#: Broadcast binaries — the ``_broadcast`` match arms: the output
+#: shape is the broadcast of EVERY operand, so it can exceed any one
+#: known operand's shape.  A ``None`` (unknown) sibling therefore
+#: means the result is genuinely unknown: borrowing a known operand's
+#: shape fabricates a too-small *concrete* shape that downstream
+#: shape-guards then trust as proof — the kokoro ``transpose_noop``
+#: miscompile (an LSTM-unknown F0 path inferred ``(1, 1, 1)`` and a
+#: required ``transpose(1, 2)`` was proven a semantic no-op and
+#: deleted).  These ops decline to ``None`` on ANY unknown operand
+#: and are excluded from ``_ARG0_SHAPE_OPS``.
+_BROADCAST_BINOPS = frozenset(
     {
-        # Elementwise / broadcast binaries (the ``_broadcast`` arms):
-        # with one operand unknown the broadcast IS the known shape.
         "add",
         "mul",
         "sub",
@@ -226,6 +212,28 @@ _ARG0_SHAPE_OPS = frozenset(
         "logical_xor",
         "bitwise_and",
         "bitwise_or",
+    }
+)
+
+#: Ops whose result shape IS operand 0's shape no matter what the
+#: other operands' shapes are.  This is the *only* set the
+#: partial-unknown early return in :func:`_infer_op_shape` may answer
+#: ``shapes[0]`` for: returning it for any other op fabricates a
+#: shape — ``matmul(x, ?)`` is not ``x.shape``, ``concat`` grows the
+#: cat axis, ``select`` drops one.  Membership mirrors the ``match``
+#: arms below that return ``shapes[0]`` (or a broadcast that
+#: degenerates to it when the sibling operands are unknown):
+#: the shape-preserving unary family, the axis-anchored
+#: in-place-shape family, and the explicit arg0-passthroughs —
+#: broadcast binaries live in ``_BROADCAST_BINOPS`` instead.
+#: Everything else — ``matmul``/``linear``/
+#: ``concat``/views/reductions/carrier rules — must see ``None``
+#: (unknown), never a borrowed operand-0 shape.  When a new
+#: shape-preserving op is added to the ``match`` it belongs here too;
+#: the failure direction for a missing entry is ``None`` (honest
+#: unknown), never a wrong shape.
+_ARG0_SHAPE_OPS = frozenset(
+    {
         # Shape-preserving elementwise family (``return shapes[0]``).
         "square",
         "sqrt",
@@ -343,6 +351,16 @@ def _infer_op_shape(op: Op, memo: dict | None = None):
     if any(s is _INVALID for s in shapes):
         return _INVALID
     if not shapes or any(s is None for s in shapes):
+        # Broadcast binaries FIRST: their output is ``_broadcast`` of
+        # every operand and can exceed any known operand's shape, so
+        # a ``None`` sibling means genuinely unknown — never a
+        # borrowed (too-small) shape.  This is the kokoro
+        # ``transpose_noop`` miscompile fix: ``mul``/``add`` over an
+        # LSTM-unknown operand used to report the param's
+        # ``(1, 256, 1)``, which cascaded into a fabricated ``(1, 1, 1)``
+        # transpose operand and a false ``axes-noop`` proof.
+        if op.op in _BROADCAST_BINOPS:
+            return None
         # Operand 0's shape answers ONLY for ops whose output shape is
         # provably operand 0's (``_ARG0_SHAPE_OPS``): for ``matmul``/
         # ``concat``/``select``/carrier rules it would fabricate a
@@ -354,13 +372,6 @@ def _infer_op_shape(op: Op, memo: dict | None = None):
             and op.op in _ARG0_SHAPE_OPS
         ):
             return shapes[0]
-        # Commutative element-wise ops are operand-symmetric: with the
-        # first shape unknown, fall back to whichever operand shape IS
-        # known, so add(a, b) and add(b, a) price identically.
-        if op.op in _COMMUTATIVE_BROADCAST:
-            for s in shapes:
-                if s is not None:
-                    return s
         return None
     if rule is not None:
         return rule(op, shapes)

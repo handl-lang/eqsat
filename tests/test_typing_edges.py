@@ -58,10 +58,13 @@ unknown = Op.make("transpose", scalar)
 
 SHAPE_CASES = [
     # --- mixed-shape early return -------------------------------------
-    # A None operand under a shaped one: the first shape survives.
+    # A None operand under a shaped one: broadcast binaries decline —
+    # the output can exceed the known operand, so borrowing its shape
+    # would fabricate a too-small concrete shape (kokoro
+    # ``transpose_noop`` miscompile).
     pytest.param(
         Op.make("add", x234, unknown),
-        (2, 3, 4),
+        None,
         id="mixed/first-shaped",
     ),
     pytest.param(
