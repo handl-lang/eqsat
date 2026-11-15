@@ -19,7 +19,12 @@ The eqsat substrate for the mlopt game — extracted from
 - `packages/mlopt-orchestrator` — the backend-neutral pipeline
   (`mlopt_orchestrator` — `search`, `lower`, `Optimizer`, strategies
   `Monolithic`/`Compositional`/`Autotuned`, criteria family).  Renames
-  to `pipeline` in a later phase; the name is kept for now.
+  to `pipeline` in a later phase; the name is kept for now.  The
+  default `engine=` is `"eqsat"` — the engine-eqsat (Rust) search
+  behind the `eqsat-run` CLI bridge (`mlopt_orchestrator.eqsat`,
+  WP4 parity sweep v4 GO); `engine="python-egraph"` opts back into
+  the reference `EGraph`, and a missing `eqsat-run` binary is a
+  named `EqsatUnavailableError`, never a silent fallback.
 - `packages/mlopt-native` — the optional PyO3/Rust search engine
   behind `engine=` (`mlopt_native.NativeEngine`).  Excluded from the
   uv workspace; build with `maturin develop --release` from
