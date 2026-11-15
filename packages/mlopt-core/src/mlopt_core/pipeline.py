@@ -31,10 +31,21 @@ Port needs by phase
 
 :class:`Backend` (plan 0007) is the immutable bundle of the four
 backend ports — ``source`` / ``sink`` / ``composer`` / ``meter`` — the
-orchestrator consumes.  It is a *plain value*: no registry, no
-``register_backend``, no ``default_backend`` — a caller assembles or
-imports one explicitly (e.g. ``mlopt_torch.backend.TorchBackend()``)
-and passes it to ``Optimizer(backend=...)``.
+orchestrator consumes.  It is a *plain value*: constructing it
+performs no registration and selects no defaults — a caller assembles
+or imports one explicitly (e.g.
+``mlopt_torch.backend.TorchBackend()``) and passes it to
+``Optimizer(backend=...)``.
+
+*Which* backends exist is recorded separately, in
+:mod:`mlopt_core.backends` (plan 0037): the
+:class:`~mlopt_core.backends.BackendRegistry` seats
+:class:`~mlopt_core.backends.BackendRegistration` declarations —
+source factory, named sink targets, optional composer/meter/
+device-policy, and the phase-0/2 reserved ``oracle`` /
+``cost_profile`` slots — without this module importing any backend.
+The registry answers "what can I get"; ``Backend`` remains the
+"here is the value" half, assembled per use.
 """
 
 from __future__ import annotations

@@ -86,7 +86,10 @@ and each carrier module's ``TORCH_BINDINGS`` entries are
 ``Composer`` / ``Meter``; ``mlopt_torch.backend.TorchBackend``
 bundles the four into the immutable
 :dataclass:`~mlopt_core.pipeline.Backend` value the orchestrator
-consumes.  ``ops.OpTable`` is the
+consumes.  Which backends exist at all is the registry's business —
+:mod:`mlopt_core.backends` (plan 0037) seats
+:class:`~mlopt_core.backends.BackendRegistration` declarations from
+the backend side without importing any of them.  ``ops.OpTable`` is the
 adapter *registry* — it composes the adapters and is already the right
 shape, so ``OpRegistry`` describes its surface rather than re-wrapping
 it.  The ambient ``torch_bridge._IR_TO_TORCH`` dict remains the live
