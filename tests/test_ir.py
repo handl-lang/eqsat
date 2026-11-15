@@ -1,5 +1,7 @@
 """Tests for the IR / term algebra."""
 
+import json
+
 import pytest
 from mlopt_core.ir import (
     IR,
@@ -12,6 +14,8 @@ from mlopt_core.ir import (
     op_def,
     op_repr,
     op_repr_dag,
+    term_from_data,
+    term_to_data,
 )
 
 
@@ -317,3 +321,98 @@ def test_op_repr_dag_shared_leaf_stays_inline():
     s = op_repr_dag(t)
     assert "(#0 (matmul x, W))" in s
     assert s == "(let ((#0 (matmul x, W))) (add #0, #0))"
+
+
+# ---------------------------------------------------------------------------
+#  term_to_data / term_from_data — the dag.program envelope
+# ---------------------------------------------------------------------------
+
+
+def _shared_chain(depth: int) -> Op:
+    """``t_{i+1} = add(t_i, t_i)`` — tree size 2**depth - 1."""
+    x = Var("x", TensorType((1, 4)))
+    t: Op | Var = x
+    for _ in range(depth):
+        t = Op.make("add", t, t)
+    return t  # type: ignore[return-value]
+
+
+def test_term_to_data_small_shared_term_stays_tree():
+    """Sharing below the expansion budget keeps the classic tree form —
+    consumers that walk the encoding structurally see no new shape."""
+    f = Op.make("neg", Var("x", TensorType((1, 4))))
+    t = Op.make("add", f, f)
+    d = term_to_data(t)
+    assert "op" in d and "__tag__" not in d
+    assert term_from_data(json.loads(json.dumps(d))) == t
+
+
+def test_term_to_data_dag_envelope_round_trips():
+    """Past the budget the record is the ``dag.program`` node table —
+    linear in distinct nodes, decode rebuilds the sharing."""
+    import mlopt_core.ir as ir
+
+    t = _shared_chain(17)  # tree size 131_071 > _TERM_DATA_DAG_BUDGET
+    assert ir._tree_sizes(t)[t] > ir._TERM_DATA_DAG_BUDGET
+    d = term_to_data(t)
+    assert d["__tag__"] == "dag.program"
+    assert len(d["nodes"]) == 18  # 17 adds + the x leaf, each once
+    assert d["root"] == len(d["nodes"]) - 1
+    wire = json.dumps(d)
+    assert len(wire) < 20_000  # linear, not 2**17
+    t2 = term_from_data(json.loads(wire))
+    assert t2 == t
+    assert t2 is t  # hash-consing: the same interned object
+    assert t2.args[0] is t2.args[1]  # sharing preserved
+
+
+def test_term_to_data_dag_boundary():
+    """depth 16 tree-expands to 65_535 (< budget) — still tree form."""
+    t = _shared_chain(16)
+    d = term_to_data(t)
+    assert "op" in d and "__tag__" not in d
+
+
+def test_term_to_data_dag_keeps_leaves_and_attrs():
+    """mvar/Const/Param leaves and attrs ride the table as ordinary
+    leaf records; index args only ever point backwards."""
+    x = Var("x", TensorType((2, 3)))
+    t = x
+    for _ in range(17):
+        t = Op.make("scale", t, t, factor=0.5)
+    t = Op.make(
+        "combine",
+        t,
+        "mv",
+        Const(3),
+        Param("B", TensorType((2, 3))),
+        dim=1,
+    )
+    d = term_to_data(t)
+    assert d["__tag__"] == "dag.program"
+    t2 = term_from_data(json.loads(json.dumps(d)))
+    assert t2 == t
+
+
+def test_term_from_data_rejects_malformed_dag():
+    good = {"__tag__": "dag.program", "nodes": [], "root": 0}
+    bad_records = [
+        {"__tag__": "dag.program"},  # missing nodes/root
+        {"__tag__": "dag.program", "nodes": "x", "root": 0},
+        good,  # empty table, root 0 out of range
+        {
+            "__tag__": "dag.program",
+            "nodes": [{"op": "add", "args": [0], "attrs": {}}],
+            "root": 0,
+        },
+        {
+            "__tag__": "dag.program",
+            "nodes": [{"op": "add", "args": [9], "attrs": {}}],
+            "root": 0,
+        },
+        {"__tag__": "dag.program", "nodes": [{"junk": 1}], "root": 0},
+        {"__tag__": "other.record", "nodes": [], "root": 0},
+    ]
+    for bad in bad_records:
+        with pytest.raises(ValueError):
+            term_from_data(bad)
