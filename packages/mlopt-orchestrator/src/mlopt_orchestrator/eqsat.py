@@ -457,8 +457,9 @@ def _kterm(t: Any, state: list[int]) -> dict:
     if state[0] > state[1]:
         raise EqsatError(
             f"term wire expansion exceeds wire_node_budget "
-            f"({state[1]} nodes) — shared-subtree blowup; the eqsat "
-            "wire is a tree until a dag.program record lands"
+            f"({state[1]} nodes) — shared-subtree blowup in the "
+            "tree wire path (dag.program is emitted past the "
+            "distinct-node budget; this walker is test-only)"
         )
     if isinstance(t, Op):
         node: dict[str, Any] = {
