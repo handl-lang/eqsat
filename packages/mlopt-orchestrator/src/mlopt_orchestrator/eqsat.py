@@ -86,16 +86,24 @@ price a denotation it cannot see, so shipping them would let
 extraction pick an unlowerable member — the eqsat-side analogue of
 the Python engine's ``+inf`` ``supported_ops`` bound.
 
-**Term wire format.**  mlopt terms cross as kernel ``Term`` JSON:
-``Op`` nodes carry ``dim = Const(1)``, ``source = "Native"``, and the
-attrs payload under ``attrs`` encoded with ``attr_to_data`` +
-the ``__nonfinite__`` scalar tag (the hnl_codec conventions);
-``Var``/``Param`` leaves ride as string-valued ``Const`` records under
-the ``__mlopt_leaf__`` prefix carrying name + ``TensorType`` shape, so
-the extracted term decodes back to fully-typed leaves.  The kernel
-``Term`` is a tree — a shared-subtree (DAG) input is tree-expanded on
-the wire, bounded by ``wire_node_budget``; exceeding it is a named
-``EqsatError``, not an exponential surprise.
+**Term wire format.**  mlopt terms cross as kernel ``Term`` JSON
+records — either a tree (``Op`` nodes carry ``dim = Const(1)``,
+``source = "Native"``, and the attrs payload under ``attrs`` encoded
+with ``attr_to_data`` + the ``__nonfinite__`` scalar tag, the hnl_codec
+conventions; ``Var``/``Param`` leaves ride as string-valued ``Const``
+records under the ``__mlopt_leaf__`` prefix carrying name +
+``TensorType`` shape) or, since the ``dag.program`` landing, the
+ADR-0173 shared-subtree envelope: ``{"Opaque": {"__tag__":
+"dag.program", "nodes": [...], "root": n}}`` — a post-order node table
+where every distinct node appears once and an ``Op``'s ``dim``/``args``
+are *indices* into ``nodes``.  ``eqsat-run`` decodes the table
+bottom-up into e-class ids (``engine-eqsat/src/dag.rs``,
+``saturate_json``), so hash-consed DAG inputs cross the wire in
+linear size — the tree spelling tree-expanded shared subtrees per
+occurrence and blew ``wire_node_budget`` (or ``serde_json``'s
+recursion limit) on every real model.  The budget now bounds
+*distinct emitted nodes*; exceeding it is a named ``EqsatError``,
+not an exponential surprise.
 """
 
 from __future__ import annotations
@@ -473,9 +481,96 @@ def _kterm(t: Any, state: list[int]) -> dict:
 
 
 def _terms_wire(terms: list, budget: int) -> list:
-    """Encode a term list, bounding TOTAL wire nodes at *budget*."""
+    """Encode a term list as ``dag.program`` records.
+
+    Bounds TOTAL distinct wire nodes at *budget*.
+
+    Every term crosses as the ADR-0173 node-table envelope — uniform
+    (unshared terms pay nothing: the table is the same nodes the tree
+    spelling would emit, plus index indirection) and shallow (term
+    depth never reaches ``serde_json``'s recursion limit).  Sharing is
+    deduped by ``id`` — ``Op.make`` interning makes structural sharing
+    object sharing, the same convention ``hnl_codec._enc_dag`` uses.
+    """
     state = [0, budget]
-    return [_kterm(t, state) for t in terms]
+    return [_kdag(t, state) for t in terms]
+
+
+#: The ``dag.program`` record's ``__tag__`` (ADR-0173 / hnl_codec).
+_DAG_TAG = "dag.program"
+
+
+def _kdag(t: Any, state: list[int]) -> dict:
+    """Mlopt term -> ``{"Opaque": {"__tag__": "dag.program", …}}``.
+
+    Node-table encoding: every distinct node becomes one ``nodes``
+    entry in post-order (children before parents); an ``Op``'s
+    ``dim`` and ``args`` are *indices* into the table, so a shared
+    subtree is emitted once and referenced — the record is linear in
+    distinct nodes where the tree spelling (:func:`_kterm`) is
+    exponential.  Node records keep this wire's own spellings:
+    ``{"Op": {…}}`` with the ``attrs`` channel and ``{"Const": …}``
+    leaves (``__mlopt_leaf__`` prefix included) — the same records
+    ``_kterm`` emits, minus tree nesting.  ``state`` is
+    ``[emitted, budget]`` shared across the whole term list;
+    overage is a named :class:`EqsatError`.
+    """
+    index: dict[int, int] = {}
+    nodes: list[dict] = []
+    dim_slot: list[int] = []
+
+    def dim_index() -> int:
+        # ``Term::Op.dim`` is always ``Const(1)`` on this wire — emit
+        # the leaf node once per record and share its index.
+        if not dim_slot:
+            dim_slot.append(emit(Const(1)))
+        return dim_slot[0]
+
+    def emit(x: Any) -> int:
+        key = id(x)
+        hit = index.get(key)
+        if hit is not None:
+            return hit
+        state[0] += 1
+        if state[0] > state[1]:
+            raise EqsatError(
+                f"term wire node table exceeds wire_node_budget "
+                f"({state[1]} distinct nodes) — the eqsat wire encodes "
+                "terms as dag.program node tables; raise "
+                "EqsatEngine(wire_node_budget=...) for larger inputs"
+            )
+        if isinstance(x, Op):
+            arg_idx = [emit(a) for a in x.args]
+            op_node: dict[str, Any] = {
+                "dim": dim_index(),
+                "name": x.op,
+                "args": arg_idx,
+                "source": "Native",
+            }
+            if x.attrs:
+                op_node["attrs"] = {
+                    k: _wire_value(attr_to_data(v))
+                    for k, v in x.attrs.items()
+                }
+            record: dict[str, Any] = {"Op": op_node}
+        elif isinstance(x, (Var, Param)):
+            record = {"Const": {"value": _leaf_payload(x)}}
+        elif isinstance(x, Const):
+            record = {"Const": {"value": _wire_value(x.value)}}
+        else:
+            raise TypeError(f"not a wireable leaf: {x!r}")
+        index[key] = len(nodes)
+        nodes.append(record)
+        return index[key]
+
+    root = emit(t)
+    return {
+        "Opaque": {
+            "__tag__": _DAG_TAG,
+            "nodes": nodes,
+            "root": root,
+        }
+    }
 
 
 def _leaf_from_payload(value: str) -> Any:
@@ -498,6 +593,91 @@ def _leaf_from_payload(value: str) -> Any:
     raise EqsatError(f"bad eqsat leaf kind in {value!r}")
 
 
+def _op_from_node(node: dict, kids: list) -> Any:
+    """Build the mlopt ``Op`` an ``{"Op": …}`` record names.
+
+    Shared by the tree spelling (:func:`_pyterm`) and the
+    ``dag.program`` node table (:func:`_pyterm_dag`) — *kids* are the
+    already-decoded argument terms (``dim`` is always ``Const(1)``
+    on this wire and is not an mlopt argument).
+    """
+    attrs = node.get("attrs")
+    kw: dict[str, Any] = {}
+    if isinstance(attrs, dict):
+        kw = {
+            k: attr_from_data(_unwire_value(v))
+            for k, v in attrs.items()
+        }
+    lit = node.get("lit")
+    if isinstance(lit, dict) and "__mlopt_attrs__" in lit:
+        kw = {
+            k: attr_from_data(_unwire_value(v))
+            for k, v in lit["__mlopt_attrs__"].items()
+        }
+    return Op.make(node["name"], *kids, validate=False, **kw)
+
+
+def _pyterm_dag(payload: Any) -> Any:
+    """Decode a ``dag.program`` record, rebuilding shared nodes once.
+
+    Inverse of :func:`_kdag` (and of the Rust extractor's
+    ``dag::term_to_wire``): ``nodes`` is a post-order table — every
+    ``Op.args``/``dim`` entry is an *index* of an earlier node — so
+    each distinct node is constructed exactly once and the decoded
+    term keeps the record's sharing.  Leaf entries are complete
+    ``Const``/``Arr`` records decoded by :func:`_pyterm`.
+    """
+    if not isinstance(payload, dict):
+        raise EqsatError(
+            f"dag.program: payload must be an object: {payload!r}"
+        )
+    nodes = payload.get("nodes")
+    root = payload.get("root")
+    if not isinstance(nodes, list):
+        raise EqsatError("dag.program: 'nodes' must be a list")
+    if (
+        not isinstance(root, int)
+        or isinstance(root, bool)
+        or not 0 <= root < len(nodes)
+    ):
+        raise EqsatError(
+            f"dag.program: bad root index {root!r} ({len(nodes)} nodes)"
+        )
+    built: list[Any] = []
+    for i, n in enumerate(nodes):
+        if not isinstance(n, dict) or len(n) != 1:
+            raise EqsatError(
+                f"dag.program: node {i} is not a tagged record: {n!r}"
+            )
+        if "Op" in n:
+            node = n["Op"]
+            args = node.get("args")
+            if not isinstance(args, list):
+                raise EqsatError(
+                    f"dag.program: node {i} args must be an index list"
+                )
+            kids = []
+            for a in args:
+                if (
+                    not isinstance(a, int)
+                    or isinstance(a, bool)
+                    or not 0 <= a < i
+                ):
+                    raise EqsatError(
+                        f"dag.program: node {i} arg {a!r} is not an "
+                        f"earlier node index (0..{i - 1})"
+                    )
+                kids.append(built[a])
+            built.append(_op_from_node(node, kids))
+        elif "Const" in n or "Arr" in n:
+            built.append(_pyterm(n))
+        else:
+            raise EqsatError(
+                f"dag.program: node {i} has unknown tag {list(n)[:3]}"
+            )
+    return built[root]
+
+
 def _pyterm(j: Any) -> Any:
     """``hnl_engine::Term`` serde JSON -> mlopt term (best-term decode).
 
@@ -505,28 +685,29 @@ def _pyterm(j: Any) -> Any:
     ``attr_from_data`` (restoring tuple/list spellings), ``lit`` is
     accepted for forward compatibility, and ``__mlopt_leaf__`` consts
     restore the typed ``Var``/``Param`` leaves — name *and* shape.
+    A top-level ``{"Opaque": {"__tag__": "dag.program", …}}`` record
+    decodes through :func:`_pyterm_dag` — the extractor emits it for
+    terms whose tree expansion would be exponential; any other
+    ``Opaque`` tag declines by name.
     """
+    if isinstance(j, dict) and "Opaque" in j:
+        payload = j["Opaque"]
+        if (
+            isinstance(payload, dict)
+            and payload.get("__tag__") == _DAG_TAG
+        ):
+            return _pyterm_dag(payload)
+        tag = (
+            payload.get("__tag__")
+            if isinstance(payload, dict)
+            else None
+        )
+        raise EqsatError(
+            f"Opaque term (tag {tag!r}) has no mlopt term spelling"
+        )
     if "Op" in j:
         node = j["Op"]
-        attrs = node.get("attrs")
-        kw: dict[str, Any] = {}
-        if isinstance(attrs, dict):
-            kw = {
-                k: attr_from_data(_unwire_value(v))
-                for k, v in attrs.items()
-            }
-        lit = node.get("lit")
-        if isinstance(lit, dict) and "__mlopt_attrs__" in lit:
-            kw = {
-                k: attr_from_data(_unwire_value(v))
-                for k, v in lit["__mlopt_attrs__"].items()
-            }
-        return Op.make(
-            node["name"],
-            *[_pyterm(a) for a in node["args"]],
-            validate=False,
-            **kw,
-        )
+        return _op_from_node(node, [_pyterm(a) for a in node["args"]])
     if "Const" in j:
         v = j["Const"]["value"]
         if isinstance(v, str) and v.startswith(_LEAF_PREFIX):
@@ -585,7 +766,8 @@ class EqsatEngine:
         Subprocess wall-clock bound in seconds.
     wire_node_budget
         Cap on total emitted wire nodes across ``add_term``ed terms —
-        the tree-encoding bound for shared-subtree inputs.
+        the ``dag.program`` node-table bound (distinct nodes, so
+        shared-subtree inputs encode linearly).
 
     """
 
@@ -872,7 +1054,15 @@ class EqsatEngine:
             memo: dict = {}
             in_cost = dag_cost(self._terms[eid], cost_fn, memo=memo)
             out_cost = dag_cost(term, cost_fn, memo=memo)
-            if out_cost > in_cost:
+            # ``not <=`` not ``>``: a term pricing ``+inf`` under
+            # ``backend_cost`` (an op the sink cannot lower — e.g. a
+            # minted ``synop_*`` whose binding was never seated)
+            # decomposes to ``inf - inf = NaN`` inside ``dag_cost``,
+            # and ``NaN > in_cost`` is False — the naive comparison
+            # would wave the unbindable term through.  NaN is never
+            # a better price, so anything not strictly <= the input
+            # falls back.
+            if not out_cost <= in_cost:
                 rec["fell_back_to_input"] = True
                 rec["input_cost"] = in_cost
                 rec["extracted_cost"] = out_cost

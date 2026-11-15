@@ -414,15 +414,80 @@ def test_codec_nonfinite_and_attrs() -> None:
     assert vals[1] == float("inf")
 
 
+def test_kdag_pyterm_roundtrip() -> None:
+    """``_terms_wire``'s dag.program record decodes via ``_pyterm``.
+
+    The doubling DAG shares every subtree — the record is ~22 nodes
+    where a tree spelling is 2**20 — and the decoded term keeps the
+    sharing (``Op.make`` interning makes it object sharing again).
+    """
+    from mlopt_orchestrator.eqsat import _terms_wire
+
+    x = Var("x", TensorType((2,)))
+    t = x
+    for _ in range(20):
+        t = Op.make("add", t, t)
+    wire = _terms_wire([t], 100_000)
+    rec = wire[0]
+    assert rec["Opaque"]["__tag__"] == "dag.program"
+    assert len(rec["Opaque"]["nodes"]) < 40
+    back = _pyterm(rec)
+    assert back == t
+
+
+def test_pyterm_dag_declines_bad_records() -> None:
+    """Malformed dag.program payloads raise EqsatError, not garbage."""
+    with pytest.raises(EqsatError, match="nodes"):
+        _pyterm({"Opaque": {"__tag__": "dag.program", "root": 0}})
+    with pytest.raises(EqsatError, match="root index"):
+        _pyterm(
+            {
+                "Opaque": {
+                    "__tag__": "dag.program",
+                    "nodes": [{"Const": {"value": 1}}],
+                    "root": 5,
+                }
+            }
+        )
+    with pytest.raises(EqsatError, match="earlier node index"):
+        _pyterm(
+            {
+                "Opaque": {
+                    "__tag__": "dag.program",
+                    "nodes": [
+                        {"Const": {"value": 1}},
+                        {
+                            "Op": {
+                                "dim": 0,
+                                "name": "add",
+                                "args": [1],
+                                "source": "Native",
+                            }
+                        },
+                    ],
+                    "root": 1,
+                }
+            }
+        )
+    with pytest.raises(EqsatError, match="Opaque term"):
+        _pyterm({"Opaque": {"__tag__": "unrelated", "x": 1}})
+
+
 def test_wire_node_budget() -> None:
-    """Shared-subtree blowup is a named EqsatError, not a hang."""
+    """The dag.program node-table bound is a named EqsatError.
+
+    The 20-level doubling DAG encodes as ~22 *distinct* nodes (the
+    table shares every repeated subtree — the tree spelling would
+    have emitted 2**20), so the budget now bounds distinct nodes:
+    10 is under the table size and must refuse by name, not hang.
+    """
     x = Var("x", TensorType((2,)))
     t = x
     for _ in range(20):  # DAG: each level doubles the tree
         t = Op.make("add", t, t)
     eng = object.__new__(EqsatEngine)
     eng._terms = [t]
-    eng._wire_node_budget = 100
+    eng._wire_node_budget = 10
     with pytest.raises(EqsatError, match="wire_node_budget"):
         eng._invoke(0)
 
