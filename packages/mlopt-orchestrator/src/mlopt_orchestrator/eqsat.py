@@ -42,7 +42,19 @@ named rather than silent:
   priced by the engine's ``cost`` record (default ``{"kind":
   "size"}``); the mismatch is recorded in ``stats["eqsat"]`` on every
   run.  The verify gate downstream is unaffected: every extracted
-  member is e-class-equivalent by construction;
+  member is e-class-equivalent by construction.  Because the
+  ``CostSpec`` axis can disagree with the caller's ``cost_fn`` (a
+  size-minimal member may be *worse* on the requested axis — the
+  WP4-F3 ``select_mul`` regression), ``extract_best`` restores the
+  invariant the Python extractor gets for free — the input term is a
+  member of its own e-class, so a min-cost extraction can never
+  deliver worse-than-input *under the pricing it was asked for* —
+  by pricing the extracted member and the recorded input term with
+  the ``cost_fn`` it is handed and falling back to the input term
+  when the extraction is strictly worse.  The fallback is recorded
+  on the cached result (``fell_back_to_input``); it can only ever
+  *lose* ground vs the Python arm's pick, never invent a worse
+  delivery;
 * non-local passes (pairing/lifts), certificates and bounded
   ``error_budget`` extraction are Python-``EGraph`` machinery —
   ``search`` already skips/refuses them for non-``EGraph`` engines.
@@ -628,7 +640,9 @@ class EqsatEngine:
             "cost": self._cost,
             "cost_fn": (
                 "not portable across the wire — extraction priced "
-                "by the CostSpec above"
+                "by the CostSpec above; extract_best falls back to "
+                "the input term when the pick prices worse under "
+                "this cost_fn (never-worse-than-input)"
                 if cost_fn is not None
                 else None
             ),
@@ -662,6 +676,18 @@ class EqsatEngine:
         (``overrides`` / ``bans`` / ``fusion_epsilon`` /
         ``_cache_out``) has no wire form.  Non-default values are
         refused by name rather than silently ignored.
+
+        What *does* cross back is the never-worse-than-input floor:
+        the Python extractor's guarantee — min-cost under the
+        caller's ``cost_fn``, with the input term inside the root
+        e-class — has no ``CostSpec`` analogue, so when a ``cost_fn``
+        is supplied the extracted member and the recorded input term
+        are both priced under it (one shared ``dag_cost`` memo) and
+        the input term is returned when the extraction is strictly
+        worse.  The fallback is recorded on the cached result as
+        ``fell_back_to_input`` and can only surrender a *better*
+        pick the ``CostSpec`` happened to find, never deliver a
+        worse-than-input term.
         """
         for key in ("overrides", "bans", "_cache_out"):
             if kw.get(key):
@@ -676,14 +702,34 @@ class EqsatEngine:
                 "fusion_epsilon=…) — the near-tie band is a "
                 "Python-extractor feature"
             )
+        eid = self.find(eid)
         try:
-            return self._results[self.find(eid)]["term"]
+            rec = self._results[eid]
         except KeyError as e:
             raise EqsatError(
                 f"extract_best({eid}) before run() or for an "
                 "unrecorded root — the eqsat engine has no "
                 "incremental e-classes to extract from"
             ) from e
+        term = rec["term"]
+        if cost_fn is not None and eid < len(self._terms):
+            # Never-worse-than-input: the input term IS a member of
+            # the saturated root e-class, so under the caller's own
+            # pricing it is the floor a faithful extraction cannot
+            # go below.  ``CostSpec`` extraction has no such floor
+            # across axes — price both sides and keep the input when
+            # the pick is strictly worse (WP4 F3).
+            from mlopt_core.cost import dag_cost
+
+            memo: dict = {}
+            in_cost = dag_cost(self._terms[eid], cost_fn, memo=memo)
+            out_cost = dag_cost(term, cost_fn, memo=memo)
+            if out_cost > in_cost:
+                rec["fell_back_to_input"] = True
+                rec["input_cost"] = in_cost
+                rec["extracted_cost"] = out_cost
+                term = self._terms[eid]
+        return term
 
     @property
     def n_enodes(self) -> int:

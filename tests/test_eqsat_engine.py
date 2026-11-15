@@ -397,6 +397,52 @@ def test_codec_declines() -> None:
     assert isinstance(back, Const) and back.value == "__mlopt_leaf__x"
 
 
+def test_extract_best_never_worse_than_input() -> None:
+    """WP4 F3: a CostSpec pick priced worse under ``cost_fn`` falls back.
+
+    The engine's ``{"kind": "size"}`` extraction can rank a member the
+    caller's cost axis dislikes (the ``select_mul`` regression).  The
+    bridge restores the Python extractor's floor — min-cost under the
+    handed ``cost_fn``, input term inside the e-class — by pricing
+    both sides with ``dag_cost`` and keeping the input when the pick
+    is strictly worse.
+    """
+    x = Var("x", TensorType((4,)))
+    y = Var("y", TensorType((4,)))
+    cheap = Op.make("add", x, y)  # the "input" the engine recorded
+    # A bigger-but-equivalent-looking pick: size-cost would prefer it
+    # only if smaller — here we fake the cached extraction outright.
+    pricey = Op.make("mul", Op.make("add", x, y), Const(2))
+    eng = object.__new__(EqsatEngine)
+    eng._terms = [cheap]
+    eng._results = {0: {"term": pricey, "cost": 0.0}}
+    eng._n_enodes = eng._n_classes = 0
+    eng._rule_fires = {}
+
+    # cost_fn: 1.0 per op node + 0.5 per leaf — pricey has 2 ops.
+    def two_ops_worse(t):
+        from mlopt_core.ir import Op as _Op
+
+        if isinstance(t, _Op):
+            return 1.0 + sum(two_ops_worse(a) for a in t.args)
+        return 0.5
+
+    # pricey (add+mul = 2 ops) vs cheap (add = 1 op): strictly worse.
+    got = eng.extract_best(0, two_ops_worse)
+    assert got is cheap
+    assert eng._results[0]["fell_back_to_input"] is True
+
+    # And the reverse: a cheaper pick is kept, no flag.
+    eng._results = {0: {"term": cheap, "cost": 0.0}}
+    got = eng.extract_best(0, two_ops_worse)
+    assert got is cheap
+    assert "fell_back_to_input" not in eng._results[0]
+
+    # cost_fn=None skips the floor entirely (no pricing requested).
+    eng._results = {0: {"term": pricey, "cost": 0.0}}
+    assert eng.extract_best(0, None) is pricey
+
+
 @requires_eqsat
 def test_extract_best_before_run_declines() -> None:
     eng = EqsatEngine()
