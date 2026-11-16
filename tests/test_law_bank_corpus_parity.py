@@ -12,8 +12,10 @@ records are projections:
 * **Coverage** — every corpus record must name a shipped bank rule
   (``prim:*`` records resolve through the minted store's materialized
   folds).  A kit record Python does not know would silently widen the
-  eqsat wire bank past the oracle; the 279 Python-only rules are the
-  documented port backlog (prior_art 164, attention 37,
+  eqsat wire bank past the oracle; the 243 Python-only rules are the
+  documented port backlog (prior_art 164, attention 1 —
+  ``rope_cat_compose``, whose half-split guard needs attr-arithmetic
+  vs shape-extent comparisons the ``cond`` vocabulary cannot form —
   layout/headshare/pairing/specials/factored tails, ``conv_bn_fold``'s
   procedural hooks), not drift.
 * **Op-tree shape** — for every non-prim record, the ``lhs``/``rhs``
@@ -303,6 +305,66 @@ _ATTR_DIVERGENT = frozenset()
 #: vs Python's expansion names is consistent, not contradictory).
 _FIELD_DIVERGENT = frozenset()
 
+#: The 36 ``laws/attention.py`` rules whose procedural ``check=``
+#: hooks the engine-eqsat port re-authored as declarative ``cond``
+#: trees (``uniform``/``scalar``/``dim-eq-const``/``bcast-into``/
+#: ``mm-shape-ok``/``rank``/``dim-compat`` — see
+#: ``engine-eqsat:src/builtin.rs``'s attention section).  On these
+#: records the kit side therefore carries ``cond`` data, ``serializable:
+#: true`` and ``missing_hooks: []`` where the Python ``law_to_data``
+#: honestly reports ``cond: null``, ``serializable: false`` and
+#: ``missing_hooks: ["check"]`` — the port *is* the divergence, so the
+#: three fields are exempted for exactly this name set (every other
+#: field still compares verbatim, and
+#: :func:`test_check_translated_records_match_the_translation_shape`
+#: pins the exemption's shape).  ``rope_cat_compose`` is NOT here — it
+#: stayed Python-side (no faithful ``cond`` spelling exists).
+_CHECK_TRANSLATED = frozenset(
+    {
+        "rope_cat_scale_out",
+        "rope_cat_scale_in",
+        "rope_rh_scale_out",
+        "rope_rh_scale_in",
+        "linear_mm_absorb",
+        "linear_mm_absorb_rev",
+        "linear_mm_absorb_bias",
+        "linear_mm_absorb_bias_rev",
+        "naturality_scalar_left",
+        "naturality_scalar_left_rev",
+        "linear_out_scale",
+        "linear_out_scale_rev",
+        "scale_in_transpose",
+        "scale_out_transpose",
+        "scale_in_reshape",
+        "scale_out_reshape",
+        "scale_in_slice",
+        "scale_out_slice",
+        "scale_in_slice_step",
+        "scale_out_slice_step",
+        "scale_in_unbind",
+        "scale_out_unbind",
+        "scale_in_chunk",
+        "scale_out_chunk",
+        "scale_in_flatten",
+        "scale_out_flatten",
+        "scale_in_flatten2",
+        "scale_out_flatten2",
+        "scale_in_unsqueeze",
+        "scale_out_unsqueeze",
+        "scale_in_squeeze",
+        "scale_out_squeeze",
+        "scale_in_concat",
+        "scale_out_concat",
+        "scale_in_stack",
+        "scale_out_stack",
+    }
+)
+
+#: The fields a ``check``→``cond`` translation legitimately moves.
+_CHECK_TRANSLATED_FIELDS = frozenset(
+    {"cond", "serializable", "missing_hooks"}
+)
+
 #: Record fields compared against ``law_to_data`` — every field
 #: except ``lhs``/``rhs`` (the pattern pair, covered by the op-tree +
 #: attrs aspects) and ``cert``/``version``/``kind`` (record-level
@@ -363,6 +425,11 @@ def _field_diffs(record: dict, py_data: dict) -> set[tuple[str, str]]:
     name = record["name"]
     out: set[tuple[str, str]] = set()
     for field in _COMPARED_FIELDS:
+        if (
+            name in _CHECK_TRANSLATED
+            and field in _CHECK_TRANSLATED_FIELDS
+        ):
+            continue
         kit_value = record.get(field)
         py_value = py_data.get(field)
         if field == "cond":
@@ -508,3 +575,44 @@ def test_prim_records_match_minted_projection() -> None:
         "prim corpus records drifted from the minted-store projection "
         f"— re-project via scripts/project_prim_folds.py: {drifted}"
     )
+
+
+def test_check_translated_records_match_the_translation_shape() -> None:
+    """Pin the ``check``→``cond`` translation's exact divergence shape.
+
+    For every ``_CHECK_TRANSLATED`` name the kit record must carry a
+    non-null ``cond``, ``serializable: true`` and ``missing_hooks:
+    []`` while the Python ``law_to_data`` reports ``cond: null``,
+    ``serializable: false`` and ``missing_hooks: ["check"]`` — and the
+    name set must equal the corpus's translated attention rules (a
+    kit record gaining/losing the translation, or a Python rule
+    changing its hook kind, fails here rather than silently widening
+    the field exemption).
+    """
+    from mlopt_core.laws.serialize import law_to_data
+
+    bank = _bank()
+    kit_by_name = {r["name"]: r for r in _kit_records()}
+    translated = {
+        name
+        for name, rec in kit_by_name.items()
+        if rec.get("serializable") is True
+        and not rec.get("missing_hooks")
+        and rec.get("cond") is not None
+        and name in bank
+        and law_to_data(bank[name]).get("serializable") is False
+    }
+    assert translated == _CHECK_TRANSLATED, (
+        "check→cond translation census drifted — new: "
+        f"{sorted(translated - _CHECK_TRANSLATED)}, fixed: "
+        f"{sorted(_CHECK_TRANSLATED - translated)}"
+    )
+    for name in _CHECK_TRANSLATED:
+        kit_rec = kit_by_name[name]
+        py_data = law_to_data(bank[name])
+        assert kit_rec.get("cond") is not None, name
+        assert kit_rec.get("serializable") is True, name
+        assert kit_rec.get("missing_hooks") == [], name
+        assert py_data.get("cond") is None, name
+        assert py_data.get("serializable") is False, name
+        assert py_data.get("missing_hooks") == ["check"], name
