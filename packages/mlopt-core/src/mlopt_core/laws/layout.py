@@ -53,8 +53,17 @@ from mlopt_core.typing import _axis_pair, _broadcast
 
 
 def R(name: str, lhs, rhs, **kw) -> Rewrite:
-    """Module-local law constructor — layout laws carry the ``LAYOUT`` tag."""
-    kw.setdefault("tags", (_tags.LAYOUT,))
+    """Module-local law constructor — layout laws carry the ``LAYOUT`` tag.
+
+    They also carry ``EXPANSIVE``: the bidirectional transpose↔pointwise
+    pairs are closure-generating (the module docstring's "explode the
+    saturation closure"), so the pipeline's per-rule enode budget
+    (``optimize(symmetry_budget=…)`` → ``rule_budgets``) applies to them
+    like the symmetry/monoid rules — unbudgeted they explore the full
+    transpose-placement space (measured: a 16-node joint term went
+    0.35 s → 132 s of guard checks for an identical extraction).
+    """
+    kw.setdefault("tags", (_tags.LAYOUT, _tags.EXPANSIVE))
     return _R(name, lhs, rhs, **kw)
 
 
