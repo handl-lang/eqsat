@@ -519,7 +519,7 @@ assert B.backend_names() == ()
 assert "torch" not in sys.modules
 assert "numpy" not in sys.modules
 assert "mlopt_torch" not in sys.modules
-assert "mlopt_onnx" not in sys.modules
+assert "kit_onnx" not in sys.modules
 print("registry-import-clean")
 """
 

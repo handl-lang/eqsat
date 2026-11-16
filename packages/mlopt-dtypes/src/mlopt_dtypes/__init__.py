@@ -3,7 +3,7 @@
 Plan: ``docs/reports/arch_audit_graphopt_packages.md`` §3 found the
 dtype mappings duplicated across the domain packages — torch dtype ↔
 safetensors tag (``mlopt_torch.export``), IR name ↔ NumPy dtype ↔
-ONNX element type ↔ onnxruntime type string (``mlopt_onnx.arrays``),
+ONNX element type ↔ onnxruntime type string (``kit_onnx.arrays``),
 ``hardware.dtype`` names (``mlopt_discovery.play``), and the
 name-resolution idiom ``getattr(torch, name.split(".")[-1])``
 (``mlopt_torch.torch_bridge``, ``mlopt_carriers.trace``).  This module
@@ -13,7 +13,7 @@ Why a separate package
 ----------------------
 ``mlopt_core`` would be the natural home (it is the torch-free
 substrate), but it ships from ``handl-lang/eqsat`` as a pinned git
-dep — a new module there is a release, not a commit.  ``mlopt_onnx``
+dep — a new module there is a release, not a commit.  ``kit_onnx``
 sits *below* ``mlopt_torch`` in the dependency-layers contract and
 must stay torch/numpy-only-light, so the registry is its own leaf
 package: pure stdlib, zero dependencies, importable by every backend.
@@ -35,7 +35,7 @@ the strings:
   (``getattr(TensorProto, rec.onnx)``), ``None`` for dtypes ONNX has
   no element type for *in this sink's policy* — note ``bfloat16`` is
   deliberately ``None``: ``TensorProto.BFLOAT16`` exists, but the
-  ADR-0006 dtype policy refuses it (see ``mlopt_onnx.arrays``), and
+  ADR-0006 dtype policy refuses it (see ``kit_onnx.arrays``), and
   the registry preserves that refusal rather than widening it;
 * ``ort``    — the onnxruntime input type string
   (``"tensor(float)"``);
@@ -104,7 +104,7 @@ class DTypeInfo:
 
 #: The registry.  Iteration order is the canonical listing order —
 #: consumers that build name→object dicts inherit it, which keeps
-#: e.g. ``mlopt_onnx.arrays.DTYPE_NAMES`` in its historical order.
+#: e.g. ``kit_onnx.arrays.DTYPE_NAMES`` in its historical order.
 _DTYPES: dict[str, DTypeInfo] = {
     # -- inexact -----------------------------------------------------
     "float64": DTypeInfo(

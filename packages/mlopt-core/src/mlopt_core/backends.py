@@ -11,7 +11,7 @@ module closes: ``mlopt_core.ports`` declares the *ports*
 :class:`~mlopt_core.pipeline.Backend` bundles one backend's four
 values — but nothing recorded *which backends exist*.  Torch was the
 only row, reached through ``mlopt_torch.backend.TorchBackend``;
-``mlopt_onnx`` proved a second backend satisfies the same ports yet
+``kit_onnx`` proved a second backend satisfies the same ports yet
 had nowhere to say so.
 
 The registry is **registration-side lazy**: a backend registers

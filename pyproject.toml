@@ -97,7 +97,7 @@ forbidden_modules = [
 name = "orchestrator imports no backend"
 type = "forbidden"
 source_modules = ["mlopt_orchestrator"]
-forbidden_modules = ["torch", "mlopt_torch", "mlopt_cuda", "mlopt_onnx"]
+forbidden_modules = ["torch", "mlopt_torch", "mlopt_cuda", "kit_onnx"]
 # The backend packages may never be imported directly — backend
 # specifics live behind the Composer/Meter/Runner/ExecutorSpec ports.
 # Indirect reach is fine: the orchestrator lazily resolves carrier

@@ -5,7 +5,7 @@
 eqsat never imports a backend, and a backend never sees the search. They
 meet through `mlopt_core.ports`: a set of `Protocol` shapes each side
 implements or consumes. This is the seam the repo split cut along —
-`graphopt`'s `mlopt_torch`/`mlopt_onnx` adapters are *implementations*
+`graphopt`'s `mlopt_torch`/`kit_onnx` adapters are *implementations*
 of these ports, not parts of the engine.
 
 ## The contract surfaces
