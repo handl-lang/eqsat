@@ -965,7 +965,7 @@ class ConcreteEval(Protocol):
     ``synthesize_rules``' numeric check instantiates a candidate on
     random fp64 tensors and compares both sides.  The tensor machinery
     is backend-specific, so it is pushed in from an adapter
-    (``mlopt_torch.meta_eval`` implements this and registers it via
+    (``kit_torch.meta_eval`` implements this and registers it via
     :func:`register_concrete_eval`); core imports no tensor library.
     """
 
@@ -1002,7 +1002,7 @@ _concrete_eval: ConcreteEval | None = None
 def register_concrete_eval(backend: ConcreteEval) -> None:
     """Adapter hook: install the numeric-evaluation backend.
 
-    ``mlopt_torch.meta_eval`` calls this at import time.  With no
+    ``kit_torch.meta_eval`` calls this at import time.  With no
     backend registered the numeric candidate check is skipped — the
     same path taken when an op has no lowering binding.
     """

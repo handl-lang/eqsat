@@ -7,7 +7,7 @@ lives in core (promoted in plan 0007) and is re-exported here; the
 backend-neutral members — :class:`IdentityRunner`,
 :class:`ChainedRunner`, :func:`runner_candidate` — live here; the
 torch-coupled :class:`TorchCompileRunner` lives in
-``mlopt_torch.runners`` and the CUDA-device-coupled
+``kit_torch.runners`` and the CUDA-device-coupled
 :class:`CudaGraphRunner` in ``kit_cuda``.
 """
 

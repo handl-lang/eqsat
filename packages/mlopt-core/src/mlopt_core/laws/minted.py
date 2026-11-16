@@ -618,7 +618,7 @@ def prim3_premises() -> tuple[Rewrite, ...]:
 # folding ``detach_(contiguous …)`` / ``transpose(reshape …)`` sites
 # and the ``zoo_time_cond_conv`` ``mul_unsq_pad_*`` strips declined on
 # the fabricated-``None`` chain (graphopt a249ef2 seated this same
-# rule consumer-side in ``mlopt_torch.torch_bindings`` — this is the
+# rule consumer-side in ``kit_torch.torch_bindings`` — this is the
 # substrate home; seating at materialize time also covers records
 # :func:`admit_prim_record` promotes mid-process, which an
 # import-time consumer pass cannot see).

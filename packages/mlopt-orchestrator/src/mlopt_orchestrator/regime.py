@@ -23,18 +23,18 @@ Two honesty rules govern the module:
 This module is *backend-neutral*: importing it never loads torch.
 The executor table defaults are ambient — a backend registers its
 executor specs and dispatch class via
-:func:`register_regime_backend` (``mlopt_torch.regime`` does this at
+:func:`register_regime_backend` (``kit_torch.regime`` does this at
 import, keeping the historical ``EXECUTORS`` dict and
 ``RegimeDispatch`` behaviour); callers may instead pass ``executors=``
 explicitly to :func:`regime_frontier`.  The torch-coupled dispatch
 machinery — ``RegimeDispatch`` (an ``nn.Module``) and the end-to-end
-``regime_dispatch`` — lives in ``mlopt_torch.regime``; this module
+``regime_dispatch`` — lives in ``kit_torch.regime``; this module
 carries the frontier extraction, the term introspection and the
 regime normalisation both sides share.
 
 Typical usage (torch backend)::
 
-    from mlopt_torch.regime import Regime, regime_dispatch, default_regimes
+    from kit_torch.regime import Regime, regime_dispatch, default_regimes
     from mlopt_core.cost import flops_cost, launch_aware_cost
 
     disp = regime_dispatch(model, x, regimes=[
@@ -56,10 +56,10 @@ Or directly on a saturated e-graph::
 Target profiles
 ---------------
 A regime can carry a *target profile* — measured hardware constants
-from :mod:`mlopt_torch.calibrate` — which defaults its cost model to
+from :mod:`kit_torch.calibrate` — which defaults its cost model to
 ``roofline_cost_for(profile)``::
 
-    from mlopt_torch.calibrate import calibrate, load_profile
+    from kit_torch.calibrate import calibrate, load_profile
 
     prof = calibrate()                       # or load_profile("rtx2050")
     disp = regime_dispatch(model, x, regimes=[
@@ -195,7 +195,7 @@ def is_trace_rooted_term(term: Any) -> bool:
 #: The ambient executor table — the default ``executors`` argument of
 #: :func:`regime_frontier` and the lookup RegimeDispatch-style builders
 #: read.  Populated by :func:`register_regime_backend` — importing a
-#: backend's regime module (``mlopt_torch.regime`` → ``mlopt_torch.regime``)
+#: backend's regime module (``kit_torch.regime`` → ``kit_torch.regime``)
 #: fills it with that backend's :class:`ExecutorSpec`s; a caller may
 #: instead pass ``executors=`` explicitly.  Kept as a plain dict so the
 #: historical ``monkeypatch.setitem(EXECUTORS, "fake", spec)`` test
@@ -216,7 +216,7 @@ def register_regime_backend(
     The regime frontier is backend-neutral: a backend that wants the
     *default* executor table (``executors=None``) and the default
     ``frontier.build()`` dispatch calls this once — typically at its
-    own regime-module import (``mlopt_torch.regime`` registers the
+    own regime-module import (``kit_torch.regime`` registers the
     torch executor table and its ``nn.Module`` dispatch).  Registration
     merges into the ambient :data:`EXECUTORS` dict — the same object
     tests and downstream callers see — and records the dispatch class.
@@ -728,7 +728,7 @@ class RegimeFrontier:
         """Lower every choice with its executor into a dispatch module.
 
         The dispatch class is the registered backend's by default (see
-        :func:`register_regime_backend` — ``mlopt_torch.regime``
+        :func:`register_regime_backend` — ``kit_torch.regime``
         registers its ``nn.Module``-based ``RegimeDispatch``); pass
         ``dispatch=`` to substitute another builder with the same
         ``(frontier, param_values, default=…)`` signature.
@@ -738,7 +738,7 @@ class RegimeFrontier:
             raise RuntimeError(
                 "no regime dispatch backend registered — pass "
                 "dispatch= or import a backend's regime module "
-                "(mlopt_torch.regime registers RegimeDispatch)"
+                "(kit_torch.regime registers RegimeDispatch)"
             )
         return cls(self, param_values, default=default)
 
@@ -814,7 +814,7 @@ def regime_frontier(
     implementation.  ``None`` (default) resolves to the ambient
     :data:`EXECUTORS` — the registered backend table (populated by
     :func:`register_regime_backend`, e.g. importing
-    ``mlopt_torch.regime``).
+    ``kit_torch.regime``).
     """
     table = EXECUTORS if executors is None else executors
     regime_list = _attach_profiles(
@@ -1022,7 +1022,7 @@ def build_egraph(
 
     ``source`` is the :class:`~mlopt_core.ports.Source` port —
     REQUIRED (no assumed frontend; the torch-facing
-    ``mlopt_torch.regime.build_egraph`` defaults it to
+    ``kit_torch.regime.build_egraph`` defaults it to
     ``TorchSource``).  ``rules`` selects the core saturating set —
     a :class:`~mlopt_core.laws.RuleSet` or any rule iterable
     (default the ``CARRIER_SEARCH`` preset).  ``xc`` (default on)
@@ -1110,7 +1110,7 @@ def build_egraph(
 # (the ``XC_RULES`` seam set) materialise lazily so importing the
 # regime machinery never loads the (torch-coupled) carriers package.
 # The torch-half names — ``RegimeDispatch`` and ``regime_dispatch``
-# — live in ``mlopt_torch.regime`` (plan 0007); import them there.
+# — live in ``kit_torch.regime`` (plan 0007); import them there.
 
 _CARRIER_SEARCH: RuleSet | None = None
 _XC_RULES: RuleSet | None = None

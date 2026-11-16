@@ -83,11 +83,11 @@ and each carrier module's ``TORCH_BINDINGS`` entries are
 ``Binding``s; ``IRModule`` / ``BatchedScanModule`` /
 ``BatchedOMModule`` / ``StreamingOMModule`` / ``BatchedOmdModule`` are
 ``Executor``s; ``report.verify_equiv`` is the canonical ``Verifier``;
-``mlopt_torch.adapters.TorchSource`` / ``TorchSink`` are the canonical
+``kit_torch.adapters.TorchSource`` / ``TorchSink`` are the canonical
 ``Source`` / ``Sink`` pair; each ``_SHAPE_RULES`` entry is a
-``ShapeRule``.  ``mlopt_torch.composer.TorchComposer`` /
-``mlopt_torch.meter.TorchMeter`` are the canonical
-``Composer`` / ``Meter``; ``mlopt_torch.backend.TorchBackend``
+``ShapeRule``.  ``kit_torch.composer.TorchComposer`` /
+``kit_torch.meter.TorchMeter`` are the canonical
+``Composer`` / ``Meter``; ``kit_torch.backend.TorchBackend``
 bundles the four into the immutable
 :dataclass:`~mlopt_core.pipeline.Backend` value the orchestrator
 consumes.  Which backends exist at all is the registry's business —
@@ -579,7 +579,7 @@ class TaskMetric(Protocol):
 class Source(Protocol):
     """The graph-source port: a backend-native model -> mlopt IR.
 
-    Adapter port.  ``mlopt_torch.adapters.TorchSource`` is the canonical
+    Adapter port.  ``kit_torch.adapters.TorchSource`` is the canonical
     implementation (``torch.export`` → ATen → IR).  The return is the
     IR plus the concrete leaf values (parameters and buffers) keyed by
     IR param name — the paired :class:`Sink` materialises the lowered
@@ -634,7 +634,7 @@ class Capabilities(Protocol):
 class Sink(Capabilities, Protocol):
     """The graph-sink port: :class:`Capabilities` + IR -> runnable.
 
-    Adapter port.  ``mlopt_torch.adapters.TorchSink`` is the canonical
+    Adapter port.  ``kit_torch.adapters.TorchSink`` is the canonical
     implementation.  On top of the :class:`Capabilities` op surface:
 
     * ``lower`` materialises a runnable :class:`Executor` from an IR and
@@ -690,7 +690,7 @@ class Composer(Protocol):
     which sub-objects count as blocks, how their real inputs are
     captured, how optimized replacements are grafted back, and how a
     structure-preserving clone shares the original's parameter
-    storage.  ``mlopt_torch.composer.TorchComposer`` is the canonical
+    storage.  ``kit_torch.composer.TorchComposer`` is the canonical
     implementation — module-object specifics stay on the adapter side.
 
     * ``blocks(model, *, predicate=None)`` — pick the top-most
@@ -962,7 +962,7 @@ class Policy(Protocol):
 class DevicePolicy(Protocol):
     """The placement/refusal policy port — Phase B device layer.
 
-    Adapter port.  ``mlopt_torch.device.DevicePolicy`` is the
+    Adapter port.  ``kit_torch.device.DevicePolicy`` is the
     canonical implementation; the substrate never interprets *what*
     a policy resolves — only that it may refuse.
 

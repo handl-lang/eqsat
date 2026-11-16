@@ -4,13 +4,13 @@ Two complements to :mod:`tests.test_core_torch_free` (the core half):
 
 * **static** — an AST walk over ``packages/mlopt-orchestrator/src``
   rejects any direct ``import``/``from`` of the backend roots
-  (``torch``, ``mlopt_torch``, ``kit_cuda``).  The
+  (``torch``, ``kit_torch``, ``kit_cuda``).  The
   ``kit_carriers`` imports the regime/carrier helpers defer to
   call time are *not* forbidden at the statement level — carriers
   are optional rewrite machinery — but the runtime proof below
   blocks them too and the whole package must still import.
 * **runtime** — ``mlopt_orchestrator`` is imported in a subprocess with
-  ``torch``/``numpy``/``mlopt_torch``/``kit_carriers``/
+  ``torch``/``numpy``/``kit_torch``/``kit_carriers``/
   ``kit_cuda`` all blocked by a meta-path finder; every
   submodule walks, the lazy carrier fallbacks degrade cleanly, and
   a full ``Optimizer`` run on a *pure-Python* fake backend still
@@ -59,7 +59,7 @@ _OPT_SRC = (
 )
 
 #: Import roots the orchestrator must never name directly.
-_FORBIDDEN = frozenset({"torch", "mlopt_torch", "kit_cuda"})
+_FORBIDDEN = frozenset({"torch", "kit_torch", "kit_cuda"})
 
 
 # ---------------------------------------------------------------------------
@@ -103,7 +103,7 @@ def test_optimize_source_has_no_backend_imports():
 _BLOCKED_SCRIPT = r"""
 import sys
 
-_BLOCKED = ("torch", "numpy", "mlopt_torch", "kit_carriers",
+_BLOCKED = ("torch", "numpy", "kit_torch", "kit_carriers",
             "kit_cuda")
 
 
@@ -129,7 +129,7 @@ for _info in pkgutil.walk_packages(
     importlib.import_module(_info.name)
 
 assert "torch" not in sys.modules
-assert "mlopt_torch" not in sys.modules
+assert "kit_torch" not in sys.modules
 assert "kit_carriers" not in sys.modules
 
 # The lazy carrier fallbacks degrade to empty structures, never raise.

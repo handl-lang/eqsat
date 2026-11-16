@@ -1,7 +1,7 @@
 """Native contraction-ordering — the ``contraction_policy`` API in Rust.
 
 Same signatures and semantics as
-:mod:`mlopt_torch.contraction_policy`'s pure-combinatorial core:
+:mod:`kit_torch.contraction_policy`'s pure-combinatorial core:
 a network is ``(tensors, sizes)``, a pair contraction costs
 ``∏ sizes`` over the union of index sets, and the merge appends the
 symmetric difference.  ``greedy`` keeps ``random.Random`` on the

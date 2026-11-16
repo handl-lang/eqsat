@@ -34,7 +34,7 @@ backend ports — ``source`` / ``sink`` / ``composer`` / ``meter`` — the
 orchestrator consumes.  It is a *plain value*: constructing it
 performs no registration and selects no defaults — a caller assembles
 or imports one explicitly (e.g.
-``mlopt_torch.backend.TorchBackend()``) and passes it to
+``kit_torch.backend.TorchBackend()``) and passes it to
 ``Optimizer(backend=...)``.
 
 *Which* backends exist is recorded separately, in
@@ -113,7 +113,7 @@ class PipelineStats(dict):
     A ``dict`` subclass — the
     :class:`~mlopt_orchestrator.bounds.ErrorBoundEntry` /
     :class:`~mlopt_orchestrator.morphisms.ReifyResult` pattern: this
-    record crosses *serialization* edges (``mlopt_torch.export``
+    record crosses *serialization* edges (``kit_torch.export``
     copies it into a manifest written with ``json.dumps``; bench
     drivers and manifests read arbitrary keys) and *mutation* edges
     (runners and the task/bound gates write keys in place).  Every
@@ -165,7 +165,7 @@ class Backend:
     ``device_policy`` (Phase B — ``docs/reports/
     production_readiness.md``) is the optional placement/refusal
     policy: a :class:`~mlopt_core.ports.DevicePolicy`-shaped value
-    such as ``mlopt_torch.device.DevicePolicy``.  ``Optimizer``
+    such as ``kit_torch.device.DevicePolicy``.  ``Optimizer``
     forwards it to ``search``/``lower`` unless a call overrides it;
     ``None`` (the default) runs the historical unpoliced path.
     """

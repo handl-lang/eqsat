@@ -47,7 +47,7 @@ Built-in candidate names (see :data:`CANDIDATE_BUILDERS`):
 
 Backend-provided builders — ``torch.compile`` / CUDA-graph paths —
 arrive through the ``builders`` map (the torch wrapper supplies
-``mlopt_torch.autotune.TORCH_BUILDERS``: ``"torch_compile"``,
+``kit_torch.autotune.TORCH_BUILDERS``: ``"torch_compile"``,
 ``"torch_compile_generic"``, ``"cuda_graph"``).  Custom candidates:
 a ``candidates`` entry may be a ``(name, builder)`` tuple where
 ``builder`` is a :data:`CandidateBuilder` callable receiving the

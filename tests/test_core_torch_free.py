@@ -2,7 +2,7 @@
 
 ``mlopt-core`` is the declared zero-dependency engine: it must import
 neither ``torch``/``numpy`` nor any sibling domain package
-(``mlopt_torch``/``kit_carriers``/``mlopt_orchestrator``)
+(``kit_torch``/``kit_carriers``/``mlopt_orchestrator``)
 on ANY code path.  Two complementary proofs:
 
 * **static** — an AST walk over every ``.py`` under
@@ -43,7 +43,7 @@ _FORBIDDEN = frozenset(
     {
         "torch",
         "numpy",
-        "mlopt_torch",
+        "kit_torch",
         "kit_carriers",
         "mlopt_orchestrator",
     }

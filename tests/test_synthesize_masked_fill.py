@@ -2,7 +2,7 @@
 
 Regression for the graphopt
 ``test_masked_fill_sdpa_fold_emits_only_with_seed`` failure: the torch
-concrete-eval env (``mlopt_torch.meta_eval.TorchConcreteEval.make_env``)
+concrete-eval env (``kit_torch.meta_eval.TorchConcreteEval.make_env``)
 mints an fp64 tensor for EVERY leaf — including the boolean mask
 ``masked_fill`` requires — so evaluating the bound instance raises
 ``RuntimeError: masked_fill_ only supports boolean masks``.  Every

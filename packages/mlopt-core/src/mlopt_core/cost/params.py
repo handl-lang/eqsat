@@ -42,7 +42,7 @@ def param_bytes_cost(
     what lets extraction prefer the storage-cheaper member.
 
     Pricing mirrors ``IRModule._fold_weight_chains`` /
-    ``_build_params`` (mlopt_torch.torch_bridge), not the term's leaf list:
+    ``_build_params`` (kit_torch.torch_bridge), not the term's leaf list:
 
     * a ``Param`` leaf reachable after folding is one storage entry,
       deduplicated *by name* — a weight read by two consumers is
@@ -136,7 +136,7 @@ def _param_numel(
     return float(_numel(shape))
 
 
-#: Elementwise ops ``IRModule._fold_weight_chains`` (mlopt_torch.torch_bridge)
+#: Elementwise ops ``IRModule._fold_weight_chains`` (kit_torch.torch_bridge)
 #: folds eagerly through the ``_IR_TO_TORCH`` bindings when the whole
 #: subtree is param-only.  ``matmul`` and ``concat`` are spelled out
 #: separately in ``_folds_to_param`` because they fold under tighter arg

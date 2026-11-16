@@ -5,9 +5,9 @@ samples to the same two numbers under the same rules.  This module
 *is* that contract, so the paths share one definition instead of each
 inventing its own:
 
-* :class:`mlopt_torch.meter.TorchMeter` — the production
+* :class:`kit_torch.meter.TorchMeter` — the production
   :class:`~mlopt_core.ports.Meter` port;
-* :mod:`mlopt_torch.calibrate` — its micro-benchmark probes;
+* :mod:`kit_torch.calibrate` — its micro-benchmark probes;
 * :class:`bench.benchkit.runner.Runner` — the benchmark harness.
 
 The contract

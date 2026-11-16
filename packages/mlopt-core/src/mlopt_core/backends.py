@@ -10,7 +10,7 @@ module closes: ``mlopt_core.ports`` declares the *ports*
 :class:`~mlopt_core.ports.DevicePolicy`), and
 :class:`~mlopt_core.pipeline.Backend` bundles one backend's four
 values — but nothing recorded *which backends exist*.  Torch was the
-only row, reached through ``mlopt_torch.backend.TorchBackend``;
+only row, reached through ``kit_torch.backend.TorchBackend``;
 ``kit_onnx`` proved a second backend satisfies the same ports yet
 had nowhere to say so.
 

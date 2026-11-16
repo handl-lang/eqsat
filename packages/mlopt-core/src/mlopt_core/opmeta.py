@@ -23,7 +23,7 @@ What the registry deliberately does *not* hold:
 * the **attr schema** — ``mlopt_core.attrs.ATTR_SCHEMA`` /
   ``ATTR_REQUIRED`` are already single-source; the registry *indexes*
   them (:func:`attrs` / :func:`required`) rather than copying;
-* the **aten alias map** — ``mlopt_torch.torch_bridge._ATEN_TO_IR``
+* the **aten alias map** — ``kit_torch.torch_bridge._ATEN_TO_IR``
   lives in the adapter (``mlopt-core`` imports no torch) and is
   *validated against* the registry at the boundary
   (:func:`validate_aten_map`);
@@ -135,7 +135,7 @@ COMMUTATIVE = "commutative"
 #: Ops whose parameter-only subtrees evaluate once at compile time:
 #: the reference torch lowering's ``IRModule._fold_weight_chains``
 #: materialises them as a fused ``Param`` before the first forward
-#: (``mlopt_torch.torch_bridge``).  This is the single source for the
+#: (``kit_torch.torch_bridge``).  This is the single source for the
 #: fold alphabet — the lowerer dispatches on :data:`FOLD_OPS` and the
 #: cost model's fold predicate (``cost._folds_to_param``) and the
 #: extraction-side param-only discount

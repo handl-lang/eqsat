@@ -633,7 +633,7 @@ def search(
     source : Source
         The graph-source port (``model -> (IR, leaves)``) — REQUIRED.
         There is no assumed frontend; choosing torch means importing
-        ``mlopt_torch`` and passing ``TorchSource``.
+        ``kit_torch`` and passing ``TorchSource``.
     capabilities : Capabilities, optional
         The backend's op surface — ``supported_ops`` bounds extraction
         to forms the backend can lower (``backend_cost`` pricing), and
@@ -816,7 +816,7 @@ def search(
     device_policy : DevicePolicy, optional
         The placement/refusal policy (Phase B) — a
         :class:`~mlopt_core.ports.DevicePolicy`-shaped value such as
-        ``mlopt_torch.device.DevicePolicy``.  Invoked ONCE, before
+        ``kit_torch.device.DevicePolicy``.  Invoked ONCE, before
         export, as ``device_policy.resolve(model, x)``: the resolved
         placement is recorded under ``stats["device"]``
         (``str()``-rendered — the substrate stores no device type)
@@ -1065,7 +1065,7 @@ def lower(
     everything else to ``sink.lower``.  The delivery runner then
     decides HOW the routed executor ships — identity
     (``IdentityRunner`` — the default) or a backend-provided
-    transform like ``mlopt_torch.runners.TorchCompileRunner`` /
+    transform like ``kit_torch.runners.TorchCompileRunner`` /
     ``kit_cuda.CudaGraphRunner`` / a ``ChainedRunner``
     composition.
     ``stats`` is a FRESH ``PipelineStats`` — the search record plus
@@ -1435,7 +1435,7 @@ class Autotuned:
     (``"eager"``), or ``(name, builder)`` tuples; backend-provided
     builders arrive through ``builders=`` (the torch wrapper maps
     ``"torch_compile"`` / ``"torch_compile_generic"`` /
-    ``"cuda_graph"`` via ``mlopt_torch.autotune.TORCH_BUILDERS``).  The
+    ``"cuda_graph"`` via ``kit_torch.autotune.TORCH_BUILDERS``).  The
     remaining fields are the timing / budget / verify knobs.
     ``optimize`` kwargs (``rules``, ``max_iterations``, ``runner``,
     …) forward to the underlying pipeline call; an explicit
@@ -1511,7 +1511,7 @@ class Optimizer:
     Resolution is ``backend`` first, then the explicit arguments
     override each port it carries; every port is required — there is
     NO default backend (choosing torch means importing
-    ``mlopt_torch.backend.TorchBackend``).  ``criteria`` is the
+    ``kit_torch.backend.TorchBackend``).  ``criteria`` is the
     default selection blend; ``runner`` the default delivery
     (``IdentityRunner`` — the no-op, backend-neutral shipping step).
 

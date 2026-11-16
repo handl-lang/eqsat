@@ -12,8 +12,8 @@ behaviour the lazy imports used to provide.
 
 The edge inversion matters for the dependency graph.  Previously the
 orchestrator reached *down* into the torch-coupled carrier package,
-which — with ``mlopt_torch`` importing the orchestrator and the
-carriers importing ``mlopt_torch`` — closed a three-package cycle
+which — with ``kit_torch`` importing the orchestrator and the
+carriers importing ``kit_torch`` — closed a three-package cycle
 ``torch -> orchestrator -> carriers -> torch``.  Registration replaces
 that with ``carriers -> orchestrator``, leaving the graph acyclic:
 the orchestrator sits above the ``torch``/``carriers`` backend family.

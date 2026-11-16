@@ -1,6 +1,6 @@
 """``mlopt_core.profile`` — the torch-free half of calibration.
 
-The measurement half lives in ``mlopt_torch.calibrate``; this pins
+The measurement half lives in ``kit_torch.calibrate``; this pins
 the data half — the ``TargetProfile`` record, JSON persistence, the
 ``shape_bucket`` keying, the measured-feedback channel
 (``record_measured`` / ``measured_price_ns``) and the learned

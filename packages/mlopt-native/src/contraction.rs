@@ -1,5 +1,5 @@
 //! Contraction-ordering primitives — the pure combinatorial core of
-//! ``mlopt_torch.contraction_policy``'s board
+//! ``kit_torch.contraction_policy``'s board
 //! (``pair_cost``/``merge_tensors``/``greedy``/``cost_of_order``).
 //!
 //! A network is ``(tensors, sizes)``: each tensor is a set of index

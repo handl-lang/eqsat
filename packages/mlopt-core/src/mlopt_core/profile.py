@@ -11,7 +11,7 @@ measured-feedback channel keys on, and the correction math — the
 parts that name no tensor library, so the cost model and the
 orchestrator can consume a profile in any backend's process.  The
 *measurement* half (``calibrate()`` and the torch micro-benchmarks
-that fill these constants) lives in ``mlopt_torch.calibrate``.
+that fill these constants) lives in ``kit_torch.calibrate``.
 
 Profiles round-trip through JSON and persist under
 ``~/.cache/mlopt/profiles`` (override with ``$MLOPT_PROFILE_DIR`` or

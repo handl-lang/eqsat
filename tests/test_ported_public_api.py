@@ -197,7 +197,7 @@ _PUBLIC_SURFACE: dict[str, tuple[str, ...]] = {
     ),
 }
 
-# The contract's domain seats (``mlopt_torch``, ``kit_carriers``,
+# The contract's domain seats (``kit_torch``, ``kit_carriers``,
 # ``kit_discovery``, ``kit_onnx``, ``gamekit``) are checked in
 # graphopt where those packages live; this repo holds the substrate
 # slice of the same frozen table.

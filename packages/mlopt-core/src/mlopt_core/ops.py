@@ -1,7 +1,7 @@
 """Explicit op-table composition — plan 0001 phase 2c.
 
 Before this phase the torch-lowering table lived as module-global
-mutable state: ``mlopt_torch.torch_bridge._IR_TO_TORCH`` was seeded with the
+mutable state: ``kit_torch.torch_bridge._IR_TO_TORCH`` was seeded with the
 core bindings and every carrier module (``kit_carriers.trace``,
 ``kit_carriers.xcarrier``, ``kit_carriers.om``) mutated it at
 import time.  Whether a term could be lowered therefore depended on
@@ -24,7 +24,7 @@ WHICH modules had happened to be imported — an invisible dependency.
 Backend wiring (core stays torch-free)
 --------------------------------------
 ``mlopt-core`` imports no backend.  The torch lowering table
-(``mlopt_torch.torch_bridge._CORE_TORCH_BINDINGS``) and the ambient
+(``kit_torch.torch_bridge._CORE_TORCH_BINDINGS``) and the ambient
 dict (``_IR_TO_TORCH``) are *pushed into* core by the adapter at import
 time through two hooks:
 
@@ -35,7 +35,7 @@ time through two hooks:
   ``_IR_TO_TORCH[op] = fn`` overrides and lazy carrier resolution keep
   reaching already-built evaluators).
 
-Nothing in core names ``mlopt_torch``.  With no adapter imported (a
+Nothing in core names ``kit_torch``.  With no adapter imported (a
 ``pip install mlopt-core``-only environment) the hooks are simply
 unfired: ``OpTable.core()`` yields the shape rules and attr schema with
 an empty ``torch_bindings`` (no backend can lower anything), and
@@ -106,7 +106,7 @@ __all__ = [
 ]
 
 #: Core lowering tables registered by adapters (see module docstring,
-#: *Backend wiring*).  ``mlopt_torch.torch_bridge`` appends its
+#: *Backend wiring*).  ``kit_torch.torch_bridge`` appends its
 #: ``_CORE_TORCH_BINDINGS`` here at import; core imports no adapter.
 _CORE_BINDING_TABLES: list[dict[str, Binding]] = []
 
@@ -122,7 +122,7 @@ _AMBIENT_BINDINGS: dict[str, Binding] | None = None
 def register_core_bindings(table: dict[str, Binding]) -> None:
     """Backend hook: register a core lowering table.
 
-    Called by an adapter at import time (``mlopt_torch.torch_bridge``
+    Called by an adapter at import time (``kit_torch.torch_bridge``
     passes ``_CORE_TORCH_BINDINGS``).  :meth:`OpTable.core` folds every
     registered table into its ``torch_bindings``; core never imports the
     adapter.  Idempotent per table *object* — a re-import or a double
@@ -205,7 +205,7 @@ def _carrier_module_objects() -> list[ModuleType]:
     """Import the carrier modules that are installed.
 
     A carrier's terms cannot exist without its package, so a missing
-    carrier module (partial install — e.g. mlopt-core + mlopt-torch
+    carrier module (partial install — e.g. mlopt-core + kit-torch
     alone, no ``kit-carriers``) contributes nothing and is skipped
     silently.  The ``ModuleNotFoundError`` is narrowed
     to the carrier module itself or one of its parent packages: an
@@ -279,7 +279,7 @@ class OpTable:
         No carrier ops — ``trace``/``omd_*``/``cmask`` are absent until a
         carrier module is :meth:`register`\ ed.
 
-        With a backend adapter imported (``mlopt_torch.torch_bridge``
+        With a backend adapter imported (``kit_torch.torch_bridge``
         registers its table at import) this is exactly the historical
         core table.  In a mlopt-core-only environment no table is
         registered, so ``torch_bindings`` is empty while the shape rules
@@ -303,13 +303,13 @@ class OpTable:
 
         Carrier packages absent from the environment are skipped:
         their terms cannot exist without the package anyway, so a
-        partial install (e.g. mlopt-core + mlopt-torch only) still
+        partial install (e.g. mlopt-core + kit-torch only) still
         yields a working table.
 
         The returned table's ``torch_bindings`` is the ambient
         lowering dict the backend registered
         (:func:`register_ambient_bindings` — torch's
-        ``mlopt_torch.torch_bridge._IR_TO_TORCH``): post-hoc overrides
+        ``kit_torch.torch_bridge._IR_TO_TORCH``): post-hoc overrides
         (``_IR_TO_TORCH[op] = fn``) and lazy carrier resolution keep
         reaching the evaluators that dispatch through this table —
         exactly what the old global registry did.  When no backend has

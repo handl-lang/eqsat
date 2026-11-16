@@ -44,7 +44,7 @@ class ErrorBoundEntry(dict):
     A ``dict`` subclass rather than the
     :class:`~mlopt_orchestrator.diagram.DiagramSearchStats`
     ``Mapping`` record: this ledger crosses a *serialization* edge —
-    ``mlopt_torch.export`` copies ``stats["error_bounds"]`` verbatim
+    ``kit_torch.export`` copies ``stats["error_bounds"]`` verbatim
     into a manifest written with ``json.dumps`` (the safetensors path
     passes no ``default=`` fallback), and the task gate mutates
     entries in place (``e["accepted_by"] = ...``).  Both keep working

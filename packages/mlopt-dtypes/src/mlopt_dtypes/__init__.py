@@ -2,11 +2,11 @@
 
 Plan: ``docs/reports/arch_audit_graphopt_packages.md`` §3 found the
 dtype mappings duplicated across the domain packages — torch dtype ↔
-safetensors tag (``mlopt_torch.export``), IR name ↔ NumPy dtype ↔
+safetensors tag (``kit_torch.export``), IR name ↔ NumPy dtype ↔
 ONNX element type ↔ onnxruntime type string (``kit_onnx.arrays``),
 ``hardware.dtype`` names (``kit_discovery.play``), and the
 name-resolution idiom ``getattr(torch, name.split(".")[-1])``
-(``mlopt_torch.torch_bridge``, ``kit_carriers.trace``).  This module
+(``kit_torch.torch_bridge``, ``kit_carriers.trace``).  This module
 is the single table they all derive from.
 
 Why a separate package
@@ -14,7 +14,7 @@ Why a separate package
 ``mlopt_core`` would be the natural home (it is the torch-free
 substrate), but it ships from ``handl-lang/eqsat`` as a pinned git
 dep — a new module there is a release, not a commit.  ``kit_onnx``
-sits *below* ``mlopt_torch`` in the dependency-layers contract and
+sits *below* ``kit_torch`` in the dependency-layers contract and
 must stay torch/numpy-only-light, so the registry is its own leaf
 package: pure stdlib, zero dependencies, importable by every backend.
 

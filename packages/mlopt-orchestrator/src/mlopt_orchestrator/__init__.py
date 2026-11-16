@@ -11,11 +11,11 @@ and their result objects (:class:`SearchResult` /
 :class:`Monolithic` / :class:`Compositional` / :class:`Autotuned`.
 
 This package imports **no backend**: no torch, no
-``mlopt_torch``, no ``kit_cuda``.  Backend specifics arrive
+``kit_torch``, no ``kit_cuda``.  Backend specifics arrive
 through the ports the caller passes — e.g.
 ``Optimizer(backend=TorchBackend())`` with
-``mlopt_torch.backend.TorchBackend``.  The delivery runners live
-with their backends (:class:`mlopt_torch.runners.TorchCompileRunner`,
+``kit_torch.backend.TorchBackend``.  The delivery runners live
+with their backends (:class:`kit_torch.runners.TorchCompileRunner`,
 :class:`kit_cuda.CudaGraphRunner`); the neutral
 :class:`IdentityRunner` / :class:`ChainedRunner` /
 :func:`runner_candidate` live in :mod:`mlopt_orchestrator.runners`.

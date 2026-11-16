@@ -178,7 +178,7 @@ def roofline_cost(term: Any, memo: dict | None = None) -> float:
 
     The constants are the RTX 2050 profile hardcoded above; use
     :func:`roofline_cost_for` with a measured ``TargetProfile``
-    (``mlopt_torch.calibrate.calibrate``) for other targets.
+    (``kit_torch.calibrate.calibrate``) for other targets.
     """
     memo = {} if memo is None else memo
     return _roofline_cost(term, memo, _PEAK_FLOPS, _PEAK_BW, _LAUNCH_S)
@@ -188,7 +188,7 @@ def _profile_constants(profile: Any) -> tuple[float, float, float]:
     """(peak_flops, peak_bw, launch_s) from a TargetProfile-like object.
 
     Accepts anything with ``.tflops`` / ``.gbps`` / ``.launch_us``
-    attributes (e.g. ``mlopt_torch.calibrate.TargetProfile``) or a dict with
+    attributes (e.g. ``kit_torch.calibrate.TargetProfile``) or a dict with
     those keys; ``None`` yields the built-in RTX 2050 constants.
     """
     if profile is None:
@@ -214,7 +214,7 @@ def _profile_constants(profile: Any) -> tuple[float, float, float]:
 # calibrated profile carries ``op_kernel_ns``:
 # ``{op_class: {shape_key: measured_ns}}`` where each value is the
 # median wall time of one eager kernel call at that shape — launch,
-# dispatch and kernel work inside (``mlopt_torch.calibrate``).
+# dispatch and kernel work inside (``kit_torch.calibrate``).
 # A term whose op-class and shape signature lands near a measured
 # bucket prices at ``max(roofline_ns, measured_ns)``: the measurement
 # is a floor on the estimate — it can only raise the model toward the
@@ -370,7 +370,7 @@ def roofline_cost_for(
 ):
     """Return a roofline cost fn calibrated to a measured target profile.
 
-    ``profile`` is a ``mlopt_torch.calibrate.TargetProfile`` (or any object
+    ``profile`` is a ``kit_torch.calibrate.TargetProfile`` (or any object
     / dict with ``tflops``, ``gbps``, ``launch_us``); ``None`` plus
     keyword overrides gives a one-off calibration.  The returned
     closure has the standard cost-fn signature ``fn(term, memo=None)``
@@ -379,7 +379,7 @@ def roofline_cost_for(
 
     When the profile carries an ``op_kernel_ns`` table (measured
     per-op-class kernel latencies — see
-    :func:`mlopt_torch.calibrate.calibrate`), each op's estimate
+    :func:`kit_torch.calibrate.calibrate`), each op's estimate
     is floored at the measured time of its nearest shape bucket:
     measurements can only raise the price toward observed latency,
     never undercut the roofline.
@@ -548,7 +548,7 @@ def _profile_leaf_eval_s(profile: Any) -> float:
     Reads ``leaf_eval_us`` — one ``apply``/``applyd`` leaf-operand eval
     through the executor's ``eval_term`` machinery (gather/select plus
     elementwise combine) on top of its kernels, as measured by
-    ``mlopt_torch.calibrate``.  Absent a measurement the fallback is
+    ``kit_torch.calibrate``.  Absent a measurement the fallback is
     conservative — a leaf eval is a handful of dispatches, so it
     prices at ``4 * dispatch_s``.
     """
