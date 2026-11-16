@@ -160,6 +160,7 @@ __all__ = [
     "admit_prim_record",
     "auto_records",
     "expand_name",
+    "kit_law_record",
     "materialize",
     "prim2_folds",
     "prim2_premises",
@@ -169,6 +170,7 @@ __all__ = [
     "prim3_records",
     "prim_fold",
     "prim_folds",
+    "prim_kit_records",
     "prim_premises",
     "prim_records",
     "synop_name",
@@ -340,6 +342,83 @@ def auto_records() -> dict[str, Any]:
     caller polling it sees :func:`admit_prim_record`'s writes.
     """
     return dict(_AUTO_RECORDS)
+
+
+# ---------------------------------------------------------------------------
+#  kit-eqsat projection — minted record → LAW_FORMAT = 2 kit data
+# ---------------------------------------------------------------------------
+#
+#  ``minted.db`` stays the ledger; kit-eqsat's ``prim_folds`` pack is
+#  the *projected* corpus (ADR-0177 §1 — laws are kit data).  The
+#  store's ``fold`` sub-records are already ``LAW_FORMAT = 2`` shaped
+#  except for one spelling difference in ``attrs``: the Python-side
+#  encoding is a flat ``{name: value}`` map (``{}`` when empty, a
+#  string value a metavar bind, anything else a literal), while the
+#  kit wire spells it ``{"fields": {name: {"bind"|"lit": value}}}``
+#  (``null`` for no attrs).  :func:`kit_law_record` is that
+#  projection; :func:`prim_kit_records` applies it to every shipped
+#  prim fold.  The drift test in
+#  ``tests/test_eqsat_laws_corpus.py`` pins the projection against
+#  the committed ``eqsat_laws.json`` snapshot record-for-record, so
+#  a live :func:`admit_prim_record` that reaches the store without a
+#  kit re-projection fails the suite instead of silently widening
+#  the Python bank past the eqsat wire corpus.
+
+
+def _kit_attr(v: Any) -> dict[str, Any]:
+    """Tag one attr value for the kit wire: str → ``bind``, else ``lit``."""
+    if isinstance(v, str):
+        return {"bind": v}
+    return {"lit": v}
+
+
+def _kit_attrs(attrs: dict[str, Any]) -> dict[str, Any] | None:
+    """Encode a node's attrs in the kit ``fields`` envelope."""
+    if not attrs:
+        return None
+    return {"fields": {k: _kit_attr(v) for k, v in attrs.items()}}
+
+
+def _kit_node(node: Any) -> Any:
+    """Recursively project ``"attrs"`` maps inside *node*."""
+    if isinstance(node, dict):
+        return {
+            k: (
+                _kit_attrs(v)
+                if k == "attrs" and isinstance(v, dict)
+                else _kit_node(v)
+            )
+            for k, v in node.items()
+        }
+    if isinstance(node, list):
+        return [_kit_node(v) for v in node]
+    return node
+
+
+def kit_law_record(fold: dict[str, Any]) -> dict[str, Any]:
+    """Project one minted ``fold`` record to its kit-eqsat spelling.
+
+    The record is already ``LAW_FORMAT = 2`` shaped — ``version`` /
+    ``kind`` / ``name`` / the pattern pair / the guard fields pass
+    through untouched; only the ``attrs`` spellings inside the term
+    trees are rewritten (see the section comment above).
+    """
+    return _kit_node(fold)
+
+
+def prim_kit_records() -> dict[str, dict[str, Any]]:
+    """Return ``{"prim:<name>": kit record}`` for every shipped prim fold.
+
+    Covers all four record families :func:`prim_records` merges —
+    tiers 1-3 plus the live auto-admission tier — in
+    :func:`prim_records` order, which is the order kit-eqsat's
+    ``prim_folds`` pack ships.  The minted store is the ledger; this
+    dict is the interchange projection (ADR-0177 §1).
+    """
+    return {
+        f"prim:{name}": kit_law_record(rec["fold"])
+        for name, rec in prim_records().items()
+    }
 
 
 def prim2_records() -> dict[str, Any]:

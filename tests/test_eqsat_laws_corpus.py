@@ -68,3 +68,37 @@ def test_shipped_snapshot_matches_kit_corpus() -> None:
     # stays engine-eqsat-only by design.
     assert len(records) == 243
     assert "reshape_flatten_demo" not in {r["name"] for r in records}
+
+
+def test_minted_store_projects_into_shipped_snapshot() -> None:
+    """Every minted prim fold the Python bank can fire is on the wire.
+
+    ``minted.db`` is the ledger and kit-eqsat's ``prim_folds`` pack
+    the projected corpus; a live ``admit_prim_record`` widens the
+    Python bank at import while the snapshot only moves on
+    re-projection — the two-speed drift the demotion plan calls out.
+    This pins ``AUTO_TIER ⊆ projected records`` *content-exact*: each
+    store record's kit projection must equal the shipped snapshot
+    record, so an unprojected admission (or a store edit) fails here
+    instead of silently diverging the engines.  Needs no kit-eqsat
+    checkout — the committed snapshot is the reference.
+    """
+    from mlopt_core.laws import minted
+
+    shipped = {r["name"]: r for r in json.loads(_LAWS_PATH.read_text())}
+    records = minted.prim_kit_records()
+    assert records, "minted store projected no prim records"
+    missing = sorted(set(records) - set(shipped))
+    assert not missing, (
+        f"minted prim records absent from eqsat_laws.json — "
+        f"re-project into kit-eqsat's prim_folds pack and rerun "
+        f"scripts/emit_eqsat_laws.py: {missing}"
+    )
+    drifted = sorted(
+        name for name, rec in records.items() if shipped[name] != rec
+    )
+    assert not drifted, (
+        f"minted prim records drifted from the snapshot — "
+        f"re-project into kit-eqsat's prim_folds pack and rerun "
+        f"scripts/emit_eqsat_laws.py: {drifted}"
+    )
