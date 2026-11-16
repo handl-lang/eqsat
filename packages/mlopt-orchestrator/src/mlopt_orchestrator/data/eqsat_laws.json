@@ -10027,6 +10027,2277 @@
   "bound_norm": "spectral",
   "cert": null,
   "cond": [
+   "and",
+   [
+    "flat-map-unsq",
+    "u",
+    "UD",
+    "v",
+    [
+     "unsq-out",
+     "v",
+     "UD"
+    ]
+   ],
+   [
+    "attr-cmp",
+    "UD",
+    ">=",
+    [
+     "neg",
+     [
+      "add",
+      [
+       "len",
+       [
+        "shape",
+        "u"
+       ]
+      ],
+      1
+     ]
+    ]
+   ],
+   [
+    "attr-cmp",
+    "UD",
+    "<=",
+    [
+     "len",
+     [
+      "shape",
+      "u"
+     ]
+    ]
+   ],
+   [
+    "attr-cmp",
+    "UD",
+    ">=",
+    [
+     "neg",
+     [
+      "add",
+      [
+       "len",
+       [
+        "shape",
+        "v"
+       ]
+      ],
+      1
+     ]
+    ]
+   ],
+   [
+    "attr-cmp",
+    "UD",
+    "<=",
+    [
+     "len",
+     [
+      "shape",
+      "v"
+     ]
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "unsq(u\u00b7v, d) = unsq(u, d)\u00b7unsq(v, d) \u2014 the size-1-axis insert distributes over elementwise mul: XLA's broadcast-sink direction, guarded to the flat-map-unsq region AND UD literal-in-range for both operand unsqs (the implicit-broadcast soundness envelope).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      },
+      {
+       "mvar": "v"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "UD"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "unsqueeze",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mul_unsq_rev",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "UD"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "unsqueeze",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "v"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "UD"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "unsqueeze",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "categorical",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "contiguous(x) is a value-identity relayout \u2014 the IR's semantics is value-level, so the strip is exact.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "contiguous",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "contiguous_id",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "clone(x) preserves values exactly \u2014 a materialization, not a value change.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "clone",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "clone_id",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "alias(x) is the identity leaf-relabel.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "alias",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "alias_id",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "detach(x) is the value identity \u2014 the autograd boundary the IR does not model (Inductor strips it in inference).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "detach",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "detach_id",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "detach_(x) \u2014 the in-place spelling of the same value identity.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "detach_",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "detach_inplace_id",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "float(float(x)) = float(x) \u2014 dtype casts are idempotent.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "float",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "float",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "float_idem",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "float",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "half(half(x)) = half(x) \u2014 dtype casts are idempotent.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "half",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "half",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "half_idem",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "half",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "double(double(x)) = double(x) \u2014 dtype casts are idempotent.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "double",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "double",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "double_idem",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "double",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "bfloat16(bfloat16(x)) = bfloat16(x) \u2014 dtype casts are idempotent.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "bfloat16",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "bfloat16",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "bfloat16_idem",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "bfloat16",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "attr-type",
+    "UD",
+    "int"
+   ],
+   [
+    "attr-type",
+    "SD",
+    "int"
+   ],
+   [
+    "attr-cmp",
+    [
+     "mod",
+     [
+      "attr",
+      "UD"
+     ],
+     [
+      "add",
+      [
+       "len",
+       [
+        "shape",
+        "u"
+       ]
+      ],
+      1
+     ]
+    ],
+    "==",
+    [
+     "mod",
+     [
+      "attr",
+      "SD"
+     ],
+     [
+      "add",
+      [
+       "len",
+       [
+        "shape",
+        "u"
+       ]
+      ],
+      1
+     ]
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "squeeze(unsqueeze(u, d), d) = u \u2014 the insert/remove pair cancels on the same normalized axis.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "UD"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "unsqueeze",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "SD"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "squeeze",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "unsqueeze_squeeze",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "attr-type",
+    "D",
+    "int"
+   ],
+   [
+    "attr-cmp-dim",
+    1,
+    "==",
+    "u",
+    "D"
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "unsqueeze(squeeze(u, d), d) = u when u[d] == 1 \u2014 the remove/insert pair cancels on a size-1 axis only.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "squeeze",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "unsqueeze",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "squeeze_unsqueeze",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "attr-cmp-dim",
+   1,
+   "!=",
+   "u",
+   "D"
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "squeeze(u, d) on a non-1 axis removes nothing \u2014 a no-op the exporter's belt-and-braces squeezes leave behind.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "squeeze",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "squeeze_noop",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "attr-cmp",
+   "S",
+   "==",
+   [
+    "shape",
+    "u"
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "reshape(u, shape(u)) = u \u2014 the no-op reshape strip (Inductor view-chain simplification).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "shape": {
+      "bind": "S"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "reshape",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "reshape_noop",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "reshape(reshape(u, s0), s1) = reshape(u, s1) \u2014 view composition keeps only the final target.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "shape": {
+        "bind": "S0"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "reshape",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "shape": {
+      "bind": "S1"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "reshape",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "reshape_reshape",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "shape": {
+      "bind": "S1"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "reshape",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "attr-cmp",
+   "S",
+   "==",
+   [
+    "shape",
+    "u"
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "broadcast_to(u, shape(u)) = u \u2014 the same no-op for the materializing spelling.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "shape": {
+      "bind": "S"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "broadcast_to",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "broadcast_to_noop",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "broadcast_to(u, s) = expand(u, s) \u2014 the strict spelling is a special case of the view.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "shape": {
+      "bind": "S"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "broadcast_to",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "broadcast_to_expand",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "shape": {
+      "bind": "S"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "expand",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "attr-type",
+    "D",
+    "int"
+   ],
+   [
+    "attr-cmp",
+    "D",
+    ">=",
+    0
+   ],
+   [
+    "attr-cmp",
+    [
+     "len",
+     [
+      "shape",
+      "u"
+     ]
+    ],
+    ">",
+    [
+     "attr",
+     "D"
+    ]
+   ],
+   [
+    "attr-cmp-dim",
+    "E",
+    ">=",
+    "u",
+    "D"
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "slice(u, d, 0, e) = u when e >= u[d] \u2014 the full-cover slice strip (the export's ``x[..., :e]`` no-op).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     },
+     "end": {
+      "bind": "E"
+     },
+     "start": {
+      "lit": 0
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "slice",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "slice_noop",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "attr-type",
+    "D",
+    "int"
+   ],
+   [
+    "attr-cmp",
+    "D",
+    ">=",
+    0
+   ],
+   [
+    "attr-cmp",
+    [
+     "len",
+     [
+      "shape",
+      "u"
+     ]
+    ],
+    ">",
+    [
+     "attr",
+     "D"
+    ]
+   ],
+   [
+    "attr-cmp-dim",
+    "E",
+    ">=",
+    "u",
+    "D"
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "The start-elided full-cover slice \u2014 ``x[..., :e]`` with e >= u[d].",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     },
+     "end": {
+      "bind": "E"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "slice",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "slice_noop_nostart",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "attr-range",
+   "I",
+   "u",
+   "D"
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "index_select(u, d, range(u[d])) = u \u2014 the identity gather.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     },
+     "index": {
+      "bind": "I"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "index_select",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "index_select_id",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "or",
+   [
+    "and",
+    [
+     "attr-type",
+     "SH",
+     "int"
+    ],
+    [
+     "attr-eq",
+     "SH",
+     0
+    ]
+   ],
+   [
+    "and",
+    [
+     "attr-cmp",
+     [
+      "len",
+      [
+       "unique",
+       [
+        "attr",
+        "SH"
+       ]
+      ]
+     ],
+     "<=",
+     1
+    ],
+    [
+     "attr-cmp",
+     [
+      "sum",
+      [
+       "unique",
+       [
+        "attr",
+        "SH"
+       ]
+      ]
+     ],
+     "==",
+     0
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "roll(u, shifts=0) = u \u2014 a zero shift on every axis.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dims": {
+      "bind": "DM"
+     },
+     "shifts": {
+      "bind": "SH"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "roll",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "roll_noop",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "attr-cmp",
+    [
+     "len",
+     [
+      "unique",
+      [
+       "attr",
+       "P"
+      ]
+     ]
+    ],
+    "<=",
+    1
+   ],
+   [
+    "attr-cmp",
+    [
+     "sum",
+     [
+      "unique",
+      [
+       "attr",
+       "P"
+      ]
+     ]
+    ],
+    "==",
+    0
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "pad(u, zeros) = u \u2014 an all-zero pad pad is a no-op.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "pad": {
+      "bind": "P"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "pad",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "pad_noop",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "attr-cmp",
+    [
+     "len",
+     [
+      "attr",
+      "S"
+     ]
+    ],
+    "==",
+    [
+     "len",
+     [
+      "shape",
+      "u"
+     ]
+    ]
+   ],
+   [
+    "or",
+    [
+     "attr-cmp",
+     [
+      "len",
+      [
+       "unique",
+       [
+        "attr",
+        "S"
+       ]
+      ]
+     ],
+     "==",
+     0
+    ],
+    [
+     "and",
+     [
+      "attr-cmp",
+      [
+       "len",
+       [
+        "unique",
+        [
+         "attr",
+         "S"
+        ]
+       ]
+      ],
+      "==",
+      1
+     ],
+     [
+      "attr-cmp",
+      [
+       "sum",
+       [
+        "unique",
+        [
+         "attr",
+         "S"
+        ]
+       ]
+      ],
+      "==",
+      1
+     ]
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "repeat(u, ones) = u \u2014 tiling by 1 on every axis.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "shape": {
+      "bind": "S"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "repeat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "repeat_noop",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "attr-cmp",
+    [
+     "len",
+     [
+      "attr",
+      "P"
+     ]
+    ],
+    "==",
+    [
+     "len",
+     [
+      "shape",
+      "u"
+     ]
+    ]
+   ],
+   [
+    "attr-cmp",
+    [
+     "len",
+     [
+      "unique",
+      [
+       "attr",
+       "P"
+      ]
+     ]
+    ],
+    "==",
+    [
+     "len",
+     [
+      "attr",
+      "P"
+     ]
+    ]
+   ],
+   [
+    "attr-cmp",
+    [
+     "posmap",
+     [
+      "attr",
+      "P"
+     ],
+     [
+      "attr",
+      "P"
+     ]
+    ],
+    "==",
+    [
+     "attr",
+     "P"
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "permute(u, identity) = u.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dims": {
+      "bind": "P"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "permute",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "permute_noop",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "attr-ints",
+    "P"
+   ],
+   [
+    "attr-ints",
+    "Q"
+   ],
+   [
+    "attr-cmp",
+    [
+     "len",
+     [
+      "attr",
+      "P"
+     ]
+    ],
+    "==",
+    [
+     "len",
+     [
+      "shape",
+      "u"
+     ]
+    ]
+   ],
+   [
+    "attr-cmp",
+    [
+     "len",
+     [
+      "attr",
+      "Q"
+     ]
+    ],
+    "==",
+    [
+     "len",
+     [
+      "attr",
+      "P"
+     ]
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "C": [
+    "gather",
+    [
+     "attr",
+     "P"
+    ],
+    [
+     "attr",
+     "Q"
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "permute(permute(u,P),Q) = permute(u, P\u2218Q) \u2014 permutation composition, minted as gather(P, Q).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dims": {
+        "bind": "P"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "permute",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dims": {
+      "bind": "Q"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "permute",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "permute_compose",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dims": {
+      "bind": "C"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "permute",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "attr-type",
+    "S",
+    "int"
+   ],
+   [
+    "attr-type",
+    "D",
+    "int"
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "movedim(movedim(u,s,d),d,s) = u \u2014 moving an axis forth and back is the identity.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "destination": {
+        "bind": "D"
+       },
+       "source": {
+        "bind": "S"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "movedim",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "destination": {
+      "bind": "S"
+     },
+     "source": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "movedim",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "movedim_involution",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "attr-type",
+    "SD",
+    "int"
+   ],
+   [
+    "attr-cmp",
+    [
+     "mod",
+     [
+      "attr",
+      "SD"
+     ],
+     [
+      "len",
+      [
+       "shape",
+       "u"
+      ]
+     ]
+    ],
+    "==",
+    [
+     "mod",
+     [
+      "if",
+      [
+       "attr-is",
+       "ED",
+       null
+      ],
+      -1,
+      [
+       "attr",
+       "ED"
+      ]
+     ],
+     [
+      "len",
+      [
+       "shape",
+       "u"
+      ]
+     ]
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "flatten(u, i, i) = u \u2014 a one-axis merge is a no-op.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "end_dim": {
+      "bind": "ED"
+     },
+     "start_dim": {
+      "bind": "SD"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "flatten",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "flatten_noop",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "attr-len",
+    "SZ",
+    "==",
+    1
+   ],
+   [
+    "attr-cmp",
+    [
+     "nth",
+     [
+      "attr",
+      "SZ"
+     ],
+     0
+    ],
+    "==",
+    [
+     "nth",
+     [
+      "shape",
+      "u"
+     ],
+     [
+      "attr",
+      "D"
+     ]
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "unflatten(u, d, (u[d],)) = u \u2014 a singleton split restores the same axis.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     },
+     "sizes": {
+      "bind": "SZ"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "unflatten",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "unflatten_noop",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "attr-eq",
+    "I",
+    0
+   ],
+   [
+    "attr-len",
+    "SZ",
+    "==",
+    1
+   ],
+   [
+    "attr-cmp",
+    [
+     "nth",
+     [
+      "attr",
+      "SZ"
+     ],
+     0
+    ],
+    "==",
+    [
+     "nth",
+     [
+      "shape",
+      "u"
+     ],
+     [
+      "attr",
+      "D"
+     ]
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "split(u, (u[d],), d, 0) = u \u2014 a one-section split is the whole tensor (the chunk_single sibling).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     },
+     "index": {
+      "bind": "I"
+     },
+     "sizes": {
+      "bind": "SZ"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "split",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "split_single",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "attr-ints",
+    "D1"
+   ],
+   [
+    "attr-eq-attr",
+    "D1",
+    "D2"
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "flip(flip(u, d), d) = u \u2014 reversing the same axes twice.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dims": {
+        "bind": "D1"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "flip",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dims": {
+      "bind": "D2"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "flip",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "flip_involution",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "tril(tril(u, g), g) = tril(u, g) \u2014 masking is idempotent.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "diagonal": {
+        "bind": "G"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "tril",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "diagonal": {
+      "bind": "G"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "tril",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "tril_idem",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "diagonal": {
+      "bind": "G"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "tril",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "triu(triu(u, g), g) = triu(u, g).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "diagonal": {
+        "bind": "G"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "triu",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "diagonal": {
+      "bind": "G"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "triu",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "triu_idem",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "diagonal": {
+      "bind": "G"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "triu",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "clamp(clamp(u,l,h),l,h) = clamp(u,l,h) \u2014 same-bound nesting is a no-op.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "max": {
+        "bind": "HI"
+       },
+       "min": {
+        "bind": "LO"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "clamp",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "max": {
+      "bind": "HI"
+     },
+     "min": {
+      "bind": "LO"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "clamp",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "clamp_idem",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "max": {
+      "bind": "HI"
+     },
+     "min": {
+      "bind": "LO"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "clamp",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
    "const-cmp",
    "ONE",
    "==",

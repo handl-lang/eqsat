@@ -13,8 +13,10 @@ records are projections:
   (``prim:*`` records resolve through the minted store's materialized
   folds).  A kit record Python does not know would silently widen the
   eqsat wire bank past the oracle; the Python-only remainder is the
-  documented port backlog, not drift: the ``priorart`` tail (still
-  being ported pack-section by pack-section), plus two permanent
+  documented port backlog, not drift: the ``priorart`` remainder
+  (the concat/matmul-merge/select-pull/reduce-dim1/reduction-algebra/
+  activation-decomposition/zoo-corpus sections — the §1 index-view
+  tail and §2 no-op-elimination head are now ported), plus two permanent
   declines — ``conv_bn_fold``'s procedural hooks and attention's
   ``rope_cat_compose`` (its half-split guard needs attr-arithmetic
   vs shape-extent comparisons the ``cond`` vocabulary cannot form).
@@ -309,14 +311,21 @@ _ATTR_DIVERGENT = frozenset()
 #: vs Python's expansion names is consistent, not contradictory).
 _FIELD_DIVERGENT = frozenset()
 
-#: The 113 rules whose procedural ``check=`` hooks the engine-eqsat
+#: The 121 rules whose procedural ``check=`` hooks the engine-eqsat
 #: port re-authored as declarative ``cond`` trees — the 36
 #: ``laws/attention.py`` members (``uniform``/``scalar``/
 #: ``dim-eq-const``/``bcast-into``/``mm-shape-ok``/``rank``/
 #: ``dim-compat`` — see ``engine-eqsat:src/builtin.rs``'s attention
-#: section) plus all 77 ``laws/layout.py`` members (``axes-last2``/
+#: section), all 77 ``laws/layout.py`` members (``axes-last2``/
 #: ``axes-distinct``/``axes-eq``/``rank``/``rank-eq``/``dim-compat``/
-#: ``mm-out`` — the layout section).  On these records the kit side
+#: ``mm-out`` — the layout section), and the 8 ``priorart.py``
+#: §2 no-op-elimination members whose hooks re-authored over the
+#: ``mod``/``len``/``shape``/``unique``/``sum``/``posmap``/
+#: ``attr-is`` vocabulary (``unsqueeze_squeeze``/``squeeze_unsqueeze``
+#: axis-equality, ``roll_noop``/``pad_noop``/``repeat_noop``/
+#: ``permute_noop`` all-zero/all-one/identity folds,
+#: ``flatten_noop``'s ``-1`` end_dim arm, ``flip_involution``'s
+#: int-tuple dims gate).  On these records the kit side
 #: therefore carries ``cond`` data, ``serializable: true`` and
 #: ``missing_hooks: []`` where the Python ``law_to_data`` honestly
 #: reports ``cond: null``, ``serializable: false`` and
@@ -446,6 +455,20 @@ _CHECK_TRANSLATED = frozenset(
         "transpose_transpose_bd",
         "transpose_transpose_db",
         "transpose_transpose_dd",
+        # -- the 8 `priorart.py` §2 no-op-elimination rules whose
+        # procedural `check=` hooks re-authored as `mod`/`len`/
+        # `shape`/`unique`/`sum`/`posmap`/`attr-is` cond trees
+        # (engine-eqsat's `prior_art` pack — the squeeze/unsqueeze
+        # pair cancels, the all-zero/all-one/identity folds, the
+        # flatten `-1` end_dim arm, the flip int-tuple gate).
+        "unsqueeze_squeeze",
+        "squeeze_unsqueeze",
+        "roll_noop",
+        "pad_noop",
+        "repeat_noop",
+        "permute_noop",
+        "flatten_noop",
+        "flip_involution",
     }
 )
 
@@ -673,8 +696,8 @@ def test_check_translated_records_match_the_translation_shape() -> None:
     non-null ``cond``, ``serializable: true`` and ``missing_hooks:
     []`` while the Python ``law_to_data`` reports ``cond: null``,
     ``serializable: false`` and ``missing_hooks: ["check"]`` — and the
-    name set must equal the corpus's translated attention + layout
-    rules (a kit record gaining/losing the translation, or a Python
+    name set must equal the corpus's translated attention + layout +
+    prior_art no-op rules (a kit record gaining/losing the translation, or a Python
     rule changing its hook kind, fails here rather than silently
     widening the field exemption).
     """
