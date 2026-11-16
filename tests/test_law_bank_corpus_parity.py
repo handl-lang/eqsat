@@ -12,8 +12,8 @@ records are projections:
 * **Coverage** — every corpus record must name a shipped bank rule
   (``prim:*`` records resolve through the minted store's materialized
   folds).  A kit record Python does not know would silently widen the
-  eqsat wire bank past the oracle; the 301 Python-only rules are the
-  documented port backlog (prior_art 164, attention 37, scan 22,
+  eqsat wire bank past the oracle; the 279 Python-only rules are the
+  documented port backlog (prior_art 164, attention 37,
   layout/headshare/pairing/specials/factored tails, ``conv_bn_fold``'s
   procedural hooks), not drift.
 * **Op-tree shape** — for every non-prim record, the ``lhs``/``rhs``
