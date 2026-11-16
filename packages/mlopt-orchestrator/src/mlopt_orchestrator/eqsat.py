@@ -90,9 +90,9 @@ the Python engine's ``+inf`` ``supported_ops`` bound.
 records — either a tree (``Op`` nodes carry ``dim = Const(1)``,
 ``source = "Native"``, and the attrs payload under ``attrs`` encoded
 with ``attr_to_data`` + the ``__nonfinite__`` scalar tag, the hnl_codec
-conventions; ``Var``/``Param`` leaves ride as string-valued ``Const``
-records under the ``__mlopt_leaf__`` prefix carrying name +
-``TensorType`` shape) or, since the ``dag.program`` landing, the
+conventions; ``Var``/``Param`` leaves ride as canonical ``Arr``
+records carrying name + ``TensorType`` shape) or, since the
+``dag.program`` landing, the
 ADR-0173 shared-subtree envelope: ``{"Opaque": {"__tag__":
 "dag.program", "nodes": [...], "root": n}}`` — a post-order node table
 where every distinct node appears once and an ``Op``'s ``dim``/``args``
@@ -146,10 +146,10 @@ class EqsatUnavailableError(EqsatError):
 #: The term codec moved to ``mlopt_core.term_json`` (ADR-0178 D5
 #: option B, Step E-3) — the ONE kernel-Term-JSON codec shared with
 #: the ``kit_discovery.hnl_codec`` successor.  This bridge emits the
-#: ``leaf="const-str"`` profile (the legacy ``__mlopt_leaf__:-prefixed
-#: Const leaf) until the engine-eqsat ``arr``-enode round-trip makes
-#: the canonical ``Arr`` record safe on this wire; decode accepts
-#: both spellings permanently.
+#: canonical ``leaf="arr"`` profile (``{"Arr": {"value":
+#: {"__mlopt_leaf__": …}}}`` records) — safe since engine-eqsat
+#: ``dd4815e`` made the ``arr`` enode spell its leaves back; decode
+#: accepts both spellings permanently.
 
 
 # ---------------------------------------------------------------------------
@@ -382,14 +382,14 @@ def _pyterm_synops(term: Any) -> frozenset[str]:
 def _kterm(t: Any, state: list[int]) -> dict:
     """Mlopt term -> ``hnl_engine::Term`` serde JSON (tree spelling).
 
-    Delegate over ``term_json.term_to_json(dag="tree",
-    leaf="const-str")`` — ``state`` is the shared ``[emitted,
+    Delegate over ``term_json.term_to_json(dag="tree", leaf="arr")``
+    — ``state`` is the shared ``[emitted,
     budget]`` cell exactly as the deleted walker used it (the tree
     spelling expands sharing; the budget bounds the expansion).
     """
     try:
         return term_json.term_to_json(
-            t, dag="tree", leaf="const-str", budget=state
+            t, dag="tree", leaf="arr", budget=state
         )
     except term_json.TermJsonError as e:
         raise EqsatError(str(e)) from e
@@ -399,7 +399,7 @@ def _kdag(t: Any, state: list[int]) -> dict:
     """Mlopt term -> ``dag.program`` record (kept for private callers)."""
     try:
         return term_json.term_to_json(
-            t, dag=True, leaf="const-str", budget=state
+            t, dag=True, leaf="arr", budget=state
         )
     except term_json.TermJsonError as e:
         raise EqsatError(str(e)) from e
@@ -408,14 +408,12 @@ def _kdag(t: Any, state: list[int]) -> dict:
 def _terms_wire(terms: list, budget: int) -> list:
     """Encode a term list as ``dag.program`` records.
 
-    Delegate over ``term_json.terms_to_json(leaf="const-str")`` —
+    Delegate over ``term_json.terms_to_json(leaf="arr")`` —
     bounds TOTAL distinct wire nodes at *budget*, shared across the
     whole list, exactly as the deleted ``_kdag`` loop did.
     """
     try:
-        return term_json.terms_to_json(
-            terms, leaf="const-str", budget=budget
-        )
+        return term_json.terms_to_json(terms, leaf="arr", budget=budget)
     except term_json.TermJsonError as e:
         raise EqsatError(str(e)) from e
 
