@@ -25,8 +25,10 @@ Both ``transpose`` spellings are covered: the canonical exported form
 attrs — the torch binding reads it as the last-two swap,
 ``x.t()`` on rank 2 / ``x.transpose(-2, -1)`` otherwise).
 
-``LAYOUT_RULES`` is folded into ``ALL_RULES`` (:mod:`.tensor`), so the
-default ``optimize_model`` saturation sees both layouts.
+``LAYOUT_RULES`` is deliberately NOT in ``ALL_RULES``
+(:mod:`.tensor`): the bidirectional transpose↔pointwise pairs
+explode the saturation closure, so the family is opt-in via
+``ALL_RULES_WITH_LAYOUT`` / ``eg.run(LAYOUT_RULES, …)``.
 
 Semantic coverage note: ``conv2d`` exists in the op table, but an NCHW
 ↔ NHWC rewrite is NOT expressible here — ``permute`` changes the
