@@ -33,9 +33,16 @@ records are projections:
   ``derivation`` / ``error_bound`` / ``bound_norm`` / ``serializable``
   / ``missing_hooks`` compare verbatim against ``law_to_data`` except
   for the named ``_FIELD_DIVERGENT`` set: the measured semantic deltas
-  between the Rust port and the oracle (19 ``cond`` guards, 8
-  ``derivation`` trails — each is a port-or-decline item, not a bug
-  this guard can adjudicate).
+  between the Rust port and the oracle (8 ``derivation`` trails —
+  each is a port-or-decline item, not a bug this guard can
+  adjudicate).  ``cond`` compares after :func:`_canon_cond` flattens
+  nested same-op ``and``/``or`` nodes: both evaluators
+  (``eval_cond``, engine-eqsat's ``Cond::from_data``) read them as
+  n-ary combinators, so ``("and", a, ("and", b, c))`` and
+  ``("and", a, b, c)`` are the same guard spelled two ways — the Rust
+  port re-authored 19 records' conds with different (but
+  leaf-identical) nesting, which is a spelling delta like the attrs
+  envelopes, not a semantic one.
 * **prim records** — ``prim:*`` names resolve through the minted
   store and their records must equal ``minted.prim_kit_records()``
   verbatim (the projection ``scripts/project_prim_folds.py --check``
@@ -277,29 +284,6 @@ _ATTR_DIVERGENT = frozenset(
 #: *fixed* one forces the allowlist to shrink.
 _FIELD_DIVERGENT = frozenset(
     {
-        # The sdpa fold family's guards were re-authored engine-side.
-        ("sdpa_fold_div_nomask", "cond"),
-        ("sdpa_fold_masked_filldiv", "cond"),
-        ("sdpa_fold_masked_filldiv_drop", "cond"),
-        ("sdpa_fold_masked_fillmul", "cond"),
-        ("sdpa_fold_masked_fillmul_drop", "cond"),
-        ("sdpa_fold_mul_nomask", "cond"),
-        ("sdpa_fold_nomask", "cond"),
-        # batch_norm_expand's eval-mode guard differs.
-        ("batch_norm_expand", "cond"),
-        ("batch_norm_expand_nobias", "cond"),
-        # The conv_channel_scale_rev family guards the reversed
-        # direction differently.
-        ("conv_channel_scale_rev", "cond"),
-        ("conv_channel_scale_rev_nobias", "cond"),
-        ("conv_channel_scale_rev_s", "cond"),
-        ("conv_channel_scale_rev_s_nobias", "cond"),
-        ("conv_channel_scale_rev_sp", "cond"),
-        ("conv_channel_scale_rev_sp_nobias", "cond"),
-        ("conv_channel_scale_rev_spd", "cond"),
-        ("conv_channel_scale_rev_spd_nobias", "cond"),
-        ("conv_channel_scale_rev_spdg", "cond"),
-        ("conv_channel_scale_rev_spdg_nobias", "cond"),
         # Derivation trails recorded differently engine-side.
         ("assoc_linear_rev", "derivation"),
         ("assoc_matmul_rev", "derivation"),
@@ -336,14 +320,48 @@ def _non_prim(records: list[dict]) -> list[dict]:
     ]
 
 
+def _canon_cond(node: Any) -> Any:
+    """Canonicalise a cond tree for comparison: flatten same-op nesting.
+
+    ``and``/``or`` are n-ary combinators in both cond evaluators —
+    ``("and", a, ("and", b, c))`` and ``("and", a, b, c)`` evaluate
+    identically (``eval_cond``'s ``all``/``any`` over children;
+    engine-eqsat's ``Cond::And(Vec<Cond>)`` parses recursively).  The
+    Rust port re-authored some records' conds with different
+    parenthesisation than the Python source, so the field comparison
+    flattens nested same-op nodes (order preserved — leaf sequence
+    equality is still asserted) before the verbatim check.  Every
+    other node passes through untouched, so a real guard delta
+    (different op, operand, or order) still fails.
+    """
+    if not isinstance(node, (list, tuple)) or not node:
+        return node
+    head = node[0]
+    children = [_canon_cond(c) for c in node[1:]]
+    if head in ("and", "or"):
+        flat: list[Any] = [head]
+        for child in children:
+            if isinstance(child, list) and child and child[0] == head:
+                flat.extend(child[1:])
+            else:
+                flat.append(child)
+        return flat
+    return [head, *children]
+
+
 def _field_diffs(record: dict, py_data: dict) -> set[tuple[str, str]]:
     """Return the ``(name, field)`` divergences for one record."""
     name = record["name"]
-    return {
-        (name, field)
-        for field in _COMPARED_FIELDS
-        if py_data.get(field) != record.get(field)
-    }
+    out: set[tuple[str, str]] = set()
+    for field in _COMPARED_FIELDS:
+        kit_value = record.get(field)
+        py_value = py_data.get(field)
+        if field == "cond":
+            kit_value = _canon_cond(kit_value)
+            py_value = _canon_cond(py_value)
+        if py_value != kit_value:
+            out.add((name, field))
+    return out
 
 
 def _pattern_diverges(record: dict, py_data: dict) -> str | None:
