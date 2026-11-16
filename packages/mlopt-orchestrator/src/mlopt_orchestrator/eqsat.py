@@ -64,10 +64,10 @@ named rather than silent:
   ``search`` already skips/refuses them for non-``EGraph`` engines.
 
 **Law coverage is reported, never silently narrowed.**  The engine
-runs the *portable* law set — the 332 ``LAW_FORMAT = 2`` records of
+runs the *portable* law set — the 409 ``LAW_FORMAT = 2`` records of
 the full non-demo ``kit-eqsat`` corpus (simplification,
 categorical, prior_art, attention, pointwise_factor, batch_norm,
-conv_folds, scan, prim_folds; the unsound
+conv_folds, scan, layout, prim_folds; the unsound
 ``reshape_flatten_demo`` matcher demo excluded; snapshot shipped as
 ``data/eqsat_laws.json``, **generated** from the canonical
 ``handl-lang/kit-eqsat`` checkout by
@@ -235,9 +235,10 @@ def portable_laws() -> tuple[dict, ...]:
     """Return the shipped portable ``LAW_FORMAT = 2`` law records.
 
     The snapshot is generated from the canonical ``kit-eqsat``
-    corpus (ADR-0177 §1) — all 332 non-demo records across the
+    corpus (ADR-0177 §1) — all 409 non-demo records across the
     simplification / categorical / prior_art / attention /
-    pointwise_factor / batch_norm / conv_folds / scan / prim_folds packs
+    pointwise_factor / batch_norm / conv_folds / scan / layout /
+    prim_folds packs
     (the original 55 were the
     differential-proven parity subset;
     ``graphopt:bench/drivers/audit/eqsat_differential.py``).  Records

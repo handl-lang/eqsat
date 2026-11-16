@@ -250,7 +250,7 @@ def test_env_override_bad_path_declines(
 def test_portable_laws_snapshot() -> None:
     """The shipped set is the full non-demo corpus, demo excluded."""
     laws = portable_laws()
-    assert len(laws) == 332
+    assert len(laws) == 409
     names = {r["name"] for r in laws}
     assert "reshape_flatten_demo" not in names
     assert {"comm_add", "id_mul", "factor_mul_add", "assoc_matmul"} <= (

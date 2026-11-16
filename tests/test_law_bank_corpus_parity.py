@@ -12,12 +12,13 @@ records are projections:
 * **Coverage** — every corpus record must name a shipped bank rule
   (``prim:*`` records resolve through the minted store's materialized
   folds).  A kit record Python does not know would silently widen the
-  eqsat wire bank past the oracle; the 212 Python-only rules are the
-  documented port backlog (prior_art 133, attention 1 —
-  ``rope_cat_compose``, whose half-split guard needs attr-arithmetic
-  vs shape-extent comparisons the ``cond`` vocabulary cannot form —
-  layout/headshare/pairing/specials/factored tails, ``conv_bn_fold``'s
-  procedural hooks), not drift.
+  eqsat wire bank past the oracle; the 195 Python-only rules are the
+  documented port backlog (the ``priorart`` remainder —
+  ``conv_bn_fold``'s procedural hooks and the unported tails —
+  ``headshare``/``pairing``/``specials``/``factored`` members, and
+  attention's ``rope_cat_compose``, whose half-split guard needs
+  attr-arithmetic vs shape-extent comparisons the ``cond``
+  vocabulary cannot form), not drift.
 * **Op-tree shape** — for every non-prim record, the ``lhs``/``rhs``
   op-name trees (args structure, ``mvar``/``const`` leaf kinds,
   attrs ignored) must equal ``law_to_data``'s.  The kit pattern
@@ -305,20 +306,23 @@ _ATTR_DIVERGENT = frozenset()
 #: vs Python's expansion names is consistent, not contradictory).
 _FIELD_DIVERGENT = frozenset()
 
-#: The 36 ``laws/attention.py`` rules whose procedural ``check=``
-#: hooks the engine-eqsat port re-authored as declarative ``cond``
-#: trees (``uniform``/``scalar``/``dim-eq-const``/``bcast-into``/
-#: ``mm-shape-ok``/``rank``/``dim-compat`` — see
-#: ``engine-eqsat:src/builtin.rs``'s attention section).  On these
-#: records the kit side therefore carries ``cond`` data, ``serializable:
-#: true`` and ``missing_hooks: []`` where the Python ``law_to_data``
-#: honestly reports ``cond: null``, ``serializable: false`` and
-#: ``missing_hooks: ["check"]`` — the port *is* the divergence, so the
-#: three fields are exempted for exactly this name set (every other
-#: field still compares verbatim, and
+#: The 113 rules whose procedural ``check=`` hooks the engine-eqsat
+#: port re-authored as declarative ``cond`` trees — the 36
+#: ``laws/attention.py`` members (``uniform``/``scalar``/
+#: ``dim-eq-const``/``bcast-into``/``mm-shape-ok``/``rank``/
+#: ``dim-compat`` — see ``engine-eqsat:src/builtin.rs``'s attention
+#: section) plus all 77 ``laws/layout.py`` members (``axes-last2``/
+#: ``axes-distinct``/``axes-eq``/``rank``/``rank-eq``/``dim-compat``/
+#: ``mm-out`` — the layout section).  On these records the kit side
+#: therefore carries ``cond`` data, ``serializable: true`` and
+#: ``missing_hooks: []`` where the Python ``law_to_data`` honestly
+#: reports ``cond: null``, ``serializable: false`` and
+#: ``missing_hooks: ["check"]`` — the port *is* the divergence, so
+#: the three fields are exempted for exactly this name set (every
+#: other field still compares verbatim, and
 #: :func:`test_check_translated_records_match_the_translation_shape`
-#: pins the exemption's shape).  ``rope_cat_compose`` is NOT here — it
-#: stayed Python-side (no faithful ``cond`` spelling exists).
+#: pins the exemption's shape).  ``rope_cat_compose`` is NOT here —
+#: it stayed Python-side (no faithful ``cond`` spelling exists).
 _CHECK_TRANSLATED = frozenset(
     {
         "rope_cat_scale_out",
@@ -357,6 +361,88 @@ _CHECK_TRANSLATED = frozenset(
         "scale_out_concat",
         "scale_in_stack",
         "scale_out_stack",
+        # -- the 77 `laws/layout.py` rules: every member's procedural
+        # `check=` hook re-authored as an `axes-*`/`rank`/`rank-eq`/
+        # `dim-compat`/`mm-out` cond tree (engine-eqsat's `layout`
+        # pack — pointwise commutation, involution, product
+        # transpose, the NT bridge).
+        "linear_from_matmul_t",
+        "linear_from_matmul_t_bare",
+        "linear_to_matmul_t",
+        "matmul_transpose_rev_bb",
+        "matmul_transpose_rev_bd",
+        "matmul_transpose_rev_db",
+        "matmul_transpose_rev_dd",
+        "transpose_matmul",
+        "transpose_matmul_bare",
+        "transpose_pull_abs",
+        "transpose_pull_abs_bare",
+        "transpose_pull_add",
+        "transpose_pull_add_bare",
+        "transpose_pull_div",
+        "transpose_pull_div_bare",
+        "transpose_pull_exp",
+        "transpose_pull_exp_bare",
+        "transpose_pull_gelu",
+        "transpose_pull_gelu_bare",
+        "transpose_pull_log",
+        "transpose_pull_log_bare",
+        "transpose_pull_mul",
+        "transpose_pull_mul_bare",
+        "transpose_pull_neg",
+        "transpose_pull_neg_bare",
+        "transpose_pull_relu",
+        "transpose_pull_relu_bare",
+        "transpose_pull_rsqrt",
+        "transpose_pull_rsqrt_bare",
+        "transpose_pull_sigmoid",
+        "transpose_pull_sigmoid_bare",
+        "transpose_pull_silu",
+        "transpose_pull_silu_bare",
+        "transpose_pull_sqrt",
+        "transpose_pull_sqrt_bare",
+        "transpose_pull_square",
+        "transpose_pull_square_bare",
+        "transpose_pull_sub",
+        "transpose_pull_sub_bare",
+        "transpose_pull_tanh",
+        "transpose_pull_tanh_bare",
+        "transpose_push_abs",
+        "transpose_push_abs_bare",
+        "transpose_push_add",
+        "transpose_push_add_bare",
+        "transpose_push_div",
+        "transpose_push_div_bare",
+        "transpose_push_exp",
+        "transpose_push_exp_bare",
+        "transpose_push_gelu",
+        "transpose_push_gelu_bare",
+        "transpose_push_log",
+        "transpose_push_log_bare",
+        "transpose_push_mul",
+        "transpose_push_mul_bare",
+        "transpose_push_neg",
+        "transpose_push_neg_bare",
+        "transpose_push_relu",
+        "transpose_push_relu_bare",
+        "transpose_push_rsqrt",
+        "transpose_push_rsqrt_bare",
+        "transpose_push_sigmoid",
+        "transpose_push_sigmoid_bare",
+        "transpose_push_silu",
+        "transpose_push_silu_bare",
+        "transpose_push_sqrt",
+        "transpose_push_sqrt_bare",
+        "transpose_push_square",
+        "transpose_push_square_bare",
+        "transpose_push_sub",
+        "transpose_push_sub_bare",
+        "transpose_push_tanh",
+        "transpose_push_tanh_bare",
+        "transpose_transpose_bb",
+        "transpose_transpose_bd",
+        "transpose_transpose_db",
+        "transpose_transpose_dd",
     }
 )
 
@@ -584,10 +670,10 @@ def test_check_translated_records_match_the_translation_shape() -> None:
     non-null ``cond``, ``serializable: true`` and ``missing_hooks:
     []`` while the Python ``law_to_data`` reports ``cond: null``,
     ``serializable: false`` and ``missing_hooks: ["check"]`` — and the
-    name set must equal the corpus's translated attention rules (a
-    kit record gaining/losing the translation, or a Python rule
-    changing its hook kind, fails here rather than silently widening
-    the field exemption).
+    name set must equal the corpus's translated attention + layout
+    rules (a kit record gaining/losing the translation, or a Python
+    rule changing its hook kind, fails here rather than silently
+    widening the field exemption).
     """
     from mlopt_core.laws.serialize import law_to_data
 
