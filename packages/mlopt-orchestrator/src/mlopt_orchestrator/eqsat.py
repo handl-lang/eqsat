@@ -109,23 +109,15 @@ not an exponential surprise.
 from __future__ import annotations
 
 import json
-import math
 import os
 import re
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Any, cast
+from typing import Any
 
-from mlopt_core.ir import (
-    Const,
-    Op,
-    Param,
-    TensorType,
-    Var,
-    attr_from_data,
-    attr_to_data,
-)
+from mlopt_core import term_json
+from mlopt_core.term import Op
 
 __all__ = [
     "EqsatEngine",
@@ -151,21 +143,13 @@ class EqsatUnavailableError(EqsatError):
     """
 
 
-#: Reserved prefix marking a leaf ``Const`` as an mlopt ``Var`` /
-#: ``Param`` — the kernel ``Term`` has no variable leaf, so typed
-#: leaves ride as string consts (the differential driver's proven
-#: encoding, extended with the ``TensorType`` shape payload).
-_LEAF_PREFIX = "__mlopt_leaf__:"
-
-#: ``{"__nonfinite__": "nan"|"inf"|"-inf"}`` — the hnl_codec /
-#: host-tensor wire tag; ``serde_json::Value`` cannot hold NaN/±inf.
-_NONFINITE_TAG = "__nonfinite__"
-_NONFINITE_VALUES = ("nan", "inf", "-inf")
-
-#: serde defaults pinned by the spike: ``Term::Op.dim`` defaults to
-#: ``Const(1)`` and serializes; ``source`` is the ``tensor`` module
-#: boundary — the search wire pins ``Native`` (the driver's spelling).
-_DIM1 = {"Const": {"value": 1}}
+#: The term codec moved to ``mlopt_core.term_json`` (ADR-0178 D5
+#: option B, Step E-3) — the ONE kernel-Term-JSON codec shared with
+#: the ``kit_discovery.hnl_codec`` successor.  This bridge emits the
+#: ``leaf="const-str"`` profile (the legacy ``__mlopt_leaf__:-prefixed
+#: Const leaf) until the engine-eqsat ``arr``-enode round-trip makes
+#: the canonical ``Arr`` record safe on this wire; decode accepts
+#: both spellings permanently.
 
 
 # ---------------------------------------------------------------------------
@@ -381,341 +365,75 @@ def _pyterm_synops(term: Any) -> frozenset[str]:
 
 
 # ---------------------------------------------------------------------------
-#  Non-finite scalars — the __nonfinite__ wire tag
+#  mlopt term -> kernel Term JSON — delegated to mlopt_core.term_json
 # ---------------------------------------------------------------------------
-
-
-def _wire_value(v: Any) -> Any:
-    """Encode *v* (post-``attr_to_data`` shape) as JSON-safe data."""
-    if isinstance(v, bool) or v is None or isinstance(v, (int, str)):
-        return v
-    if isinstance(v, float):
-        if math.isfinite(v):
-            return v
-        if math.isnan(v):
-            return {_NONFINITE_TAG: "nan"}
-        return {_NONFINITE_TAG: "inf" if v > 0 else "-inf"}
-    if isinstance(v, (list, tuple)):
-        return [_wire_value(x) for x in v]
-    if isinstance(v, dict):
-        return {k: _wire_value(x) for k, x in v.items()}
-    raise TypeError(f"unserializable wire value: {v!r}")
-
-
-def _unwire_value(v: Any) -> Any:
-    """Decode :func:`_wire_value` output — tags back to floats."""
-    if isinstance(v, dict):
-        if set(v) == {_NONFINITE_TAG}:
-            s = v[_NONFINITE_TAG]
-            if s not in _NONFINITE_VALUES:
-                raise EqsatError(
-                    f"bad {_NONFINITE_TAG} payload {s!r} — expected "
-                    "'nan', 'inf' or '-inf'"
-                )
-            if s == "nan":
-                return float("nan")
-            return float("inf") if s == "inf" else float("-inf")
-        return {k: _unwire_value(x) for k, x in v.items()}
-    if isinstance(v, list):
-        return [_unwire_value(x) for x in v]
-    return v
-
-
-# ---------------------------------------------------------------------------
-#  mlopt term -> kernel Term JSON (the eqsat-run wire)
-# ---------------------------------------------------------------------------
-
-
-def _leaf_payload(t: Var | Param) -> str:
-    """Return the ``Const`` string carrying a typed leaf over the wire."""
-    shape = None if t.typ.shape is None else list(t.typ.shape)
-    kind = "var" if isinstance(t, Var) else "param"
-    return _LEAF_PREFIX + json.dumps(
-        {"k": kind, "n": t.name, "s": shape}, separators=(",", ":")
-    )
-
-
-def _shape_of(v: Any) -> Any:
-    """Return ``v`` in ``TensorType.shape``'s runtime-legal form.
-
-    ``None`` is the wholly-unknown wildcard the annotation does not
-    admit — the same cast ``hnl_codec`` uses for the contract.
-    """
-    if v is None:
-        return cast("tuple[int | None, ...]", None)
-    return cast("tuple[int | None, ...]", tuple(v))
+#
+# The codec quartet that lived here (``_kterm`` / ``_kdag`` /
+# ``_pyterm`` / ``_pyterm_dag`` plus the ``__nonfinite__`` /
+# ``__mlopt_leaf__`` helpers — ~330 lines) is now
+# ``mlopt_core.term_json``: one codec for the whole stack, reachable
+# because it sits in ``mlopt-core`` (the only dep this package has —
+# ``kit_discovery`` was never importable here without a cycle).
+# ``TermJsonError`` surfaces as ``EqsatError`` — the same refusal
+# channel the quartet raised.  The private names below stay as thin
+# delegates: the test-suite pins them.
 
 
 def _kterm(t: Any, state: list[int]) -> dict:
-    """Mlopt term -> ``hnl_engine::Term`` serde JSON.
+    """Mlopt term -> ``hnl_engine::Term`` serde JSON (tree spelling).
 
-    ``state`` is ``[emitted, budget]`` shared across the whole term
-    list — the kernel ``Term`` is a *tree*, so a DAG input
-    tree-expands on the wire; ``wire_node_budget`` bounds that
-    expansion and overage is a named :class:`EqsatError`.
+    Delegate over ``term_json.term_to_json(dag="tree",
+    leaf="const-str")`` — ``state`` is the shared ``[emitted,
+    budget]`` cell exactly as the deleted walker used it (the tree
+    spelling expands sharing; the budget bounds the expansion).
     """
-    state[0] += 1
-    if state[0] > state[1]:
-        raise EqsatError(
-            f"term wire expansion exceeds wire_node_budget "
-            f"({state[1]} nodes) — shared-subtree blowup in the "
-            "tree wire path (dag.program is emitted past the "
-            "distinct-node budget; this walker is test-only)"
+    try:
+        return term_json.term_to_json(
+            t, dag="tree", leaf="const-str", budget=state
         )
-    if isinstance(t, Op):
-        node: dict[str, Any] = {
-            "dim": _DIM1,
-            "name": t.op,
-            "args": [_kterm(a, state) for a in t.args],
-            "source": "Native",
-        }
-        if t.attrs:
-            node["attrs"] = {
-                k: _wire_value(attr_to_data(v))
-                for k, v in t.attrs.items()
-            }
-        return {"Op": node}
-    if isinstance(t, (Var, Param)):
-        return {"Const": {"value": _leaf_payload(t)}}
-    if isinstance(t, Const):
-        return {"Const": {"value": _wire_value(t.value)}}
-    raise TypeError(f"not a wireable leaf: {t!r}")
+    except term_json.TermJsonError as e:
+        raise EqsatError(str(e)) from e
+
+
+def _kdag(t: Any, state: list[int]) -> dict:
+    """Mlopt term -> ``dag.program`` record (kept for private callers)."""
+    try:
+        return term_json.term_to_json(
+            t, dag=True, leaf="const-str", budget=state
+        )
+    except term_json.TermJsonError as e:
+        raise EqsatError(str(e)) from e
 
 
 def _terms_wire(terms: list, budget: int) -> list:
     """Encode a term list as ``dag.program`` records.
 
-    Bounds TOTAL distinct wire nodes at *budget*.
-
-    Every term crosses as the ADR-0173 node-table envelope — uniform
-    (unshared terms pay nothing: the table is the same nodes the tree
-    spelling would emit, plus index indirection) and shallow (term
-    depth never reaches ``serde_json``'s recursion limit).  Sharing is
-    deduped by ``id`` — ``Op.make`` interning makes structural sharing
-    object sharing, the same convention ``hnl_codec._enc_dag`` uses.
+    Delegate over ``term_json.terms_to_json(leaf="const-str")`` —
+    bounds TOTAL distinct wire nodes at *budget*, shared across the
+    whole list, exactly as the deleted ``_kdag`` loop did.
     """
-    state = [0, budget]
-    return [_kdag(t, state) for t in terms]
-
-
-#: The ``dag.program`` record's ``__tag__`` (ADR-0173 / hnl_codec).
-_DAG_TAG = "dag.program"
-
-
-def _kdag(t: Any, state: list[int]) -> dict:
-    """Mlopt term -> ``{"Opaque": {"__tag__": "dag.program", …}}``.
-
-    Node-table encoding: every distinct node becomes one ``nodes``
-    entry in post-order (children before parents); an ``Op``'s
-    ``dim`` and ``args`` are *indices* into the table, so a shared
-    subtree is emitted once and referenced — the record is linear in
-    distinct nodes where the tree spelling (:func:`_kterm`) is
-    exponential.  Node records keep this wire's own spellings:
-    ``{"Op": {…}}`` with the ``attrs`` channel and ``{"Const": …}``
-    leaves (``__mlopt_leaf__`` prefix included) — the same records
-    ``_kterm`` emits, minus tree nesting.  ``state`` is
-    ``[emitted, budget]`` shared across the whole term list;
-    overage is a named :class:`EqsatError`.
-    """
-    index: dict[int, int] = {}
-    nodes: list[dict] = []
-    dim_slot: list[int] = []
-
-    def dim_index() -> int:
-        # ``Term::Op.dim`` is always ``Const(1)`` on this wire — emit
-        # the leaf node once per record and share its index.
-        if not dim_slot:
-            dim_slot.append(emit(Const(1)))
-        return dim_slot[0]
-
-    def emit(x: Any) -> int:
-        key = id(x)
-        hit = index.get(key)
-        if hit is not None:
-            return hit
-        state[0] += 1
-        if state[0] > state[1]:
-            raise EqsatError(
-                f"term wire node table exceeds wire_node_budget "
-                f"({state[1]} distinct nodes) — the eqsat wire encodes "
-                "terms as dag.program node tables; raise "
-                "EqsatEngine(wire_node_budget=...) for larger inputs"
-            )
-        if isinstance(x, Op):
-            arg_idx = [emit(a) for a in x.args]
-            op_node: dict[str, Any] = {
-                "dim": dim_index(),
-                "name": x.op,
-                "args": arg_idx,
-                "source": "Native",
-            }
-            if x.attrs:
-                op_node["attrs"] = {
-                    k: _wire_value(attr_to_data(v))
-                    for k, v in x.attrs.items()
-                }
-            record: dict[str, Any] = {"Op": op_node}
-        elif isinstance(x, (Var, Param)):
-            record = {"Const": {"value": _leaf_payload(x)}}
-        elif isinstance(x, Const):
-            record = {"Const": {"value": _wire_value(x.value)}}
-        else:
-            raise TypeError(f"not a wireable leaf: {x!r}")
-        index[key] = len(nodes)
-        nodes.append(record)
-        return index[key]
-
-    root = emit(t)
-    return {
-        "Opaque": {
-            "__tag__": _DAG_TAG,
-            "nodes": nodes,
-            "root": root,
-        }
-    }
-
-
-def _leaf_from_payload(value: str) -> Any:
-    """Decode a ``_LEAF_PREFIX`` const back to ``Var``/``Param``."""
     try:
-        rec = json.loads(value[len(_LEAF_PREFIX) :])
-    except ValueError as e:
-        raise EqsatError(f"bad eqsat leaf record {value!r}: {e}") from e
-    if not isinstance(rec, dict):
-        raise EqsatError(f"bad eqsat leaf record {value!r}")
-    try:
-        name = rec["n"]
-        shape = _shape_of(rec.get("s"))
-    except (KeyError, TypeError) as e:
-        raise EqsatError(f"bad eqsat leaf record {value!r}: {e}") from e
-    if rec.get("k") == "var":
-        return Var(name, TensorType(shape))
-    if rec.get("k") == "param":
-        return Param(name, TensorType(shape))
-    raise EqsatError(f"bad eqsat leaf kind in {value!r}")
-
-
-def _op_from_node(node: dict, kids: list) -> Any:
-    """Build the mlopt ``Op`` an ``{"Op": …}`` record names.
-
-    Shared by the tree spelling (:func:`_pyterm`) and the
-    ``dag.program`` node table (:func:`_pyterm_dag`) — *kids* are the
-    already-decoded argument terms (``dim`` is always ``Const(1)``
-    on this wire and is not an mlopt argument).
-    """
-    attrs = node.get("attrs")
-    kw: dict[str, Any] = {}
-    if isinstance(attrs, dict):
-        kw = {
-            k: attr_from_data(_unwire_value(v))
-            for k, v in attrs.items()
-        }
-    lit = node.get("lit")
-    if isinstance(lit, dict) and "__mlopt_attrs__" in lit:
-        kw = {
-            k: attr_from_data(_unwire_value(v))
-            for k, v in lit["__mlopt_attrs__"].items()
-        }
-    return Op.make(node["name"], *kids, validate=False, **kw)
-
-
-def _pyterm_dag(payload: Any) -> Any:
-    """Decode a ``dag.program`` record, rebuilding shared nodes once.
-
-    Inverse of :func:`_kdag` (and of the Rust extractor's
-    ``dag::term_to_wire``): ``nodes`` is a post-order table — every
-    ``Op.args``/``dim`` entry is an *index* of an earlier node — so
-    each distinct node is constructed exactly once and the decoded
-    term keeps the record's sharing.  Leaf entries are complete
-    ``Const``/``Arr`` records decoded by :func:`_pyterm`.
-    """
-    if not isinstance(payload, dict):
-        raise EqsatError(
-            f"dag.program: payload must be an object: {payload!r}"
+        return term_json.terms_to_json(
+            terms, leaf="const-str", budget=budget
         )
-    nodes = payload.get("nodes")
-    root = payload.get("root")
-    if not isinstance(nodes, list):
-        raise EqsatError("dag.program: 'nodes' must be a list")
-    if (
-        not isinstance(root, int)
-        or isinstance(root, bool)
-        or not 0 <= root < len(nodes)
-    ):
-        raise EqsatError(
-            f"dag.program: bad root index {root!r} ({len(nodes)} nodes)"
-        )
-    built: list[Any] = []
-    for i, n in enumerate(nodes):
-        if not isinstance(n, dict) or len(n) != 1:
-            raise EqsatError(
-                f"dag.program: node {i} is not a tagged record: {n!r}"
-            )
-        if "Op" in n:
-            node = n["Op"]
-            args = node.get("args")
-            if not isinstance(args, list):
-                raise EqsatError(
-                    f"dag.program: node {i} args must be an index list"
-                )
-            kids = []
-            for a in args:
-                if (
-                    not isinstance(a, int)
-                    or isinstance(a, bool)
-                    or not 0 <= a < i
-                ):
-                    raise EqsatError(
-                        f"dag.program: node {i} arg {a!r} is not an "
-                        f"earlier node index (0..{i - 1})"
-                    )
-                kids.append(built[a])
-            built.append(_op_from_node(node, kids))
-        elif "Const" in n or "Arr" in n:
-            built.append(_pyterm(n))
-        else:
-            raise EqsatError(
-                f"dag.program: node {i} has unknown tag {list(n)[:3]}"
-            )
-    return built[root]
+    except term_json.TermJsonError as e:
+        raise EqsatError(str(e)) from e
 
 
 def _pyterm(j: Any) -> Any:
     """``hnl_engine::Term`` serde JSON -> mlopt term (best-term decode).
 
-    Inverse of :func:`_kterm`: ``attrs`` decodes through
-    ``attr_from_data`` (restoring tuple/list spellings), ``lit`` is
-    accepted for forward compatibility, and ``__mlopt_leaf__`` consts
-    restore the typed ``Var``/``Param`` leaves — name *and* shape.
-    A top-level ``{"Opaque": {"__tag__": "dag.program", …}}`` record
-    decodes through :func:`_pyterm_dag` — the extractor emits it for
-    terms whose tree expansion would be exponential; any other
-    ``Opaque`` tag declines by name.
+    Delegate over ``term_json.term_from_json(validate=False)`` — the
+    bridge decodes law-extracted terms without ``Op.make`` attr
+    validation, the contract the deleted quartet kept.  Both leaf
+    spellings and both ``dim`` spellings decode; ``source`` is
+    ignored (law patterns pin ``"Native"`` on the way OUT — decode
+    direction carries no source semantics for mlopt terms).
     """
-    if isinstance(j, dict) and "Opaque" in j:
-        payload = j["Opaque"]
-        if (
-            isinstance(payload, dict)
-            and payload.get("__tag__") == _DAG_TAG
-        ):
-            return _pyterm_dag(payload)
-        tag = (
-            payload.get("__tag__")
-            if isinstance(payload, dict)
-            else None
-        )
-        raise EqsatError(
-            f"Opaque term (tag {tag!r}) has no mlopt term spelling"
-        )
-    if "Op" in j:
-        node = j["Op"]
-        return _op_from_node(node, [_pyterm(a) for a in node["args"]])
-    if "Const" in j:
-        v = j["Const"]["value"]
-        if isinstance(v, str) and v.startswith(_LEAF_PREFIX):
-            return _leaf_from_payload(v)
-        return Const(_unwire_value(v))
-    raise EqsatError(f"undecodable term record: {j!r}")
+    try:
+        return term_json.term_from_json(j, validate=False)
+    except term_json.TermJsonError as e:
+        raise EqsatError(str(e)) from e
 
 
 # ---------------------------------------------------------------------------

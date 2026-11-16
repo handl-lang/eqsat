@@ -278,7 +278,7 @@ def test_op_repr_shared_dag_truncates_instead_of_exploding(
     """``t_{i+1} = add(t_i, t_i)`` tree-expands as 2**n — the repr must
     not.  Past the node budget elided subtrees render as an honest
     ``…(+N nodes)`` marker (N = exact tree nodes hidden)."""
-    import mlopt_core.ir as ir
+    import mlopt_core.term as ir  # view module post-E-2a (ir.py shims it)
 
     monkeypatch.setattr(ir, "_OP_REPR_BUDGET", 64)
     x = Var("x", TensorType((1, 4)))
