@@ -12297,6 +12297,626 @@
  {
   "bound_norm": "spectral",
   "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "std = sqrt(var) \u2014 the same dims/correction/keepdim on both sides (XLA's std decomposition).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "correction": {
+      "bind": "C"
+     },
+     "dim": {
+      "bind": "D"
+     },
+     "keepdim": {
+      "bind": "K"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "std",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "std_sqrt_var",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "correction": {
+        "bind": "C"
+       },
+       "dim": {
+        "bind": "D"
+       },
+       "keepdim": {
+        "bind": "K"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "var",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sqrt",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [
+   "std_sqrt_var"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "var = std\u00b2 \u2014 the reverse spelling.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "correction": {
+      "bind": "C"
+     },
+     "dim": {
+      "bind": "D"
+     },
+     "keepdim": {
+      "bind": "K"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "var",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "var_square_std",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "correction": {
+        "bind": "C"
+       },
+       "dim": {
+        "bind": "D"
+       },
+       "keepdim": {
+        "bind": "K"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "std",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "square",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "The whole-tensor spelling \u2014 std() = sqrt(var()).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "std",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "std_sqrt_var_bare",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "var",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sqrt",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [
+   "std_sqrt_var_bare"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "The whole-tensor var = std\u00b2.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "var",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "var_square_std_bare",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "std",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "square",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "\u2016u\u2016\u2082 = sqrt(\u03a3 u\u00b2) \u2014 the L2 norm's spelled work (XLA linalg decomposition).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     },
+     "keepdim": {
+      "bind": "K"
+     },
+     "ord": {
+      "lit": 2
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "linalg_vector_norm",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "norm2_expand",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "mvar": "u"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "square",
+       "source": "native"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       },
+       "keepdim": {
+        "bind": "K"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "sum",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sqrt",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [
+   "norm2_expand"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "sqrt(\u03a3 u\u00b2) folds to the L2 kernel.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "mvar": "u"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "square",
+       "source": "native"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       },
+       "keepdim": {
+        "bind": "K"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "sum",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sqrt",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "norm2_fold",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     },
+     "keepdim": {
+      "bind": "K"
+     },
+     "ord": {
+      "lit": 2
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "linalg_vector_norm",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "log(softmax(u, d)) = log_softmax(u, d) \u2014 the fused log-softmax fold (softcap/logprob heads).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "softmax",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "log",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "log_softmax_fold",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "log_softmax",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [
+   "log_softmax_fold"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "exp(log_softmax(u, d)) = softmax(u, d) \u2014 the same kernel pair the other way.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "log_softmax",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "exp",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "log_softmax_expand",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "softmax",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "\u03c3(x) = 1/(1+e\u207b\u02e3) \u2014 the definition, expanded so pointwise laws see the interior (Inductor decomp).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sigmoid",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "sigmoid_expand",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "const": 1
+      },
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "mvar": "x"
+          }
+         ],
+         "attrs": null,
+         "dim": null,
+         "lit": null,
+         "op": "neg",
+         "source": "native"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "exp",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "reciprocal",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
   "cond": [
    "const-cmp",
    "ONE",
@@ -12467,6 +13087,84 @@
  {
   "bound_norm": "spectral",
   "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "tanh(x) = 2\u03c3(2x) \u2212 1 \u2014 the sigmoid-based decomposition (the TASO/XLA tanh spelling).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "tanh",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "tanh_expand",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "const": 2
+      },
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "const": 2
+          },
+          {
+           "mvar": "x"
+          }
+         ],
+         "attrs": null,
+         "dim": null,
+         "lit": null,
+         "op": "mul",
+         "source": "native"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "sigmoid",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    },
+    {
+     "const": 1
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
   "cond": [
    "and",
    [
@@ -12567,6 +13265,225 @@
  {
   "bound_norm": "spectral",
   "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "gelu(x) = 0.5x(1 + erf(x/\u221a2)) \u2014 the exact erf definition (aten's default gelu; the tanh approximation is a DIFFERENT op under this bank and is not claimed).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "gelu",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "gelu_expand",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "const": 0.5
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "const": 1
+      },
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "mvar": "x"
+          },
+          {
+           "const": 1.4142135623730951
+          }
+         ],
+         "attrs": null,
+         "dim": null,
+         "lit": null,
+         "op": "div",
+         "source": "native"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "erf",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "mish(x) = x\u00b7tanh(softplus(x)) \u2014 the Mish definition.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mish",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mish_expand",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "mvar": "x"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "softplus",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "tanh",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "hardsigmoid(x) = relu6(x+3)/6 \u2014 the piecewise-linear approximation's definition.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "hardsigmoid",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "hardsigmoid_expand",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "mvar": "x"
+        },
+        {
+         "const": 3
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "add",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "relu6",
+     "source": "native"
+    },
+    {
+     "const": 6
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "div",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
   "cond": [
    "and",
    [
@@ -12643,6 +13560,723 @@
   "tags": [
    "prior_art",
    "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "hardswish(x) = x\u00b7relu6(x+3)/6.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "hardswish",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "hardswish_expand",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "mvar": "x"
+          },
+          {
+           "const": 3
+          }
+         ],
+         "attrs": null,
+         "dim": null,
+         "lit": null,
+         "op": "add",
+         "source": "native"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "relu6",
+       "source": "native"
+      },
+      {
+       "const": 6
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "div",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "softplus(x) = log1p(e\u02e3) at the default beta=1 \u2014 the exported bare spelling.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "softplus",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "softplus_expand",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "exp",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "log1p",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [
+   "softplus_expand"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "log1p(e\u02e3) folds to softplus(x).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "exp",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "log1p",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "softplus_fold",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "softplus",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "elu(x) = x\u00b7[x>0] + (e\u02e3\u22121)\u00b7[x\u22640] at the default \u03b1=1 \u2014 the where-spelled piecewise (XLA elu).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "elu",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "elu_expand",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "const": 0
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "gt",
+     "source": "native"
+    },
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "expm1",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "where",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "leaky_relu(x) = max(x, 0.01x) at the default slope 0.01.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "leaky_relu",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "leaky_relu_expand",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "const": 0.01
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "maximum",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "softsign(x) = x/(|x|+1) \u2014 the bounded rational map's definition, expanded: the fused ATen kernel's denotation (composite-free \u2014 the kernel IS the manual spelling).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "softsign",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "softsign_expand",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "mvar": "x"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "abs",
+       "source": "native"
+      },
+      {
+       "const": 1
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "div",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "max(u, 0) = relu(u).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "const": 0
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "maximum",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "relu_fold_max_r",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "relu",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "max(0, u) = relu(u).",
+  "lhs": {
+   "args": [
+    {
+     "const": 0
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "maximum",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "relu_fold_max_l",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "relu",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "clamp_min(u, 0) = relu(u) \u2014 the exported spelling folds.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "min": {
+      "lit": 0
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "clamp_min",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "relu_fold_clamp",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "relu",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [
+   "relu_fold_clamp"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "relu(u) = clamp_min(u, 0).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "relu",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "relu_expand",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "min": {
+      "lit": 0
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "clamp_min",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "relu(relu(u)) = relu(u) \u2014 the projection is idempotent.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "relu",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "relu",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "relu_idem",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "relu",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "clamp(u, 0, 6) = relu6(u).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "max": {
+      "lit": 6
+     },
+     "min": {
+      "lit": 0
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "clamp",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "relu6_fold",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "relu6",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [
+   "relu6_fold"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "relu6(u) = clamp(u, 0, 6).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "relu6",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "relu6_expand",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "max": {
+      "lit": 6
+     },
+     "min": {
+      "lit": 0
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "clamp",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
   ],
   "version": 2
  },
