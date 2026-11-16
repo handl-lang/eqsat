@@ -29,7 +29,7 @@ term. The certificate, not the timing, is the claim.
 2. **Admission.** The derivability check in the
    [gauntlet](/graphopt/explanation/the-gauntlet) is a certificate
    replay: `verify_law(lhs, rhs, rules)` (the domain side, in
-   `graphopt`'s `mlopt_discovery`) interns both sides in a fresh small
+   `graphopt`'s `kit_discovery`) interns both sides in a fresh small
    e-graph, saturates under the known laws, and replays the witness *in
    both directions* — a merge is a genuine derivation, never a trusted
    stub. This substrate supplies the e-graph and the replay; the

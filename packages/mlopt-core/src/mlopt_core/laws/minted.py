@@ -1,6 +1,6 @@
 """Shipped minted objects — stored-composite materialization in core.
 
-The discovery pipeline's stored objects (``mlopt_discovery.evidence``)
+The discovery pipeline's stored objects (``kit_discovery.evidence``)
 are `Rewrite`-shaped: a record carries the pattern pair, ``cond`` /
 ``dspec`` / ``derivation`` data, the ``serializable`` / ``missing_hooks``
 honesty flags, and — for a synthesized composite — a ``"guard"`` field:
@@ -59,7 +59,7 @@ fold needs nothing more to fire, extract and serialize honestly:
 the plain-record majority, not the transported class).  What does
 NOT travel is the denotation: a ``synop_*`` op's meaning is the torch
 binding that evaluates the spelled subgraph, and that binding lives
-domain-side (``mlopt_discovery.shipped_primitives.register()`` seats
+domain-side (``kit_discovery.shipped_primitives.register()`` seats
 it on the ambient executor table) — core knows the patterns; sinks
 supply the semantics, like every op already works.  The op
 *declaration* (:func:`~mlopt_core.ir.op_def`) is torch-free and DOES
@@ -107,7 +107,7 @@ tier duplicates of the shipped surface).
 The fifth family — :data:`_AUTO_RECORDS` — is the **auto-admission
 tier**: records :func:`admit_prim_record` wrote into the store's
 tier :data:`~mlopt_core.laws.store.AUTO_TIER` after the
-discovery-side gauntlet cleared them (``mlopt_discovery``'s
+discovery-side gauntlet cleared them (``kit_discovery``'s
 ``bench.referees`` arm — oracle → pay → sweep → cert, all stages
 green).  Same record shape as tiers 1-3 — the fold's
 ``law_to_data`` row plus the mint's own measurements —
@@ -195,7 +195,7 @@ _RECORDS: dict[str, Any] = _STORE[0]
 #: gauntlet, all ``machine-original`` —
 #: ``docs/reports/results_overnight_prim_v2.json``), promoted
 #: verbatim out of the domain-side registry
-#: (``mlopt_discovery.shipped_primitives``) into the core bank.
+#: (``kit_discovery.shipped_primitives``) into the core bank.
 #: Keyed by the minted ``synop_*`` op name — ``sha256(alpha-normal
 #: pattern)[:10]``, a content hash, not a coined label.  Each record
 #: carries the fold's ``law_to_data`` row (``fold``) plus the mint's

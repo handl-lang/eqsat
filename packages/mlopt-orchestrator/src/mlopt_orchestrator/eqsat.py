@@ -302,7 +302,7 @@ def _check_records(records: list, what: str) -> tuple[dict, ...]:
 # ``prim:synop2_*`` / ``prim:synop3_*`` records.  They are *pattern*
 # data: a ``synop_*`` call is a name to the substrate, and the op's
 # denotation is the torch binding the discovery side seats
-# (``mlopt_discovery.shipped_primitives.register()`` writes
+# (``kit_discovery.shipped_primitives.register()`` writes
 # ``_IR_TO_TORCH[synop] = fn``).  In a process where that seat never
 # ran — every plain ``engine="eqsat"`` search — the Rust engine's
 # ``size`` CostSpec has no way to know the op is unlowerable, so

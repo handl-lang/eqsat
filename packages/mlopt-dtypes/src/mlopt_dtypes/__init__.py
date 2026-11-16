@@ -4,7 +4,7 @@ Plan: ``docs/reports/arch_audit_graphopt_packages.md`` §3 found the
 dtype mappings duplicated across the domain packages — torch dtype ↔
 safetensors tag (``mlopt_torch.export``), IR name ↔ NumPy dtype ↔
 ONNX element type ↔ onnxruntime type string (``kit_onnx.arrays``),
-``hardware.dtype`` names (``mlopt_discovery.play``), and the
+``hardware.dtype`` names (``kit_discovery.play``), and the
 name-resolution idiom ``getattr(torch, name.split(".")[-1])``
 (``mlopt_torch.torch_bridge``, ``kit_carriers.trace``).  This module
 is the single table they all derive from.

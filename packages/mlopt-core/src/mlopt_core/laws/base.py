@@ -36,7 +36,7 @@ def R(
     ``frozenset``).
 
     ``derivation`` names the shipped rules proving this law — the
-    axiom/lemma split measured by ``python -m mlopt_discovery.coherence``.  The
+    axiom/lemma split measured by ``python -m kit_discovery.coherence``.  The
     default ``()`` designates a kernel member (``rule.kind ==
     "axiom"``); a non-empty tuple makes the rule a ``"lemma"`` (or
     ``"redundant"`` when also tagged ``tags.REDUNDANT``).

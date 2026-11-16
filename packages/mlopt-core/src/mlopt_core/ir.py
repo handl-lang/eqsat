@@ -469,7 +469,7 @@ def op_repr_dag(term: Any) -> str:
 
 
 #: The DAG envelope's tag — the same ``dag.program`` record name
-#: ``mlopt_discovery.hnl_codec`` uses inside the handl Term-JSON
+#: ``kit_discovery.hnl_codec`` uses inside the handl Term-JSON
 #: ``Opaque`` slot, carried here in the lemma-store encoding's own
 #: spelling: ``{"__tag__": "dag.program", "nodes": [...], "root": n}``.
 _DAG_TAG = "dag.program"

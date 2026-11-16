@@ -188,8 +188,8 @@ _PUBLIC_SURFACE: dict[str, tuple[str, ...]] = {
         "ScoreVerdict",
         "score",
     ),
-    "mlopt_discovery.verifier": ("verify_law", "LawResult"),
-    "mlopt_discovery.play": (
+    "kit_discovery.verifier": ("verify_law", "LawResult"),
+    "kit_discovery.play": (
         "DOMAINS",
         "Domain",
         "play",
@@ -198,7 +198,7 @@ _PUBLIC_SURFACE: dict[str, tuple[str, ...]] = {
 }
 
 # The contract's domain seats (``mlopt_torch``, ``kit_carriers``,
-# ``mlopt_discovery``, ``kit_onnx``, ``gamekit``) are checked in
+# ``kit_discovery``, ``kit_onnx``, ``gamekit``) are checked in
 # graphopt where those packages live; this repo holds the substrate
 # slice of the same frozen table.
 _PUBLIC_SURFACE = {

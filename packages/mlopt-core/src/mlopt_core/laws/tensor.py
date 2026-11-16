@@ -2900,7 +2900,7 @@ CONV_BN_FOLD = minted.materialize(
 )
 #: The ``zoo-prim`` mint's admitted fold family — 21 ``prim:synop_*``
 #: laws promoted verbatim out of the domain-side registry
-#: (``mlopt_discovery.shipped_primitives``) into the core bank,
+#: (``kit_discovery.shipped_primitives``) into the core bank,
 #: **default-on**, plus the ``--prim-bootstrap`` mint's 2 depth-2
 #: ``prim:synop2_*`` folds whose LHS skeletons compose over the
 #: shipped ``synop_*`` vocabulary (each embeds its definitional
@@ -2988,7 +2988,7 @@ CATEGORICAL_RULES: list[Rewrite] = [
 #: promoted guarded composite ``linear_channel_to_row_scale``, and the
 #: eight ``split_scalar_*`` naturality lemmas — plus 2 ``"redundant"``
 #: alpha-duplicate spellings tagged ``tags.REDUNDANT``).  The measured
-#: catalogue (``mlopt_discovery.coherence --emit-basis``;
+#: catalogue (``kit_discovery.coherence --emit-basis``;
 #: ``project/retros/axiom-lemma-split.md``) reads 49 axioms / 13 lemmas
 #: / 2 redundant plus 19 ``no-instance`` verdicts — the promoted
 #: conditional and pointwise-split laws its instancer cannot build a

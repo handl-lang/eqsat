@@ -162,7 +162,7 @@ oracle *and* premise-anchored derivability; the truth gate is the
 guarded-region sweep — every guard-accepted evaluable binding must
 be equal, and at least one must exist — and
 novelty refuses re-spellings of shipped laws.  The staging policy
-lives in the discovery domain — `mlopt_discovery.evidence` in
+lives in the discovery domain — `kit_discovery.evidence` in
 `handl-lang/graphopt` — but every leg it calls is substrate: guard
 rebuild, saturation, certificate replay, alpha-keyed duplicate
 detection, typed extraction.  It has repeatedly falsified the
@@ -206,7 +206,7 @@ certificate must be standalone-replayable and every step naming a
 non-axiom rule must site-verify under the fp64 numeric oracle.  A
 premise false at its applied site revokes the credit and the verdict
 falls back to the axioms-only answer.  `verify_law` itself is
-domain-side (`mlopt_discovery.verifier`); everything it calls is
+domain-side (`kit_discovery.verifier`); everything it calls is
 here.
 
 The boundary is honest: a certificate proves *equality of the

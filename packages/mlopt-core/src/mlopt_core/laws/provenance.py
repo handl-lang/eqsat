@@ -9,9 +9,9 @@ editing the laws themselves:
   were hand-integrated before the admission machinery existed:
   ``select_mul``, ``softmax_fold``, ``glu_fold``, ``rms_norm_fold``);
 * **machine-admitted** — an object the discovery side produced
-  (``mlopt_discovery.object_synthesis`` constructions or
+  (``kit_discovery.object_synthesis`` constructions or
   census/proposal candidates), cleared the admission gauntlet
-  (``mlopt_discovery.evidence.run_gauntlet``) and was then promoted
+  (``kit_discovery.evidence.run_gauntlet``) and was then promoted
   verbatim into the library
   (``project/retros/promoted-laws.md``).
 
@@ -24,7 +24,7 @@ unshipped).  :func:`law_provenance` is *total* over rule names —
 every shipped law resolves, and a name unknown to both sets classifies
 as human-authored (the default authorship of the library).
 
-The local evidence store (``mlopt_discovery.cache_dir()``) holds no
+The local evidence store (``kit_discovery.cache_dir()``) holds no
 ``lemmas`` rows — the
 admission runs recorded their objects in ephemeral stores — so
 :data:`MACHINE_STORED` is the honest ledger of *names* the committed

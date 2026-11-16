@@ -802,7 +802,7 @@ def search(
     corpus_probe : callable, optional
         An injected per-model corpus/coverage probe — the
         backend-neutral seam downstream domain repos use (graphopt's
-        ``mlopt_discovery.model_corpus`` is the intended callable;
+        ``kit_discovery.model_corpus`` is the intended callable;
         this package never imports it).  Invoked ONCE, right after
         export, as ``corpus_probe(name, model, x)`` where ``name`` is
         the model's ``__name__`` or class name; whatever it returns

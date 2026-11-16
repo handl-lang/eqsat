@@ -17,7 +17,7 @@ sections appear:
    spellings), reduction identities and the ``std``/``var``/
    ``linalg_vector_norm`` algebra.
 3. **Zoo-corpus transforms** — the named equivalences the
-   ``mlopt_discovery.zoo`` workload families exercise: the HF
+   ``kit_discovery.zoo`` workload families exercise: the HF
    rotate-half ↔ Llama cat-pair rotary equivalence, the quant
    STE value idiom, per-channel (de)quant scale migration into a
    weight, the AdaLN-Zero ``1+s`` idiom, eval-mode dropout strips,
