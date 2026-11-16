@@ -17,7 +17,6 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from mlopt_core.egraph import EGraph
 from mlopt_core.ir import IR, Const, Op, Param, Var
 from mlopt_core.laws import headshare_keys_hold
 from mlopt_core.laws.pairing import _raw_bytes
@@ -509,9 +508,10 @@ def _cache_replay(
     stats["cache_replay"] = True
     return SearchResult(
         ir=ir,
-        # The replayed result carries no saturated e-graph — the search
-        # was skipped.  ``lower`` never touches the engine fields.
-        eg=EGraph(),
+        # The replayed result carries no saturation engine — the
+        # search was skipped, so ``eg=None`` / ``root_eid=-1`` is the
+        # honest handle; ``lower`` never touches the engine fields.
+        eg=None,
         root_eid=-1,
         term=term,
         param_values=params,

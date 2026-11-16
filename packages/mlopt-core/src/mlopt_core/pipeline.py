@@ -61,6 +61,7 @@ if TYPE_CHECKING:
     from mlopt_core.ports import (
         Composer,
         CostFn,
+        Engine,
         Executor,
         Meter,
         Sink,
@@ -194,8 +195,14 @@ class SearchResult:
     """The record of a ``search`` run — inspectable mid-pipeline.
 
     ``ir`` / ``param_values`` are the source's export (the program and
-    its concrete leaf values); ``eg`` / ``root_eid`` are the saturated
-    e-graph and the root e-class; ``term`` is the member the search
+    its concrete leaf values); ``eg`` is the saturation engine that
+    ran — the proof-carrying :class:`EGraph` under the reference
+    engine, any :class:`~mlopt_core.ports.Engine`-conformant value
+    under ``engine=`` (e.g. ``"eqsat"``), or ``None`` when the result
+    was rebuilt across a serialization boundary without one (the
+    ``mlopt stage verify``/``deliver`` records, the compositional
+    cache replay); ``root_eid`` is the root e-class (``-1`` when no
+    engine ran); ``term`` is the member the search
     extracted under ``cost_fn``; ``stats`` is the *search* record — a
     :class:`PipelineStats` (``eg.run`` stats plus ``rule_fires``,
     ``criteria``, ``pairing_groups`` / ``nonlocal_lifts`` /
@@ -216,7 +223,7 @@ class SearchResult:
     """
 
     ir: IR
-    eg: EGraph
+    eg: Engine | EGraph | None
     root_eid: int
     term: Any
     param_values: Mapping[str, Any]
@@ -227,13 +234,42 @@ class SearchResult:
     task: Any = None
     task_tol: float | None = None
 
+    def _require_egraph(self) -> EGraph:
+        """Return the proof-carrying ``EGraph``, declining by name.
+
+        ``alternatives`` / ``frontier`` / ``certificate`` inspect the
+        saturated e-class DAG — machinery only the reference
+        ``EGraph`` provides.  A result carrying ``eg=None`` (rebuilt
+        across a serialization boundary — the ``mlopt stage
+        verify``/``deliver`` handles, the compositional cache replay)
+        or a non-``EGraph`` engine (``engine="eqsat"``) has no such
+        surface, and says so rather than raising ``AttributeError``.
+        """
+        from mlopt_core.egraph import EGraph as _EGraph
+
+        eg = self.eg
+        if not isinstance(eg, _EGraph):
+            what = (
+                "no saturation engine"
+                if eg is None
+                else f"engine {type(eg).__name__!r}"
+            )
+            raise TypeError(
+                f"SearchResult carries {what} — alternatives/frontier/"
+                "certificate require the reference EGraph engine "
+                "(engine='python-egraph')"
+            )
+        return eg
+
     def alternatives(
         self, top_k: int = 8, cost_fn: CostFn | None = None
     ) -> list[tuple[float, Any]]:
         """Enumerate the cheapest distinct members of the root class.
 
         Delegates to :meth:`EGraph.extract_alternatives` on
-        ``self.eg``: for each non-leaf root enode, force extraction
+        ``self.eg`` (which must be the reference ``EGraph`` — see
+        :meth:`_require_egraph`): for each non-leaf root enode, force
+        extraction
         through it and record the DAG cost.  Returns ``(cost, term)``
         pairs, cheapest first — the discovery-engine frontier.
 
@@ -247,7 +283,9 @@ class SearchResult:
             from mlopt_core.cost import flops_cost
 
             cf = flops_cost
-        return self.eg.extract_alternatives(self.root_eid, cf, top_k)
+        return self._require_egraph().extract_alternatives(
+            self.root_eid, cf, top_k
+        )
 
     def frontier(
         self,
@@ -299,8 +337,10 @@ class SearchResult:
         ``res.certificate(res.ir.root, res.term)``: the level-2
         certificate that the extracted term is provably equivalent to
         the exported program.  ``b=None`` extracts under ``cost_fn``.
+        Requires the reference ``EGraph`` (``eg`` neither ``None`` nor
+        another engine) — see :meth:`_require_egraph`.
         """
-        return self.eg.certificate(
+        return self._require_egraph().certificate(
             a, b, root_eid=self.root_eid, cost_fn=self.cost_fn
         )
 
