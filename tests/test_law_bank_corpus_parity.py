@@ -24,25 +24,36 @@ records are projections:
   different *encoding* of the same patterns — verified equal at this
   granularity, which is as deep as a spelling-free comparison goes.
 * **Attrs** — a best-effort canonicalisation (``bind`` → metavar,
-  ``lit``/raw → literal, ``fields`` unwrapped, seq spellings unified)
-  must match except for the named ``_ATTR_DIVERGENT`` set: the Rust
-  port re-authored those patterns' attribute structure (the
-  ``{"bind": X}``-as-whole-attrs and ``{"lit": {record}}`` envelopes
-  lose/gain attr names the flat-kwargs Python spelling keeps).
+  ``lit``/raw → literal, ``fields`` unwrapped, whole-attrs
+  ``{"lit": {record}}`` unwrapped to per-name literals, seq
+  spellings unified) must match except for the named
+  ``_ATTR_DIVERGENT`` set: ``{"bind": X}`` whole-attrs binds the
+  entire attrs payload to one metavariable — the attr *name* is
+  unrecoverable and the match is deliberately more permissive than
+  the Python exact-keyset per-key spelling (engine-eqsat's
+  ``AttrsSpec::Bind``, documented at ``builtin.rs``), so those
+  records keep a sentinel the Python side never produces.
 * **Record fields** — ``law`` / ``cond`` / ``dspec`` / ``tags`` /
   ``derivation`` / ``error_bound`` / ``bound_norm`` / ``serializable``
-  / ``missing_hooks`` compare verbatim against ``law_to_data`` except
-  for the named ``_FIELD_DIVERGENT`` set: the measured semantic deltas
-  between the Rust port and the oracle (8 ``derivation`` trails —
-  each is a port-or-decline item, not a bug this guard can
-  adjudicate).  ``cond`` compares after :func:`_canon_cond` flattens
-  nested same-op ``and``/``or`` nodes: both evaluators
-  (``eval_cond``, engine-eqsat's ``Cond::from_data``) read them as
-  n-ary combinators, so ``("and", a, ("and", b, c))`` and
+  / ``missing_hooks`` compare against ``law_to_data`` — verbatim
+  except for the named ``_FIELD_DIVERGENT`` set and the two
+  canonicalised comparisons below.  ``cond`` compares after
+  :func:`_canon_cond` flattens nested same-op ``and``/``or`` nodes:
+  both evaluators (``eval_cond``, engine-eqsat's ``Cond::from_data``)
+  read them as n-ary combinators, so ``("and", a, ("and", b, c))`` and
   ``("and", a, b, c)`` are the same guard spelled two ways — the Rust
   port re-authored 19 records' conds with different (but
   leaf-identical) nesting, which is a spelling delta like the attrs
-  envelopes, not a semantic one.
+  envelopes, not a semantic one.  ``derivation`` compares as
+  *provenance consistency*, not completeness: engine-eqsat carries
+  it as record-level provenance that is never folded into the
+  2-cell (``law.rs``), and on the Python side its only consumer is
+  the ``Rewrite.kind`` axiom/lemma taxonomy (coherence reporting,
+  not search behaviour).  The guard therefore flags only a kit
+  record that asserts a derivation name the Python rule does not
+  carry (kit-minus-py non-empty) — the port under-records provenance
+  on eight fold/reverse laws (``[]`` where Python names the
+  expansion it folds), which claims less, never something false.
 * **prim records** — ``prim:*`` names resolve through the minted
   store and their records must equal ``minted.prim_kit_records()``
   verbatim (the projection ``scripts/project_prim_folds.py --check``
@@ -194,16 +205,29 @@ def _kit_attrs(attrs: Any) -> dict[str, Any]:
     Handles the observed envelopes: ``null`` → ``{}``; a sole
     ``"fields"`` key unwraps to the per-name map; per-name values may
     be ``{"bind": name}`` / ``{"lit": value}`` tags or raw literals
-    (the conv packs spell literals bare).  A whole-attrs
-    ``{"bind": …}`` / ``{"lit": …}`` tag (single-attr ops like
-    ``reshape``) cannot recover the attr *name* — it canonicalises to
-    a sentinel the Python side never produces, landing the record in
-    the named divergence set rather than silently matching.
+    (the conv packs spell literals bare).  Two *whole-attrs*
+    envelopes sit beside them (engine-eqsat's ``AttrsSpec``):
+
+    * ``{"lit": {record}}`` pins the entire attrs payload to the
+      record — per-name literal attrs exactly, the same surface the
+      Python flat-kwargs spelling produces under exact-keyset
+      matching, so it unwraps to ``{name: _canon_lit(value)}``.
+    * ``{"bind": name}`` / ``{"lit": scalar}`` bind or pin the whole
+      payload with no per-name structure — the attr *name* is
+      unrecoverable and the match is deliberately more permissive
+      than the Python per-key spelling, so they canonicalise to
+      sentinels the Python side never produces, landing the record
+      in the named divergence set rather than silently matching.
     """
     if attrs is None:
         return {}
     if not isinstance(attrs, dict):
         return {}
+    if set(attrs) == {"lit"} and isinstance(attrs["lit"], dict):
+        return {k: _canon_lit(v) for k, v in attrs["lit"].items()}
+    if set(attrs) in ({"bind"}, {"lit"}):
+        tag = next(iter(attrs))
+        return {f"__attrs_{tag}__": _canon_lit(attrs[tag])}
     if set(attrs) == {"fields"} and isinstance(attrs["fields"], dict):
         attrs = attrs["fields"]
     out: dict[str, Any] = {}
@@ -256,50 +280,38 @@ def _attrs_match(kit_node: dict, py_node: dict) -> bool:
 # ---------------------------------------------------------------------------
 
 #: Non-prim records whose canonical *attrs* diverge from the Python
-#: spelling.  All are Rust-port re-authorings or attrs-envelope
-#: spellings the comparator cannot normalise (whole-attrs
-#: ``{"bind": …}`` / ``{"lit": {record}}``); the op-tree shape still
-#: matches for every one of them.
+#: spelling.  ``{"lit": {record}}`` whole-attrs literals unwrap cleanly
+#: (per-name literal attrs — the same surface Python's flat kwargs
+#: produce under exact-keyset matching); what remains is
+#: ``{"bind": name}`` whole-attrs binds — engine-eqsat's
+#: ``AttrsSpec::Bind`` binds the *entire* attrs payload to one
+#: metavariable, deliberately more permissive than the Python
+#: exact-keyset per-key spelling (``builtin.rs`` documents the
+#: caveat; the attr name is unrecoverable, so the sentinel never
+#: equals a Python spelling).
 _ATTR_DIVERGENT = frozenset(
     {
-        "gqa_absorb_repeat",
-        "parallel_mul_fuse",
+        # reshape(shape)/sdpa(scale) bound whole-payload; the sdpa
+        # instances are a genuine matching-width delta vs Python's
+        # ``{scale: "SC"}`` exact-keyset — a port-or-decline item.
         "qkv_fuse",
-        "qkv_fuse_asym",
-        "sdpa_expand",
-        "sdpa_expand_d",
-        "sdpa_expand_dc",
-        "sdpa_expand_dcg",
-        "sdpa_expand_dcgs",
-        "sdpa_expand_dcs",
-        "sdpa_expand_ds",
-        "sdpa_expand_s",
-        "swiglu_fuse",
     }
 )
 
 #: ``(rule name, record field)`` pairs whose content legitimately
-#: differs between the Rust port and the Python oracle — the
-#: port-or-decline backlog, pinned so a *new* divergence fails and a
-#: *fixed* one forces the allowlist to shrink.
-_FIELD_DIVERGENT = frozenset(
-    {
-        # Derivation trails recorded differently engine-side.
-        ("assoc_linear_rev", "derivation"),
-        ("assoc_matmul_rev", "derivation"),
-        ("factor_mul_add", "derivation"),
-        ("mul_square", "derivation"),
-        ("right_factor_matmul", "derivation"),
-        ("silu_fold", "derivation"),
-        ("silu_mul_form", "derivation"),
-        ("square_to_pow", "derivation"),
-    }
-)
+#: differs between the Rust port and the Python oracle — pinned so a
+#: *new* divergence fails and a *fixed* one forces the allowlist to
+#: shrink.  Empty today: the eight ``derivation`` trails resolved as
+#: provenance under-recording (see the module docstring — kit ``[]``
+#: vs Python's expansion names is consistent, not contradictory).
+_FIELD_DIVERGENT = frozenset()
 
-#: Record fields compared verbatim against ``law_to_data`` — every
-#: field except ``lhs``/``rhs`` (the pattern pair, covered by the
-#: op-tree + attrs aspects) and ``cert``/``version``/``kind``
-#: (record-level metadata the codec does not fold into the Rewrite).
+#: Record fields compared against ``law_to_data`` — every field
+#: except ``lhs``/``rhs`` (the pattern pair, covered by the op-tree +
+#: attrs aspects) and ``cert``/``version``/``kind`` (record-level
+#: metadata the codec does not fold into the Rewrite).  ``cond`` and
+#: ``derivation`` get canonicalised comparisons in ``_field_diffs`` —
+#: everything else is verbatim.
 _COMPARED_FIELDS = (
     "law",
     "cond",
@@ -359,6 +371,15 @@ def _field_diffs(record: dict, py_data: dict) -> set[tuple[str, str]]:
         if field == "cond":
             kit_value = _canon_cond(kit_value)
             py_value = _canon_cond(py_value)
+        elif field == "derivation":
+            # Provenance consistency, not completeness: the kit record
+            # may under-record the oracle's derivation trail (the
+            # port annotates ``with_derivation`` only where the
+            # constructor carried it), but it must never assert a
+            # name the Python rule does not.
+            if set(kit_value or ()) - set(py_value or ()):
+                out.add((name, field))
+            continue
         if py_value != kit_value:
             out.add((name, field))
     return out
