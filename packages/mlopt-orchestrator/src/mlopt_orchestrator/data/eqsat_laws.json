@@ -5468,7 +5468,11 @@
         }
        ],
        "attrs": {
-        "bind": "S"
+        "fields": {
+         "shape": {
+          "bind": "S"
+         }
+        }
        },
        "dim": null,
        "lit": null,
@@ -5508,7 +5512,11 @@
         }
        ],
        "attrs": {
-        "bind": "S"
+        "fields": {
+         "shape": {
+          "bind": "S"
+         }
+        }
        },
        "dim": null,
        "lit": null,
@@ -5548,7 +5556,11 @@
         }
        ],
        "attrs": {
-        "bind": "S"
+        "fields": {
+         "shape": {
+          "bind": "S"
+         }
+        }
        },
        "dim": null,
        "lit": null,
@@ -5569,7 +5581,11 @@
     }
    ],
    "attrs": {
-    "bind": "SC"
+    "fields": {
+     "scale": {
+      "bind": "SC"
+     }
+    }
    },
    "dim": null,
    "lit": null,
@@ -5648,7 +5664,11 @@
         }
        ],
        "attrs": {
-        "bind": "S"
+        "fields": {
+         "shape": {
+          "bind": "S"
+         }
+        }
        },
        "dim": null,
        "lit": null,
@@ -5735,7 +5755,11 @@
         }
        ],
        "attrs": {
-        "bind": "S"
+        "fields": {
+         "shape": {
+          "bind": "S"
+         }
+        }
        },
        "dim": null,
        "lit": null,
@@ -5822,7 +5846,11 @@
         }
        ],
        "attrs": {
-        "bind": "S"
+        "fields": {
+         "shape": {
+          "bind": "S"
+         }
+        }
        },
        "dim": null,
        "lit": null,
@@ -5843,7 +5871,11 @@
     }
    ],
    "attrs": {
-    "bind": "SC"
+    "fields": {
+     "scale": {
+      "bind": "SC"
+     }
+    }
    },
    "dim": null,
    "lit": null,

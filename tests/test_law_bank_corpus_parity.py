@@ -288,15 +288,10 @@ def _attrs_match(kit_node: dict, py_node: dict) -> bool:
 #: metavariable, deliberately more permissive than the Python
 #: exact-keyset per-key spelling (``builtin.rs`` documents the
 #: caveat; the attr name is unrecoverable, so the sentinel never
-#: equals a Python spelling).
-_ATTR_DIVERGENT = frozenset(
-    {
-        # reshape(shape)/sdpa(scale) bound whole-payload; the sdpa
-        # instances are a genuine matching-width delta vs Python's
-        # ``{scale: "SC"}`` exact-keyset — a port-or-decline item.
-        "qkv_fuse",
-    }
-)
+#: equals a Python spelling).  Empty today: ``qkv_fuse``'s
+#: reshape/sdpa nodes were re-spelled to ``attrs_fields`` per-key
+#: binds (``shape``/``scale``), closing the last divergence.
+_ATTR_DIVERGENT = frozenset()
 
 #: ``(rule name, record field)`` pairs whose content legitimately
 #: differs between the Rust port and the Python oracle — pinned so a
