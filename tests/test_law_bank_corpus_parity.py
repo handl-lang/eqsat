@@ -12,13 +12,16 @@ records are projections:
 * **Coverage** — every corpus record must name a shipped bank rule
   (``prim:*`` records resolve through the minted store's materialized
   folds).  A kit record Python does not know would silently widen the
-  eqsat wire bank past the oracle; the 195 Python-only rules are the
-  documented port backlog (the ``priorart`` remainder —
-  ``conv_bn_fold``'s procedural hooks and the unported tails —
-  ``headshare``/``pairing``/``specials``/``factored`` members, and
-  attention's ``rope_cat_compose``, whose half-split guard needs
-  attr-arithmetic vs shape-extent comparisons the ``cond``
-  vocabulary cannot form), not drift.
+  eqsat wire bank past the oracle; the Python-only remainder is the
+  documented port backlog, not drift: the ``priorart`` tail (still
+  being ported pack-section by pack-section), plus two permanent
+  declines — ``conv_bn_fold``'s procedural hooks and attention's
+  ``rope_cat_compose`` (its half-split guard needs attr-arithmetic
+  vs shape-extent comparisons the ``cond`` vocabulary cannot form).
+  ``headshare``/``pairing``/``specials``/``factored`` ship no
+  ``lhs → rhs`` rules at all — they are non-local ``_offer_witness``
+  value passes over stored tensors, permanently Python-side like
+  discovery, so they never enter this census.
 * **Op-tree shape** — for every non-prim record, the ``lhs``/``rhs``
   op-name trees (args structure, ``mvar``/``const`` leaf kinds,
   attrs ignored) must equal ``law_to_data``'s.  The kit pattern
