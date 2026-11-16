@@ -10026,6 +10026,1795 @@
  {
   "bound_norm": "spectral",
   "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "concat of one tensor is the tensor (TASO cat-noop).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_single",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "concat is associative: cat(cat(a,b),c) = cat(a,b,c) \u2014 the n-ary flatten (TASO concat associativity; the KV-cache append chain).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    },
+    {
+     "mvar": "c"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_flat_l",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "mvar": "b"
+    },
+    {
+     "mvar": "c"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "concat(a, cat(b,c)) = cat(a,b,c) \u2014 right-nested flatten.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      },
+      {
+       "mvar": "c"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_flat_r",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "mvar": "b"
+    },
+    {
+     "mvar": "c"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(chunk0(u), chunk1(u)) = u \u2014 the split/merge round-trip (TASO); holds for odd extents too since chunk splits first-big.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "chunks": {
+        "lit": 2
+       },
+       "dim": {
+        "bind": "D"
+       },
+       "index": {
+        "lit": 0
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "chunk",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "chunks": {
+        "lit": 2
+       },
+       "dim": {
+        "bind": "D"
+       },
+       "index": {
+        "lit": 1
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "chunk",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_chunk2",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "The 3-way split/merge round-trip.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "chunks": {
+        "lit": 3
+       },
+       "dim": {
+        "bind": "D"
+       },
+       "index": {
+        "lit": 0
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "chunk",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "chunks": {
+        "lit": 3
+       },
+       "dim": {
+        "bind": "D"
+       },
+       "index": {
+        "lit": 1
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "chunk",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "chunks": {
+        "lit": 3
+       },
+       "dim": {
+        "bind": "D"
+       },
+       "index": {
+        "lit": 2
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "chunk",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_chunk3",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "attr-len",
+   "SZ",
+   "==",
+   2
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(split0(u), split1(u)) = u \u2014 the uneven split's round-trip (two sizes cover the axis).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       },
+       "index": {
+        "lit": 0
+       },
+       "sizes": {
+        "bind": "SZ"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "split",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       },
+       "index": {
+        "lit": 1
+       },
+       "sizes": {
+        "bind": "SZ"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "split",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_split2",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(unsqueeze(a,d), unsqueeze(b,d), d) = stack(a,b,d) \u2014 torch.stack IS the cat of the unsqueezed pair.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "unsqueeze",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "unsqueeze",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "stack_fold",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "mvar": "b"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "stack",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [
+   "stack_fold"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "stack(a,b,d) decomposes to the unsqueeze+concat pair.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "mvar": "b"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "stack",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "stack_expand",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "unsqueeze",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "unsqueeze",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(neg(a), neg(b)) = neg(cat(a,b)) \u2014 the pointwise op commutes with the partition (TASO concat-pointwise).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "neg",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "neg",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_pull_neg",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "neg",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(abs(a), abs(b)) = abs(cat(a,b)) \u2014 the pointwise op commutes with the partition (TASO concat-pointwise).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "abs",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "abs",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_pull_abs",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "abs",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(relu(a), relu(b)) = relu(cat(a,b)) \u2014 the pointwise op commutes with the partition (TASO concat-pointwise).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "relu",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "relu",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_pull_relu",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "relu",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(sigmoid(a), sigmoid(b)) = sigmoid(cat(a,b)) \u2014 the pointwise op commutes with the partition (TASO concat-pointwise).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "sigmoid",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "sigmoid",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_pull_sigmoid",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sigmoid",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(silu(a), silu(b)) = silu(cat(a,b)) \u2014 the pointwise op commutes with the partition (TASO concat-pointwise).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "silu",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "silu",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_pull_silu",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "silu",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(tanh(a), tanh(b)) = tanh(cat(a,b)) \u2014 the pointwise op commutes with the partition (TASO concat-pointwise).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "tanh",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "tanh",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_pull_tanh",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "tanh",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(gelu(a), gelu(b)) = gelu(cat(a,b)) \u2014 the pointwise op commutes with the partition (TASO concat-pointwise).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "gelu",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "gelu",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_pull_gelu",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "gelu",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(exp(a), exp(b)) = exp(cat(a,b)) \u2014 the pointwise op commutes with the partition (TASO concat-pointwise).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "exp",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "exp",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_pull_exp",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "exp",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(square(a), square(b)) = square(cat(a,b)) \u2014 the pointwise op commutes with the partition (TASO concat-pointwise).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "square",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "square",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_pull_square",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "square",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(add(a1,b1), add(a2,b2)) = add(cat(a1,a2), cat(b1,b2)) \u2014 the pointwise pair commutes with the partition.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a1"
+      },
+      {
+       "mvar": "b1"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "a2"
+      },
+      {
+       "mvar": "b2"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_pull_add",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a1"
+      },
+      {
+       "mvar": "a2"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b1"
+      },
+      {
+       "mvar": "b2"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(mul(a1,b1), mul(a2,b2)) = mul(cat(a1,a2), cat(b1,b2)) \u2014 the pointwise pair commutes with the partition.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a1"
+      },
+      {
+       "mvar": "b1"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "a2"
+      },
+      {
+       "mvar": "b2"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_pull_mul",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a1"
+      },
+      {
+       "mvar": "a2"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b1"
+      },
+      {
+       "mvar": "b2"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(sub(a1,b1), sub(a2,b2)) = sub(cat(a1,a2), cat(b1,b2)) \u2014 the pointwise pair commutes with the partition.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a1"
+      },
+      {
+       "mvar": "b1"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "sub",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "a2"
+      },
+      {
+       "mvar": "b2"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "sub",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "concat_pull_sub",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a1"
+      },
+      {
+       "mvar": "a2"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b1"
+      },
+      {
+       "mvar": "b2"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
   "cond": [
    "and",
    [
