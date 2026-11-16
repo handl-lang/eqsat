@@ -8,7 +8,7 @@ backend-neutral members — :class:`IdentityRunner`,
 :class:`ChainedRunner`, :func:`runner_candidate` — live here; the
 torch-coupled :class:`TorchCompileRunner` lives in
 ``mlopt_torch.runners`` and the CUDA-device-coupled
-:class:`CudaGraphRunner` in ``mlopt_cuda``.
+:class:`CudaGraphRunner` in ``kit_cuda``.
 """
 
 from __future__ import annotations

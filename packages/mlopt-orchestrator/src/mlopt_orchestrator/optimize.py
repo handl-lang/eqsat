@@ -1066,7 +1066,7 @@ def lower(
     decides HOW the routed executor ships — identity
     (``IdentityRunner`` — the default) or a backend-provided
     transform like ``mlopt_torch.runners.TorchCompileRunner`` /
-    ``mlopt_cuda.CudaGraphRunner`` / a ``ChainedRunner``
+    ``kit_cuda.CudaGraphRunner`` / a ``ChainedRunner``
     composition.
     ``stats`` is a FRESH ``PipelineStats`` — the search record plus
     the lowering keys; :attr:`SearchResult.stats` is never mutated —
