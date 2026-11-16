@@ -366,7 +366,14 @@ def auto_records() -> dict[str, Any]:
 
 
 def _kit_attr(v: Any) -> dict[str, Any]:
-    """Tag one attr value for the kit wire: str → ``bind``, else ``lit``."""
+    """Tag one attr value for the kit wire: str → ``bind``, else ``lit``.
+
+    Latent edge (audit-8): every shipped bind spelling is a metavar
+    name (``aNNN`` or the uppercase shape names), so ``str`` →
+    ``bind`` is correct today — but a future string *literal* attr
+    (e.g. ``mode="relu"``) would misproject as a bind. If literal
+    string attrs ever ship, this needs a metavar-shape discriminator.
+    """
     if isinstance(v, str):
         return {"bind": v}
     return {"lit": v}
