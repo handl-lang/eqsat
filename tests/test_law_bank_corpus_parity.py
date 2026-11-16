@@ -13,15 +13,27 @@ records are projections:
   (``prim:*`` records resolve through the minted store's materialized
   folds).  A kit record Python does not know would silently widen the
   eqsat wire bank past the oracle; the Python-only remainder is the
-  documented port backlog, not drift: the ``priorart`` remainder
-  (the select-pull/index-view/reduce-dim1/zoo-corpus
-  sections — the §1 concat-structure and matmul/linear/conv-merge
-  blocks, the §1 index-view tail's ``mul_unsq_rev``, the §2
-  no-op-elimination head, and the §2 reduction-algebra +
-  activation-decomposition block are now ported), plus two permanent
-  declines — ``conv_bn_fold``'s procedural hooks and attention's
+  documented port backlog, not drift — and the backlog is now
+  *only permanent declines*: every portable ``priorart`` member is
+  ported (§1 concat-structure, matmul/linear/conv merges, the
+  index-view select/slice bridges, ``mul_unsq_rev``, the §2
+  no-op-elimination head, reduction algebra, activation
+  decompositions, const/scalar algebra, spelled-unit folds, and
+  the §3 zoo-corpus transforms — ``rope_rh_to_cat``'s
+  ``_check_rope_equiv`` re-authored as ``cond``).  What stays
+  Python-side by name: ``squeeze_all_noop``/``expand_noop`` (the
+  all-dims forall and the ``-1`` keep-dim read need expr forms
+  the vocabulary cannot shape), the ten ``REDUCE_DIM1_RULES``
+  (``_COND_DIM1``'s ``attr0``-inside-``attr-cmp-dim`` spelling),
+  ``mean_expand``/``mean_fold`` (a product-over-dims derive and a
+  Const-divisor tensor read), ``layer_norm_expand_*``/
+  ``instance_norm_expand``/``group_norm_expand`` (``_derive_ln``/
+  ``_derive_*_expand`` mint a ``range``-over-dims axis tuple plus
+  ``prod``/divisibility vetoes the expr algebra cannot form),
+  ``conv_bn_fold``'s procedural hooks, and attention's
   ``rope_cat_compose`` (its half-split guard needs attr-arithmetic
-  vs shape-extent comparisons the ``cond`` vocabulary cannot form).
+  vs shape-extent comparisons the ``cond`` vocabulary cannot
+  form).
   ``headshare``/``pairing``/``specials``/``factored`` ship no
   ``lhs → rhs`` rules at all — they are non-local ``_offer_witness``
   value passes over stored tensors, permanently Python-side like
@@ -313,21 +325,24 @@ _ATTR_DIVERGENT = frozenset()
 #: vs Python's expansion names is consistent, not contradictory).
 _FIELD_DIVERGENT = frozenset()
 
-#: The 121 rules whose procedural ``check=`` hooks the engine-eqsat
+#: The 122 rules whose procedural ``check=`` hooks the engine-eqsat
 #: port re-authored as declarative ``cond`` trees — the 36
 #: ``laws/attention.py`` members (``uniform``/``scalar``/
 #: ``dim-eq-const``/``bcast-into``/``mm-shape-ok``/``rank``/
 #: ``dim-compat`` — see ``engine-eqsat:src/builtin.rs``'s attention
 #: section), all 77 ``laws/layout.py`` members (``axes-last2``/
 #: ``axes-distinct``/``axes-eq``/``rank``/``rank-eq``/``dim-compat``/
-#: ``mm-out`` — the layout section), and the 8 ``priorart.py``
+#: ``mm-out`` — the layout section), the 8 ``priorart.py``
 #: §2 no-op-elimination members whose hooks re-authored over the
 #: ``mod``/``len``/``shape``/``unique``/``sum``/``posmap``/
 #: ``attr-is`` vocabulary (``unsqueeze_squeeze``/``squeeze_unsqueeze``
 #: axis-equality, ``roll_noop``/``pad_noop``/``repeat_noop``/
 #: ``permute_noop`` all-zero/all-one/identity folds,
 #: ``flatten_noop``'s ``-1`` end_dim arm, ``flip_involution``'s
-#: int-tuple dims gate).  On these records the kit side
+#: int-tuple dims gate), and ``priorart.py``'s ``rope_rh_to_cat``
+#: (``_check_rope_equiv``'s half-split guard re-authored over
+#: ``attr-cmp`` expr operands — ``nth``/``floordiv``/``mod`` reads
+#: of the concat axis extent).  On these records the kit side
 #: therefore carries ``cond`` data, ``serializable: true`` and
 #: ``missing_hooks: []`` where the Python ``law_to_data`` honestly
 #: reports ``cond: null``, ``serializable: false`` and
@@ -471,6 +486,12 @@ _CHECK_TRANSLATED = frozenset(
         "permute_noop",
         "flatten_noop",
         "flip_involution",
+        # -- `priorart.py` `ROPE_RH_TO_CAT`: `_check_rope_equiv`'s
+        # half-split guard (concat axis in range, even width,
+        # `[0,h)`/`[h,·)` slice bounds vs `width//2`) re-authored as
+        # `attr-cmp` expr-operand conds (engine-eqsat's `prior_art`
+        # §3 zoo block).
+        "rope_rh_to_cat",
     }
 )
 
@@ -699,7 +720,7 @@ def test_check_translated_records_match_the_translation_shape() -> None:
     []`` while the Python ``law_to_data`` reports ``cond: null``,
     ``serializable: false`` and ``missing_hooks: ["check"]`` — and the
     name set must equal the corpus's translated attention + layout +
-    prior_art no-op rules (a kit record gaining/losing the translation, or a Python
+    prior_art rules (a kit record gaining/losing the translation, or a Python
     rule changing its hook kind, fails here rather than silently
     widening the field exemption).
     """

@@ -14539,6 +14539,719 @@
   "cond": [
    "and",
    [
+    "dim-eq-attr",
+    "u",
+    "D",
+    "v",
+    "D"
+   ],
+   [
+    "shaped",
+    [
+     "bcast",
+     "u",
+     "v"
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "add commutes with select \u2014 the select_mul guard: same index on the same axis and a denoting broadcast grid.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       },
+       "index": {
+        "bind": "I"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "select",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "v"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       },
+       "index": {
+        "bind": "I"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "select",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "select_add",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      },
+      {
+       "mvar": "v"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     },
+     "index": {
+      "bind": "I"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "select",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "dim-eq-attr",
+    "u",
+    "D",
+    "v",
+    "D"
+   ],
+   [
+    "shaped",
+    [
+     "bcast",
+     "u",
+     "v"
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "sub commutes with select \u2014 the select_mul guard: same index on the same axis and a denoting broadcast grid.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       },
+       "index": {
+        "bind": "I"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "select",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "v"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       },
+       "index": {
+        "bind": "I"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "select",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "select_sub",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      },
+      {
+       "mvar": "v"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "sub",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     },
+     "index": {
+      "bind": "I"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "select",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "dim-eq-attr",
+    "u",
+    "D",
+    "v",
+    "D"
+   ],
+   [
+    "shaped",
+    [
+     "bcast",
+     "u",
+     "v"
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "div commutes with select \u2014 the select_mul guard: same index on the same axis and a denoting broadcast grid.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       },
+       "index": {
+        "bind": "I"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "select",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "v"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       },
+       "index": {
+        "bind": "I"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "select",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "div",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "select_div",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      },
+      {
+       "mvar": "v"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "div",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     },
+     "index": {
+      "bind": "I"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "select",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "unbind(u, d)[i] IS select(u, d, i) \u2014 the exported unbind carries its picked index (the getitem-folded spelling).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     },
+     "index": {
+      "bind": "I"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "unbind",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "unbind_select",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     },
+     "index": {
+      "bind": "I"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "select",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "attr-type",
+    "D",
+    "int"
+   ],
+   [
+    "attr-cmp",
+    "D",
+    ">=",
+    0
+   ],
+   [
+    "attr-cmp",
+    [
+     "len",
+     [
+      "shape",
+      "u"
+     ]
+    ],
+    ">",
+    [
+     "attr",
+     "D"
+    ]
+   ],
+   [
+    "attr-type",
+    "I",
+    "int"
+   ],
+   [
+    "attr-cmp",
+    "I",
+    ">=",
+    0
+   ],
+   [
+    "attr-cmp",
+    [
+     "nth",
+     [
+      "shape",
+      "u"
+     ],
+     [
+      "attr",
+      "D"
+     ]
+    ],
+    ">",
+    [
+     "attr",
+     "I"
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "E": [
+    "add",
+    [
+     "attr",
+     "I"
+    ],
+    1
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "select(u, d, i) = squeeze(slice(u, d, i, i+1), d) \u2014 the unit-width slice spelling of an index pick.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     },
+     "index": {
+      "bind": "I"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "select",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "select_to_slice",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       },
+       "end": {
+        "bind": "E"
+       },
+       "start": {
+        "bind": "I"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "slice",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "squeeze",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "attr-type",
+    "D",
+    "int"
+   ],
+   [
+    "attr-cmp",
+    "D",
+    ">=",
+    0
+   ],
+   [
+    "attr-cmp",
+    [
+     "len",
+     [
+      "shape",
+      "u"
+     ]
+    ],
+    ">",
+    [
+     "attr",
+     "D"
+    ]
+   ],
+   [
+    "attr-type",
+    "S",
+    "int"
+   ],
+   [
+    "attr-cmp",
+    "S",
+    ">=",
+    0
+   ],
+   [
+    "attr-cmp",
+    [
+     "nth",
+     [
+      "shape",
+      "u"
+     ],
+     [
+      "attr",
+      "D"
+     ]
+    ],
+    ">",
+    [
+     "attr",
+     "S"
+    ]
+   ],
+   [
+    "attr-cmp",
+    "E",
+    "==",
+    [
+     "add",
+     [
+      "attr",
+      "S"
+     ],
+     1
+    ]
+   ]
+  ],
+  "derivation": [
+   "select_to_slice"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "slice(u, d, i, i+1) = unsqueeze(select(u, d, i), d) \u2014 the one-element slice is the re-widened index pick.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     },
+     "end": {
+      "bind": "E"
+     },
+     "start": {
+      "bind": "S"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "slice",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "slice_to_select",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "D"
+       },
+       "index": {
+        "bind": "S"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "select",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "D"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "unsqueeze",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
     "flat-map-unsq",
     "u",
     "UD",
@@ -21849,6 +22562,1368 @@
   "tags": [
    "prior_art",
    "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "rank",
+    "x",
+    ">",
+    0
+   ],
+   [
+    "attr-type",
+    "CD",
+    "int"
+   ],
+   [
+    "attr-type",
+    "I1D",
+    "int"
+   ],
+   [
+    "attr-type",
+    "I2D",
+    "int"
+   ],
+   [
+    "attr-type",
+    "I1A",
+    "int"
+   ],
+   [
+    "attr-type",
+    "I1E",
+    "int"
+   ],
+   [
+    "attr-type",
+    "I2A",
+    "int"
+   ],
+   [
+    "attr-type",
+    "I2E",
+    "int"
+   ],
+   [
+    "attr-cmp",
+    "CD",
+    ">=",
+    0
+   ],
+   [
+    "attr-cmp",
+    "CD",
+    "<",
+    [
+     "len",
+     [
+      "shape",
+      "x"
+     ]
+    ]
+   ],
+   [
+    "attr-cmp",
+    "I1D",
+    "==",
+    "CD"
+   ],
+   [
+    "attr-cmp",
+    "I2D",
+    "==",
+    "CD"
+   ],
+   [
+    "attr-cmp",
+    [
+     "mod",
+     [
+      "nth",
+      [
+       "shape",
+       "x"
+      ],
+      [
+       "attr",
+       "CD"
+      ]
+     ],
+     2
+    ],
+    "==",
+    0
+   ],
+   [
+    "attr-cmp",
+    "I1A",
+    "==",
+    0
+   ],
+   [
+    "attr-cmp",
+    "I1E",
+    "==",
+    [
+     "floordiv",
+     [
+      "nth",
+      [
+       "shape",
+       "x"
+      ],
+      [
+       "attr",
+       "CD"
+      ]
+     ],
+     2
+    ]
+   ],
+   [
+    "attr-cmp",
+    "I2A",
+    "==",
+    [
+     "floordiv",
+     [
+      "nth",
+      [
+       "shape",
+       "x"
+      ],
+      [
+       "attr",
+       "CD"
+      ]
+     ],
+     2
+    ]
+   ],
+   [
+    "attr-cmp",
+    "I2E",
+    ">=",
+    [
+     "nth",
+     [
+      "shape",
+      "x"
+     ],
+     [
+      "attr",
+      "CD"
+     ]
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "x\u00b7cat(c,c) + cat(\u2212x2,x1)\u00b7cat(s,s) IS cat(x1c\u2212x2s, x2c+x1s) \u2014 the HF rotate-half and the Llama cat-pair rotary are the same transform when the cos/sin tables are the half-table duplicated (the standard emb.repeat(2) spelling).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "args": [
+        {
+         "mvar": "c"
+        },
+        {
+         "mvar": "c"
+        }
+       ],
+       "attrs": {
+        "fields": {
+         "dim": {
+          "bind": "CD"
+         }
+        }
+       },
+       "dim": null,
+       "lit": null,
+       "op": "concat",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "args": [
+            {
+             "mvar": "x"
+            }
+           ],
+           "attrs": {
+            "fields": {
+             "dim": {
+              "bind": "I2D"
+             },
+             "end": {
+              "bind": "I2E"
+             },
+             "start": {
+              "bind": "I2A"
+             }
+            }
+           },
+           "dim": null,
+           "lit": null,
+           "op": "slice",
+           "source": "native"
+          }
+         ],
+         "attrs": null,
+         "dim": null,
+         "lit": null,
+         "op": "neg",
+         "source": "native"
+        },
+        {
+         "args": [
+          {
+           "mvar": "x"
+          }
+         ],
+         "attrs": {
+          "fields": {
+           "dim": {
+            "bind": "I1D"
+           },
+           "end": {
+            "bind": "I1E"
+           },
+           "start": {
+            "bind": "I1A"
+           }
+          }
+         },
+         "dim": null,
+         "lit": null,
+         "op": "slice",
+         "source": "native"
+        }
+       ],
+       "attrs": {
+        "fields": {
+         "dim": {
+          "bind": "CD"
+         }
+        }
+       },
+       "dim": null,
+       "lit": null,
+       "op": "concat",
+       "source": "native"
+      },
+      {
+       "args": [
+        {
+         "mvar": "s"
+        },
+        {
+         "mvar": "s"
+        }
+       ],
+       "attrs": {
+        "fields": {
+         "dim": {
+          "bind": "CD"
+         }
+        }
+       },
+       "dim": null,
+       "lit": null,
+       "op": "concat",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "rope_rh_to_cat",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "mvar": "x"
+          }
+         ],
+         "attrs": {
+          "fields": {
+           "dim": {
+            "bind": "I1D"
+           },
+           "end": {
+            "bind": "I1E"
+           },
+           "start": {
+            "bind": "I1A"
+           }
+          }
+         },
+         "dim": null,
+         "lit": null,
+         "op": "slice",
+         "source": "native"
+        },
+        {
+         "mvar": "c"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "mul",
+       "source": "native"
+      },
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "mvar": "x"
+          }
+         ],
+         "attrs": {
+          "fields": {
+           "dim": {
+            "bind": "I2D"
+           },
+           "end": {
+            "bind": "I2E"
+           },
+           "start": {
+            "bind": "I2A"
+           }
+          }
+         },
+         "dim": null,
+         "lit": null,
+         "op": "slice",
+         "source": "native"
+        },
+        {
+         "mvar": "s"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "mul",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "sub",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "mvar": "x"
+          }
+         ],
+         "attrs": {
+          "fields": {
+           "dim": {
+            "bind": "I2D"
+           },
+           "end": {
+            "bind": "I2E"
+           },
+           "start": {
+            "bind": "I2A"
+           }
+          }
+         },
+         "dim": null,
+         "lit": null,
+         "op": "slice",
+         "source": "native"
+        },
+        {
+         "mvar": "c"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "mul",
+       "source": "native"
+      },
+      {
+       "args": [
+        {
+         "args": [
+          {
+           "mvar": "x"
+          }
+         ],
+         "attrs": {
+          "fields": {
+           "dim": {
+            "bind": "I1D"
+           },
+           "end": {
+            "bind": "I1E"
+           },
+           "start": {
+            "bind": "I1A"
+           }
+          }
+         },
+         "dim": null,
+         "lit": null,
+         "op": "slice",
+         "source": "native"
+        },
+        {
+         "mvar": "s"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "mul",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "CD"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "shape-eq",
+   "y",
+   [
+    "bcast",
+    "x",
+    "y"
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "x + (y \u2212 x).detach() = y \u2014 the straight-through estimator's value idiom (the quant STE: w + (\u0175\u2212w).detach() evaluates to \u0175) \u2014 guarded to the no-broadcast corner.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "mvar": "y"
+        },
+        {
+         "mvar": "x"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "sub",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "detach",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "ste_fold",
+  "rhs": {
+   "mvar": "y"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "shape-eq",
+   "y",
+   [
+    "bcast",
+    "x",
+    "y"
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "The operand-swapped STE spelling.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "mvar": "y"
+        },
+        {
+         "mvar": "x"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "sub",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "detach",
+     "source": "native"
+    },
+    {
+     "mvar": "x"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "ste_fold_l",
+  "rhs": {
+   "mvar": "y"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "mm-shape-ok",
+    "x",
+    [
+     "transpose-out",
+     "W",
+     null,
+     null
+    ]
+   ],
+   [
+    "rank",
+    "W",
+    "==",
+    2
+   ],
+   [
+    "shaped",
+    "c"
+   ],
+   [
+    "or",
+    [
+     "rank",
+     "c",
+     "==",
+     1
+    ],
+    [
+     "dim-eq-const",
+     "c",
+     0,
+     1
+    ]
+   ],
+   [
+    "dim-eq",
+    "c",
+    -1,
+    "W",
+    0
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "CV": [
+    "tuple",
+    [
+     "dim",
+     "W",
+     0
+    ],
+    1
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "c\u00b7(xW\u1d40) = x(W\u2218c\u0302)\u1d40 with \u0109 = c viewed (o,1) \u2014 the per-output-channel scale folds into the weight (the AWQ/dequant scale migration; the output-side twin of linear_channel_scale).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "linear",
+     "source": "native"
+    },
+    {
+     "mvar": "c"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "linear_out_channel",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "W"
+      },
+      {
+       "args": [
+        {
+         "mvar": "c"
+        }
+       ],
+       "attrs": {
+        "fields": {
+         "shape": {
+          "bind": "CV"
+         }
+        }
+       },
+       "dim": null,
+       "lit": null,
+       "op": "reshape",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "linear",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "mm-shape-ok",
+    "x",
+    [
+     "transpose-out",
+     "W",
+     null,
+     null
+    ]
+   ],
+   [
+    "rank",
+    "W",
+    "==",
+    2
+   ],
+   [
+    "shaped",
+    "c"
+   ],
+   [
+    "or",
+    [
+     "rank",
+     "c",
+     "==",
+     1
+    ],
+    [
+     "dim-eq-const",
+     "c",
+     0,
+     1
+    ]
+   ],
+   [
+    "dim-eq",
+    "c",
+    -1,
+    "W",
+    0
+   ],
+   [
+    "attr-cmp",
+    "CV",
+    "==",
+    [
+     "tuple",
+     [
+      "dim",
+      "W",
+      0
+     ],
+     1
+    ]
+   ]
+  ],
+  "derivation": [
+   "linear_out_channel"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Reverse: unfold the folded channel scale back to a runtime mul.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "W"
+      },
+      {
+       "args": [
+        {
+         "mvar": "c"
+        }
+       ],
+       "attrs": {
+        "fields": {
+         "shape": {
+          "bind": "CV"
+         }
+        }
+       },
+       "dim": null,
+       "lit": null,
+       "op": "reshape",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "linear",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "linear_out_channel_rev",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "linear",
+     "source": "native"
+    },
+    {
+     "mvar": "c"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "u\u00b7(1+s) = u + u\u00b7s \u2014 the AdaLN-Zero ``1 + scale`` idiom spelled as distributivity (derivable through the pointwise factor laws \u2014 kept as the direct edge).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "args": [
+      {
+       "const": 1
+      },
+      {
+       "mvar": "s"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "adaln_one_plus",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "args": [
+      {
+       "mvar": "u"
+      },
+      {
+       "mvar": "s"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "dropout(u, p, train=False) = u \u2014 the eval-mode strip (Inductor's aten.dropout elimination).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "p": {
+      "bind": "P"
+     },
+     "train": {
+      "lit": false
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "dropout",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "dropout_eval",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "dropout(u, p=0) = u \u2014 a zero drop rate is the identity in either mode.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "p": {
+      "lit": 0.0
+     },
+     "train": {
+      "bind": "T"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "dropout",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "dropout_zero",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "rank",
+    "W",
+    "==",
+    2
+   ],
+   [
+    "attr-cmp",
+    [
+     "dim",
+     "W",
+     -2
+    ],
+    "==",
+    [
+     "attr",
+     "N"
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "to(dtype)(one_hot(i, N)) @ W = embedding(W, i) \u2014 the one-hot matmul IS a row gather (TASO/vocab-projection fold; the cast is the exported spelling \u2014 one_hot emits int64 which cannot contract a float weight; spelled ``double`` to ride the fp64 eval path).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "args": [
+        {
+         "mvar": "i"
+        }
+       ],
+       "attrs": {
+        "fields": {
+         "num_classes": {
+          "bind": "N"
+         }
+        }
+       },
+       "dim": null,
+       "lit": null,
+       "op": "one_hot",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "double",
+     "source": "native"
+    },
+    {
+     "mvar": "W"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "matmul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "onehot_matmul_embed",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "W"
+    },
+    {
+     "mvar": "i"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "embedding",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "addcmul(t, a, b) = t + a\u00b7b \u2014 the fused op's spelled work (value=1 default).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "t"
+    },
+    {
+     "mvar": "a"
+    },
+    {
+     "mvar": "b"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "addcmul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "addcmul_expand",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "t"
+    },
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "addcdiv(t, a, b) = t + a/b.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "t"
+    },
+    {
+     "mvar": "a"
+    },
+    {
+     "mvar": "b"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "addcdiv",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "addcdiv_expand",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "t"
+    },
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "div",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "lerp(x, y, w) = x + w\u00b7(y\u2212x) \u2014 the interpolation's definition.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "mvar": "y"
+    },
+    {
+     "mvar": "w"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "lerp",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "lerp_expand",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "w"
+      },
+      {
+       "args": [
+        {
+         "mvar": "y"
+        },
+        {
+         "mvar": "x"
+        }
+       ],
+       "attrs": null,
+       "dim": null,
+       "lit": null,
+       "op": "sub",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "mul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
   ],
   "version": 2
  },
