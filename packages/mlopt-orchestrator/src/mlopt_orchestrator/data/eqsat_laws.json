@@ -10378,6 +10378,909 @@
  {
   "bound_norm": "spectral",
   "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "abs(abs(u)) = abs(u).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "abs",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "abs",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "abs_idem",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "abs",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "|u\u00b2| = u\u00b2 \u2014 the square is already nonneg.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "square",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "abs",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "abs_square",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "square",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "(|u|)\u00b2 = u\u00b2 \u2014 abs is invisible to the square.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "abs",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "square",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "square_abs",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "square",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "|\u2212u| = |u|.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "neg",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "abs",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "abs_neg",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "abs",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "\u221a(u\u00b2) = |u| \u2014 the canonical spelling (NOT u \u2014 the negative branch keeps the abs).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "square",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sqrt",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "sqrt_square",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "abs",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "1/\u221a(u\u00b2) = 1/|u| \u2014 the rsqrt twin.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "square",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "rsqrt",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "rsqrt_square",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "abs",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "reciprocal",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "max(u, u) = u.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "maximum",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "maximum_idem",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "min(u, u) = u.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "minimum",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "minimum_idem",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "tanh is odd: tanh(\u2212u) = \u2212tanh(u).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "neg",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "tanh",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "tanh_neg",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "tanh",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "neg",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "\u03c3(\u2212u) = 1 \u2212 \u03c3(u) \u2014 the symmetric complement.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "neg",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sigmoid",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "sigmoid_neg",
+  "rhs": {
+   "args": [
+    {
+     "const": 1
+    },
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "sigmoid",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "softsign is odd.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "neg",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "softsign",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "softsign_neg",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "softsign",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "neg",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "erf is odd.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "neg",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "erf",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "erf_neg",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "erf",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "neg",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "sin is odd.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "neg",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sin",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "sin_neg",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "sin",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "neg",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cos is even: cos(\u2212u) = cos(u).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "neg",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "cos",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "cos_neg",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "cos",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "e\u207b\u1d58 = 1/e\u1d58.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "neg",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "exp",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "exp_neg_recip",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "exp",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "reciprocal",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "log(e\u1d58) = u \u2014 e\u1d58 > 0 always, so the inverse is total.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "exp",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "log",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "log_exp",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "log(1/u) = \u2212log(u).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "reciprocal",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "log",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "log_recip",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "log",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "neg",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
   "cond": [
    "const-cmp",
    "P",
@@ -10612,6 +11515,48 @@
  {
   "bound_norm": "spectral",
   "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "1/(1/u) = u \u2014 reciprocal involution.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "u"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "reciprocal",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "reciprocal",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "recip_recip",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
   "cond": [
    "const-cmp",
    "ONE",
@@ -10703,6 +11648,437 @@
   "tags": [
    "expansive",
    "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "a + (\u2212b) = a \u2212 b \u2014 the refold (sub_to_add's inverse).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "neg",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "add_neg_to_sub",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "mvar": "b"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "a \u2212 (\u2212b) = a + b.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "neg",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "sub_neg_to_add",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "a"
+    },
+    {
+     "mvar": "b"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "\u2212(a\u2212b) = b\u2212a.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "sub",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "neg",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "neg_sub",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "b"
+    },
+    {
+     "mvar": "a"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "0 \u2212 u = \u2212u.",
+  "lhs": {
+   "args": [
+    {
+     "const": 0
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "sub_zero_to_neg",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "neg",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "u \u2212 0 = u.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "const": 0
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "id_sub",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "u/1 = u.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "const": 1
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "div",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "id_div",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "u+u = 2u \u2014 the strength reduction.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "add_self",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "const": 2
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [
+   "add_self"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "2u = u+u \u2014 the sharing direction.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "const": 2
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mul2_to_add",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": null,
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "u\u00b7(\u22121) = \u2212u.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "const": -1
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mul_neg1",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "u"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "neg",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
   ],
   "version": 2
  },
@@ -11797,6 +13173,262 @@
    "lit": null,
    "op": "mul",
    "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "shaped",
+    [
+     "bcast",
+     "u",
+     "v"
+    ]
+   ],
+   [
+    "shape-eq",
+    "u",
+    [
+     "bcast",
+     "u",
+     "v"
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "add(u, zeros_like(v)) = u \u2014 the spelled additive/multiplicative unit (grid-equality guard keeps it honest).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "args": [
+      {
+       "mvar": "v"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "zeros_like",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "add_zeroslike_r",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "shaped",
+    [
+     "bcast",
+     "u",
+     "v"
+    ]
+   ],
+   [
+    "shape-eq",
+    "u",
+    [
+     "bcast",
+     "u",
+     "v"
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "sub(u, zeros_like(v)) = u \u2014 the spelled additive/multiplicative unit (grid-equality guard keeps it honest).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "args": [
+      {
+       "mvar": "v"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "zeros_like",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "sub",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "sub_zeroslike_r",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "shaped",
+    [
+     "bcast",
+     "u",
+     "v"
+    ]
+   ],
+   [
+    "shape-eq",
+    "u",
+    [
+     "bcast",
+     "u",
+     "v"
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "mul(u, ones_like(v)) = u \u2014 the spelled additive/multiplicative unit (grid-equality guard keeps it honest).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "args": [
+      {
+       "mvar": "v"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "ones_like",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "mul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mul_oneslike_r",
+  "rhs": {
+   "mvar": "u"
+  },
+  "serializable": true,
+  "tags": [
+   "prior_art",
+   "simplification"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "shaped",
+    [
+     "bcast",
+     "u",
+     "v"
+    ]
+   ],
+   [
+    "shape-eq",
+    "u",
+    [
+     "bcast",
+     "u",
+     "v"
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "div(u, ones_like(v)) = u \u2014 the spelled additive/multiplicative unit (grid-equality guard keeps it honest).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "u"
+    },
+    {
+     "args": [
+      {
+       "mvar": "v"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "ones_like",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "div",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "div_oneslike_r",
+  "rhs": {
+   "mvar": "u"
   },
   "serializable": true,
   "tags": [
