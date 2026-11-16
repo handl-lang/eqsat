@@ -175,8 +175,10 @@ def _op_tree(node: Any) -> Any:
             return ("mvar",)
         if "const" in node:
             return ("const",)
-        if "var" in node or "param" in node:
-            return ("leaf",)
+        if "var" in node:
+            return ("var",)
+        if "param" in node:
+            return ("param",)
         if node.get("__tag__") == "dag.program":
             return ("dag",)
         return ("?",)
