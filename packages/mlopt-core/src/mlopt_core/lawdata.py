@@ -45,7 +45,7 @@ __all__ = [
 #: Rules that express pure coherence: symmetry/associativity/identity/
 #: involution.  They generate every *equivalent bracketing* of the same
 #: computation — the search-space the e-graph should never store.
-#: ``om_assoc``/``om_assoc_rev`` live in mlopt_carriers.om (same law
+#: ``om_assoc``/``om_assoc_rev`` live in kit_carriers.om (same law
 #: family: associativity of a monoid's compose).
 COHERENT_RULE_NAMES: frozenset[str] = frozenset(
     {

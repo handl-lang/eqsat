@@ -294,7 +294,7 @@ MACHINE_SHIPPED = MACHINE_SHIPPED | AUTO_ADMITTED
 #:
 #: * ``om_lift`` — the store holds a constructed ``om_lift`` object
 #:   (``lift_object``, literal ``dim=-1`` pattern) while
-#:   ``mlopt_carriers.om.OM_LIFT`` is a *human-authored* carrier law
+#:   ``kit_carriers.om.OM_LIFT`` is a *human-authored* carrier law
 #:   with a metavar-dim guard.  The name is excluded below: the
 #:   registry resolves the shipped law's class, and the store
 #:   object's provenance rides its ``ConstructedObject.construction``

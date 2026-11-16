@@ -95,7 +95,7 @@ _OP_FLOPS: dict[str, int] = {
     "decay": 5,
     # decay_vec(γ,t=T) — arange + scale + pow: ~3 passes over (T,).
     "decay_vec": 3,
-    # Traced-monoidal ops (mlopt_carriers.trace): wire juxtaposition and
+    # Traced-monoidal ops (kit_carriers.trace): wire juxtaposition and
     # constant morphisms carry no FLOPs; trace/inv are priced in
     # _flops_of directly (solve cost depends on usize).
     "bdiag": 0,
@@ -147,7 +147,7 @@ def _applyd_flops(term: Op, n_out: int, memo: dict | None) -> float:
 
     Mul + add, elementwise over the broadcast of the map's scale
     part, ``h`` and the contribution — the three-factor broadcast
-    ``mlopt_carriers.xcarrier._xshape`` reports for the value shape.
+    ``kit_carriers.xcarrier._xshape`` reports for the value shape.
     The contribution slot is reachable only on a bare ``aff_diag``
     map; other map spellings (``affd_compose`` trees, opaque maps)
     price on the convention (scale-part) shape the ``applyd`` shape

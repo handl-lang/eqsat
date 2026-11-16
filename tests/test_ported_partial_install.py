@@ -43,7 +43,7 @@ def test_full_reraises_errors_inside_a_carrier(monkeypatch):
     monkeypatch.setattr(
         ops_mod,
         "importlib",
-        _import_blocker("mlopt_carriers.om", missing="torch"),
+        _import_blocker("kit_carriers.om", missing="torch"),
     )
     with pytest.raises(ModuleNotFoundError, match="torch"):
         OpTable.full()

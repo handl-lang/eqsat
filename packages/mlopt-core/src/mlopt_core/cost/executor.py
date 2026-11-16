@@ -277,7 +277,7 @@ def _generic_latency_ns(
 def _leaf_shared_a(leaves: list) -> bool:
     """``leaf_a_shared``: every leaf's first arg is the same term.
 
-    Mirrors ``mlopt_carriers.scan_lower.build_scan_plan`` — same
+    Mirrors ``kit_carriers.scan_lower.build_scan_plan`` — same
     object, or identically-named ``Param`` leaves (LTI recurrence):
     the executor evaluates the transition once and ``expand``s a
     stride-0 batch view instead of stacking T copies.
@@ -302,7 +302,7 @@ def _leaf_shared_a(leaves: list) -> bool:
 def _leaf_gather_base(leaves: list) -> Any | None:
     """``leaf_b_gather``'s shared base term, or ``None``.
 
-    Mirrors ``mlopt_carriers.scan_lower._leaf_b_gather``: every
+    Mirrors ``kit_carriers.scan_lower._leaf_b_gather``: every
     leaf's *second* argument is ``select(base, dim, index)`` over the
     SAME base term and dim — one ``index_select`` (or the base itself
     for contiguous indices) replaces n tiny indexing evals.

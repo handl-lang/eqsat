@@ -341,7 +341,7 @@ _ARG0_SHAPE_OPS = frozenset(
 
 def _infer_op_shape(op: Op, memo: dict | None = None):
     # Zero-argument ops with a registered rule (constant morphisms
-    # like mlopt_carriers.trace's ``eye``/``cswap``): their shapes are fully
+    # like kit_carriers.trace's ``eye``/``cswap``): their shapes are fully
     # determined by attributes, so they must be answered before the
     # empty-shapes early return below.
     rule = _SHAPE_RULES.get(op.op)
@@ -1553,7 +1553,7 @@ def register_shape_rule(op: str, fn: _ShapeRule) -> None:
 # state slot, ``aff`` the map's linear part — exact on the recurrence
 # spine, wrong for a promoted/stacked carrier member whose true value
 # shape differs.  A carrier package can install a resolver that reports
-# the TRUE value shape (``mlopt_carriers.xcarrier._xshape``); the
+# the TRUE value shape (``kit_carriers.xcarrier._xshape``); the
 # derive DSL's ``("vshape", T)`` dispatches through it.  Core never
 # imports the carrier: the resolver is *pushed* in, the same sink
 # direction as the torch binding tables (:mod:`mlopt_core.ops`).
@@ -1571,7 +1571,7 @@ def register_value_shape(fn: Callable[[Any], Any]) -> None:
     ``fn`` is a callable ``term -> shape`` returning a term's true value
     shape (``tuple``/``_INVALID``/``None`` — the same contract as
     :func:`_shape_of`).  Pushed in by an adapter at import time
-    (``mlopt_carriers.xcarrier`` passes its ``_xshape``); core imports
+    (``kit_carriers.xcarrier`` passes its ``_xshape``); core imports
     no adapter.  Idempotent — the last registration wins.
     """
     global _VALUE_SHAPE
@@ -1707,7 +1707,7 @@ def _bdiag_shape(op: Op, shapes: list) -> tuple | str | None:
     """``bdiag``/``parl`` — total-dims-preserving matrix juxtaposition.
 
     bdiag is literal block-diagonal; parl re-lays the same blocks
-    keeping feedback wires first (see mlopt_carriers.trace).
+    keeping feedback wires first (see kit_carriers.trace).
     """
     a, b = shapes[0], shapes[1]
     if (

@@ -6,7 +6,7 @@ the non-local lifts, the carrier rule sets and the carrier-root probes
 :func:`register_carriers`.  Nothing here imports a backend: the
 registry holds the thunks the carrier package pushes in, so
 ``import mlopt_orchestrator`` stays torch-free and the orchestrator
-never imports ``mlopt_carriers``.  Without a registration the passes
+never imports ``kit_carriers``.  Without a registration the passes
 degrade to their carrier-free defaults — exactly the partial-install
 behaviour the lazy imports used to provide.
 
@@ -34,7 +34,7 @@ class CarrierMachinery:
 
     Every field is a thunk so the carrier package's torch-coupled
     modules resolve only when a pass actually runs — importing
-    ``mlopt_carriers`` registers this value without loading a tensor
+    ``kit_carriers`` registers this value without loading a tensor
     library.
 
     * ``plans`` — ``() -> {root_op: plan_builder}``; the batched plan

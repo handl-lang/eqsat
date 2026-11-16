@@ -6,7 +6,7 @@ safetensors tag (``mlopt_torch.export``), IR name ↔ NumPy dtype ↔
 ONNX element type ↔ onnxruntime type string (``kit_onnx.arrays``),
 ``hardware.dtype`` names (``mlopt_discovery.play``), and the
 name-resolution idiom ``getattr(torch, name.split(".")[-1])``
-(``mlopt_torch.torch_bridge``, ``mlopt_carriers.trace``).  This module
+(``mlopt_torch.torch_bridge``, ``kit_carriers.trace``).  This module
 is the single table they all derive from.
 
 Why a separate package

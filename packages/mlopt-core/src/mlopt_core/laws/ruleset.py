@@ -508,7 +508,7 @@ SYMMETRY = RuleSet(
 
 #: The core-side share of the ``CARRIERS`` preset — *empty by
 #: design*.  The preset names the carrier-package families (om /
-#: trace / xc / decode); those live in ``mlopt_carriers`` and core
+#: trace / xc / decode); those live in ``kit_carriers`` and core
 #: cannot import them (the hexagonal boundary).  The orchestrator
 #: composes ``carriers.CARRIERS`` into ``DEFAULT_RULES``.  Core's
 #: own scan monoids are tagged ``SCAN``, not ``CARRIER``, and sit in
@@ -519,7 +519,7 @@ CARRIERS = RuleSet(
     description=(
         "the carrier-package families (om / trace / xc / decode) — "
         "empty core-side; the orchestrator composes "
-        "mlopt_carriers.CARRIERS"
+        "kit_carriers.CARRIERS"
     ),
 )
 
@@ -568,7 +568,7 @@ _BASE = CATEGORICAL + SIMPLIFICATION + FUSION + CARRIERS
 #: carriers groups, minus the pairing-subsumed folds and the opt-in
 #: symmetry generators.  (Core-side ``CARRIERS`` is empty — the
 #: orchestrator's ``DEFAULT_RULES`` composes
-#: ``mlopt_carriers.CARRIERS`` on top.)  ``DEFAULT + SYMMETRY`` is
+#: ``kit_carriers.CARRIERS`` on top.)  ``DEFAULT + SYMMETRY`` is
 #: the opt-in full set (:data:`FULL`).
 DEFAULT = RuleSet(
     "default",

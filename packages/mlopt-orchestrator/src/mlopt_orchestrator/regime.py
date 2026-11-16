@@ -1037,7 +1037,7 @@ def build_egraph(
     fire.
 
     The non-local carrier lifts resolve lazily — a backend process
-    without ``mlopt_carriers`` runs the plain core saturation.
+    without ``kit_carriers`` runs the plain core saturation.
     """
     ir, source_tensors = source.to_ir(model, example_input)
     eg = EGraph()

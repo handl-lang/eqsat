@@ -366,7 +366,7 @@ def _param_index(
 #: (f0⊙g0, f0⊙g1 + f1), ``om_compose``/``omd_compose`` = maximum +
 #: where-rescaled mul-adds, ``om_apply`` = a/l, ``omd_apply`` =
 #: (fa⊙h + fb)/l (torch_bridge._CORE_TORCH_BINDINGS,
-#: mlopt_carriers.xcarrier.TORCH_BINDINGS).  NOT here: the bindings
+#: kit_carriers.xcarrier.TORCH_BINDINGS).  NOT here: the bindings
 #: hiding a contraction or reduction — ``apply``/``aff_compose``/
 #: ``omd_applym`` (matmul), ``om_elem``/``omd_elem``/``om_elem_aff``/
 #: ``om_elem_affd`` (amax + GEMM) — those stay fusion boundaries.

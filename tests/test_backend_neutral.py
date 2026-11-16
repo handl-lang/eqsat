@@ -5,12 +5,12 @@ Two complements to :mod:`tests.test_core_torch_free` (the core half):
 * **static** — an AST walk over ``packages/mlopt-orchestrator/src``
   rejects any direct ``import``/``from`` of the backend roots
   (``torch``, ``mlopt_torch``, ``mlopt_cuda``).  The
-  ``mlopt_carriers`` imports the regime/carrier helpers defer to
+  ``kit_carriers`` imports the regime/carrier helpers defer to
   call time are *not* forbidden at the statement level — carriers
   are optional rewrite machinery — but the runtime proof below
   blocks them too and the whole package must still import.
 * **runtime** — ``mlopt_orchestrator`` is imported in a subprocess with
-  ``torch``/``numpy``/``mlopt_torch``/``mlopt_carriers``/
+  ``torch``/``numpy``/``mlopt_torch``/``kit_carriers``/
   ``mlopt_cuda`` all blocked by a meta-path finder; every
   submodule walks, the lazy carrier fallbacks degrade cleanly, and
   a full ``Optimizer`` run on a *pure-Python* fake backend still
@@ -103,7 +103,7 @@ def test_optimize_source_has_no_backend_imports():
 _BLOCKED_SCRIPT = r"""
 import sys
 
-_BLOCKED = ("torch", "numpy", "mlopt_torch", "mlopt_carriers",
+_BLOCKED = ("torch", "numpy", "mlopt_torch", "kit_carriers",
             "mlopt_cuda")
 
 
@@ -130,7 +130,7 @@ for _info in pkgutil.walk_packages(
 
 assert "torch" not in sys.modules
 assert "mlopt_torch" not in sys.modules
-assert "mlopt_carriers" not in sys.modules
+assert "kit_carriers" not in sys.modules
 
 # The lazy carrier fallbacks degrade to empty structures, never raise.
 import mlopt_orchestrator.optimize as O
@@ -802,11 +802,11 @@ def test_carrier_helpers_degrade_without_carriers(monkeypatch):
     from mlopt_core.egraph import EGraph
 
     for name in (
-        "mlopt_carriers.om_lower",
-        "mlopt_carriers.omd_lower",
-        "mlopt_carriers.scan_lower",
-        "mlopt_carriers.trace_lift",
-        "mlopt_carriers.xcarrier",
+        "kit_carriers.om_lower",
+        "kit_carriers.omd_lower",
+        "kit_carriers.scan_lower",
+        "kit_carriers.trace_lift",
+        "kit_carriers.xcarrier",
     ):
         monkeypatch.setitem(_sys.modules, name, None)
     assert O._carrier_plans() == {}
@@ -823,7 +823,7 @@ def test_carrier_helpers_degrade_without_carriers(monkeypatch):
 def test_carrier_registry_absent_paths(monkeypatch):
     """The ``get_carriers() is None`` arms, exercised in-process.
 
-    ``mlopt_carriers`` installs its machinery at import, so the
+    ``kit_carriers`` installs its machinery at import, so the
     carrier-free arms are otherwise reachable only in a backend-free
     process (the subprocess proof above).  Neutralising the registry
     directly drives the same arms here — real coverage of the

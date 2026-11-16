@@ -2,8 +2,8 @@
 
 Before this phase the torch-lowering table lived as module-global
 mutable state: ``mlopt_torch.torch_bridge._IR_TO_TORCH`` was seeded with the
-core bindings and every carrier module (``mlopt_carriers.trace``,
-``mlopt_carriers.xcarrier``, ``mlopt_carriers.om``) mutated it at
+core bindings and every carrier module (``kit_carriers.trace``,
+``kit_carriers.xcarrier``, ``kit_carriers.om``) mutated it at
 import time.  Whether a term could be lowered therefore depended on
 WHICH modules had happened to be imported — an invisible dependency.
 
@@ -45,12 +45,12 @@ the same way.
 
 Carrier modules that opt in (and the ops they contribute):
 
-* :mod:`mlopt_carriers.trace` — ``trace`` ``bdiag`` ``parl`` ``eye`` ``cswap``
+* :mod:`kit_carriers.trace` — ``trace`` ``bdiag`` ``parl`` ``eye`` ``cswap``
   ``inv``
-* :mod:`mlopt_carriers.xcarrier` — ``affd_a`` ``affd_b`` ``aff_A`` ``aff_b``
+* :mod:`kit_carriers.xcarrier` — ``affd_a`` ``affd_b`` ``aff_A`` ``aff_b``
   ``om_elem_affd`` ``om_elem_aff`` ``omd`` ``omd_elem`` ``omd_compose``
   ``omd_apply`` ``omd_applym``
-* :mod:`mlopt_carriers.om` — ``cmask`` ``fill`` ``attnbias``
+* :mod:`kit_carriers.om` — ``cmask`` ``fill`` ``attnbias``
   ``om_decayed``
 
 That set is the built-in ``_CARRIER_MODULES`` tuple, in registration
@@ -170,9 +170,9 @@ def ambient_bindings() -> dict[str, Binding] | None:
 #: rejected: it would re-order the built-ins relative to this tuple and
 #: rescan every installed distribution on each ``full()`` call.)
 _CARRIER_MODULES: tuple[str, ...] = (
-    "mlopt_carriers.trace",
-    "mlopt_carriers.xcarrier",
-    "mlopt_carriers.om",
+    "kit_carriers.trace",
+    "kit_carriers.xcarrier",
+    "kit_carriers.om",
 )
 
 #: Carrier modules registered at runtime via :func:`register_carrier`,
@@ -206,7 +206,7 @@ def _carrier_module_objects() -> list[ModuleType]:
 
     A carrier's terms cannot exist without its package, so a missing
     carrier module (partial install — e.g. mlopt-core + mlopt-torch
-    alone, no ``mlopt-carriers``) contributes nothing and is skipped
+    alone, no ``kit-carriers``) contributes nothing and is skipped
     silently.  The ``ModuleNotFoundError`` is narrowed
     to the carrier module itself or one of its parent packages: an
     import error raised INSIDE an installed carrier (a missing
@@ -341,14 +341,14 @@ class OpTable:
         It must expose ``TORCH_BINDINGS``/``SHAPE_RULES``/``ATTR_SCHEMA``
         attributes.
 
-        Accepts a module object, a module name (``"mlopt_carriers.trace"`` or
+        Accepts a module object, a module name (``"kit_carriers.trace"`` or
         the bare ``"trace"``), or a plain dict of torch bindings.
         """
         if isinstance(source, dict):
             return SimpleNamespace(TORCH_BINDINGS=source)
         if isinstance(source, str):
             name = (
-                source if "." in source else f"mlopt_carriers.{source}"
+                source if "." in source else f"kit_carriers.{source}"
             )
             return importlib.import_module(name)
         return source
