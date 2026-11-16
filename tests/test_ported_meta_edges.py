@@ -824,7 +824,11 @@ def test_validate_candidate_numeric_eval_failures(monkeypatch):
     that cannot denote vetoes only that instantiation, while the
     claimed OUTPUT failing on a live instance is a measured
     counterexample — the ill-typed-RHS signal the emit gate must
-    honour.  ``KeyError`` stays the structural-only escape.
+    honour.  ``KeyError`` stays the structural-only escape.  When the
+    backend cannot evaluate ANY tried instance (an env that cannot
+    type a needed leaf — e.g. fp64 for a boolean mask), the leg
+    abstains to structural-only: it measured nothing, so it refuses
+    nothing.
     """
     x, y = Var("x", _T()), Var("y", _T())
     w = {"x": x, "y": y}
@@ -843,11 +847,16 @@ def test_validate_candidate_numeric_eval_failures(monkeypatch):
     assert meta._validate_candidate(
         cand, swap, idm, numeric=True, witness=w
     )
-    # the bound LHS instance itself cannot denote → vetoed, not emitted
+    # the bound LHS instance itself cannot denote → that instance is
+    # vetoed; on the single witness instance the leg then abstains —
+    # the backend measured nothing, so it cannot refuse the rule
     _with_eval(monkeypatch, _StubEval(broken={"add"}))
-    assert not meta._validate_candidate(
+    assert meta._validate_candidate(
         cand, swap, idm, numeric=True, witness=w
     )
+    # ...but with NO witness the bounded pool is enumerated: every
+    # instance dies in eval the same way → still abstains, not rejects
+    assert meta._validate_candidate(cand, swap, idm, numeric=True)
     # an unbound LHS op is the same structural-only escape
     _with_eval(monkeypatch, _StubEval(unbound={"add"}))
     assert meta._validate_candidate(

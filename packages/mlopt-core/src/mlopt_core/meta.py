@@ -1180,6 +1180,17 @@ def _validate_candidate(
     satisfiable on real instances; the bounded instantiation pool then
     remains as a fallback.  A candidate whose guards are unsatisfiable
     on every tried instance is rejected rather than trusted.
+
+    Numeric-leg abstention: an instance that passes guards and replay
+    but whose evaluation raises under the backend's env (e.g. a
+    boolean mask leaf the env mints as fp64) vetoes only that
+    instantiation.  When NO tried instance yields a numeric verdict —
+    every one either vetoed early or died in eval — the leg degrades
+    to structural-only (``True``) exactly like an unbound op: it
+    measured nothing, so it refuses nothing.  A backend eval failure
+    on the claimed OUTPUT of an instance whose input DID evaluate
+    stays a measured counterexample (``False``) — that is the
+    ill-typed-RHS signal the emit gate exists for.
     """
     lhs_mv = pattern_metavars(cand.lhs)
     rhs_mv = pattern_metavars(cand.rhs)
@@ -1203,8 +1214,19 @@ def _validate_candidate(
         v[len("$attr:") :] for v in lhs_mv if v.startswith("$attr:")
     )
 
+    # Set when an instance passed guards + replay but the backend
+    # raised evaluating it — the env may be unable to type a leaf the
+    # term needs (the torch env mints fp64 for EVERY leaf, so a
+    # boolean ``masked_fill`` mask always raises).  The instance is
+    # vetoed either way, but if NO tried instance yields a numeric
+    # verdict the leg abstains to structural-only — the same
+    # degradation as an unbound op — rather than rejecting a
+    # candidate the backend simply cannot measure.
+    saw_unevaluable = False
+
     def attempt(subst: dict, fatal_replay: bool):
         """None: instance vetoed/skipped; False: reject; True: emit."""
+        nonlocal saw_unevaluable
         try:
             t0 = instantiate_pattern(cand.lhs, subst)
         except KeyError:
@@ -1238,8 +1260,11 @@ def _validate_candidate(
                 # structural only.
                 return True
             except Exception:
-                # The bound instance itself cannot denote — a vetoed
-                # instantiation, not a verdict on the rule.
+                # The bound instance itself cannot denote *under this
+                # backend's env* — veto THIS instantiation (a later,
+                # evaluable one may still verify), and remember the
+                # numeric leg measured nothing on it.
+                saw_unevaluable = True
                 return None
             try:
                 b = _eval_term(tout, env)
@@ -1255,7 +1280,13 @@ def _validate_candidate(
         return True
 
     if witness is not None:
-        return attempt(dict(witness), fatal_replay=True) is True
+        res = attempt(dict(witness), fatal_replay=True)
+        if res is not None:
+            return res
+        # The witness instance either failed a guard/replay (a real
+        # veto) or reached the numeric leg and could not be evaluated
+        # — abstain to structural-only in the latter case.
+        return saw_unevaluable
 
     # Materialise once: ``seeds`` is typed ``Iterable`` (a generator is
     # always truthy), and the loop below may consult it twice.
@@ -1272,7 +1303,13 @@ def _validate_candidate(
         res = attempt(subst, fatal_replay=True)
         if res is not None:
             return res
-    return False
+    # Every instance vetoed.  If at least one reached the numeric leg
+    # and the backend could not evaluate it, the check measured
+    # nothing — abstain to structural-only rather than reject a
+    # candidate on instances the env cannot type (e.g. a boolean
+    # mask leaf minted as fp64).  Pure guard/replay vetoes still
+    # reject: the side conditions were never satisfiable here.
+    return saw_unevaluable
 
 
 def _is_tautology(lhs: Any, rhs: Any) -> bool:
