@@ -14,10 +14,11 @@ records are projections:
   folds).  A kit record Python does not know would silently widen the
   eqsat wire bank past the oracle; the Python-only remainder is the
   documented port backlog, not drift: the ``priorart`` remainder
-  (the concat/matmul-merge/select-pull/reduce-dim1/zoo-corpus
-  sections — the §1 index-view tail, the §2 no-op-elimination head,
-  and the §2 reduction-algebra + activation-decomposition block are
-  now ported), plus two permanent
+  (the select-pull/index-view/reduce-dim1/zoo-corpus
+  sections — the §1 concat-structure and matmul/linear/conv-merge
+  blocks, the §1 index-view tail's ``mul_unsq_rev``, the §2
+  no-op-elimination head, and the §2 reduction-algebra +
+  activation-decomposition block are now ported), plus two permanent
   declines — ``conv_bn_fold``'s procedural hooks and attention's
   ``rope_cat_compose`` (its half-split guard needs attr-arithmetic
   vs shape-extent comparisons the ``cond`` vocabulary cannot form).

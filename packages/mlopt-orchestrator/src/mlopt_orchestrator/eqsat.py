@@ -64,7 +64,7 @@ named rather than silent:
   ``search`` already skips/refuses them for non-``EGraph`` engines.
 
 **Law coverage is reported, never silently narrowed.**  The engine
-runs the *portable* law set — the 488 ``LAW_FORMAT = 2`` records of
+runs the *portable* law set — the 506 ``LAW_FORMAT = 2`` records of
 the full non-demo ``kit-eqsat`` corpus (simplification,
 categorical, prior_art, attention, pointwise_factor, batch_norm,
 conv_folds, scan, layout, prim_folds; the unsound
@@ -235,7 +235,7 @@ def portable_laws() -> tuple[dict, ...]:
     """Return the shipped portable ``LAW_FORMAT = 2`` law records.
 
     The snapshot is generated from the canonical ``kit-eqsat``
-    corpus (ADR-0177 §1) — all 488 non-demo records across the
+    corpus (ADR-0177 §1) — all 506 non-demo records across the
     simplification / categorical / prior_art / attention /
     pointwise_factor / batch_norm / conv_folds / scan / layout /
     prim_folds packs

@@ -11818,6 +11818,2727 @@
   "cond": [
    "and",
    [
+    "dim-eq",
+    "a",
+    -1,
+    "b",
+    -1
+   ],
+   [
+    "not",
+    [
+     "axis",
+     "a",
+     "CD",
+     -1
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(a@W, b@W) = cat(a,b)@W on a non-contraction axis \u2014 row/batch blocks of a shared contraction merge into one matmul (TASO matmul-concat).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "W"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      },
+      {
+       "mvar": "W"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "CD"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mm_concat_left",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "CD"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    },
+    {
+     "mvar": "W"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "matmul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "dim-eq",
+    "a",
+    -1,
+    "b",
+    -1
+   ],
+   [
+    "not",
+    [
+     "axis",
+     "a",
+     "CD",
+     -1
+    ]
+   ]
+  ],
+  "derivation": [
+   "mm_concat_left"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Reverse: split a matmul's non-contraction axis into two products (eqsat weighs split vs merged).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "CD"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    },
+    {
+     "mvar": "W"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "matmul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mm_concat_left_rev",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "W"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      },
+      {
+       "mvar": "W"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "CD"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "rank",
+    "x",
+    "<=",
+    2
+   ],
+   [
+    "rank",
+    "b",
+    "==",
+    2
+   ],
+   [
+    "rank",
+    "c",
+    "==",
+    2
+   ],
+   [
+    "attr-eq",
+    "CD",
+    -1
+   ],
+   [
+    "axis",
+    "b",
+    "CD",
+    -1
+   ],
+   [
+    "dim-eq",
+    "b",
+    -2,
+    "c",
+    -2
+   ],
+   [
+    "dim-eq",
+    "x",
+    -1,
+    "b",
+    -2
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(x@b, x@c) = x@cat(b,c) along the output axis \u2014 column blocks of a shared input merge into one matmul.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "c"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "CD"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mm_concat_right",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      },
+      {
+       "mvar": "c"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "CD"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "matmul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "rank",
+    "x",
+    "<=",
+    2
+   ],
+   [
+    "rank",
+    "b",
+    "==",
+    2
+   ],
+   [
+    "rank",
+    "c",
+    "==",
+    2
+   ],
+   [
+    "attr-eq",
+    "CD",
+    -1
+   ],
+   [
+    "axis",
+    "b",
+    "CD",
+    -1
+   ],
+   [
+    "dim-eq",
+    "b",
+    -2,
+    "c",
+    -2
+   ],
+   [
+    "dim-eq",
+    "x",
+    -1,
+    "b",
+    -2
+   ]
+  ],
+  "derivation": [
+   "mm_concat_right"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Reverse column-block split (eqsat weighs both forms).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      },
+      {
+       "mvar": "c"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "CD"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "matmul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mm_concat_right_rev",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "c"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "CD"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "rank",
+    "a",
+    "==",
+    2
+   ],
+   [
+    "rank",
+    "b",
+    "==",
+    2
+   ],
+   [
+    "dim-eq",
+    "a",
+    -2,
+    "b",
+    -2
+   ],
+   [
+    "rank",
+    "W",
+    "==",
+    2
+   ],
+   [
+    "axis",
+    "a",
+    "CD",
+    -1
+   ],
+   [
+    "attr-cmp",
+    [
+     "dim",
+     "W",
+     -2
+    ],
+    "==",
+    [
+     "add",
+     [
+      "dim",
+      "a",
+      -1
+     ],
+     [
+      "dim",
+      "b",
+      -1
+     ]
+    ]
+   ]
+  ],
+  "derivation": [],
+  "dspec": {
+   "SZ": [
+    "tuple",
+    [
+     "dim",
+     "a",
+     -1
+    ],
+    [
+     "dim",
+     "b",
+     -1
+    ]
+   ]
+  },
+  "error_bound": null,
+  "kind": "law",
+  "law": "(cat(a,b,-1)) @ W = a@W_top + b@W_bot \u2014 the split-K decomposition: the contraction axis partitions, the weight splits on its -2 axis (TASO).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "CD"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    },
+    {
+     "mvar": "W"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "matmul",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mm_splitk",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "args": [
+        {
+         "mvar": "W"
+        }
+       ],
+       "attrs": {
+        "fields": {
+         "dim": {
+          "lit": -2
+         },
+         "index": {
+          "lit": 0
+         },
+         "sizes": {
+          "bind": "SZ"
+         }
+        }
+       },
+       "dim": null,
+       "lit": null,
+       "op": "split",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      },
+      {
+       "args": [
+        {
+         "mvar": "W"
+        }
+       ],
+       "attrs": {
+        "fields": {
+         "dim": {
+          "lit": -2
+         },
+         "index": {
+          "lit": 1
+         },
+         "sizes": {
+          "bind": "SZ"
+         }
+        }
+       },
+       "dim": null,
+       "lit": null,
+       "op": "split",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "categorical",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "rank",
+    "a",
+    "==",
+    2
+   ],
+   [
+    "rank",
+    "b",
+    "==",
+    2
+   ],
+   [
+    "dim-eq",
+    "a",
+    -2,
+    "b",
+    -2
+   ],
+   [
+    "rank",
+    "W",
+    "==",
+    2
+   ],
+   [
+    "attr-cmp",
+    "SZ",
+    "==",
+    [
+     "tuple",
+     [
+      "dim",
+      "a",
+      -1
+     ],
+     [
+      "dim",
+      "b",
+      -1
+     ]
+    ]
+   ],
+   [
+    "attr-cmp",
+    [
+     "dim",
+     "W",
+     -2
+    ],
+    "==",
+    [
+     "add",
+     [
+      "dim",
+      "a",
+      -1
+     ],
+     [
+      "dim",
+      "b",
+      -1
+     ]
+    ]
+   ]
+  ],
+  "derivation": [
+   "mm_splitk"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "The split-K refold \u2014 the two partial products merge into one contraction.",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "args": [
+        {
+         "mvar": "W"
+        }
+       ],
+       "attrs": {
+        "fields": {
+         "dim": {
+          "lit": -2
+         },
+         "index": {
+          "lit": 0
+         },
+         "sizes": {
+          "bind": "SZ"
+         }
+        }
+       },
+       "dim": null,
+       "lit": null,
+       "op": "split",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b"
+      },
+      {
+       "args": [
+        {
+         "mvar": "W"
+        }
+       ],
+       "attrs": {
+        "fields": {
+         "dim": {
+          "lit": -2
+         },
+         "index": {
+          "lit": 1
+         },
+         "sizes": {
+          "bind": "SZ"
+         }
+        }
+       },
+       "dim": null,
+       "lit": null,
+       "op": "split",
+       "source": "native"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "matmul",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "mm_splitk_rev",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "a"
+      },
+      {
+       "mvar": "b"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim": -1
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    },
+    {
+     "mvar": "W"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "matmul",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "rank",
+    "A",
+    "==",
+    2
+   ],
+   [
+    "rank",
+    "B",
+    "==",
+    2
+   ],
+   [
+    "dim-eq",
+    "A",
+    1,
+    "B",
+    1
+   ],
+   [
+    "axis",
+    "x",
+    "CD",
+    -1
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(xA\u1d40, xB\u1d40) = x[A;B]\u1d40 on the output axis \u2014 the MergedColumnParallelLinear merge (TASO).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "A"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "linear",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "B"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "linear",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "CD"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "linear_concat_w",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "A"
+      },
+      {
+       "mvar": "B"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim": 0
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "linear",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "rank",
+    "A",
+    "==",
+    2
+   ],
+   [
+    "rank",
+    "B",
+    "==",
+    2
+   ],
+   [
+    "dim-eq",
+    "A",
+    1,
+    "B",
+    1
+   ],
+   [
+    "axis",
+    "A",
+    "AD",
+    0
+   ]
+  ],
+  "derivation": [
+   "linear_concat_w"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Reverse: split a fused projection into per-block linears.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "A"
+      },
+      {
+       "mvar": "B"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dim": {
+        "bind": "AD"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "linear",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "linear_concat_w_rev",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "A"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "linear",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "B"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "linear",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "lit": {
+     "dim": -1
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "mm-shape-ok",
+    "x",
+    [
+     "transpose-out",
+     "W",
+     null,
+     null
+    ]
+   ],
+   [
+    "rank",
+    "W",
+    "==",
+    2
+   ],
+   [
+    "bcast-into",
+    "b",
+    [
+     "mm-out",
+     "x",
+     [
+      "transpose-out",
+      "W",
+      null,
+      null
+     ]
+    ]
+   ],
+   [
+    "rank",
+    "b",
+    "<=",
+    1
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "xW\u1d40 + b = linear(x, W, b) \u2014 the bias epilogue folds into the GEMM (Inductor's addmm; TASO's matmul+bias).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "linear",
+     "source": "native"
+    },
+    {
+     "mvar": "b"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "linear_bias_fold",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "mvar": "W"
+    },
+    {
+     "mvar": "b"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "linear",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "mm-shape-ok",
+    "x",
+    [
+     "transpose-out",
+     "W",
+     null,
+     null
+    ]
+   ],
+   [
+    "rank",
+    "W",
+    "==",
+    2
+   ],
+   [
+    "bcast-into",
+    "b",
+    [
+     "mm-out",
+     "x",
+     [
+      "transpose-out",
+      "W",
+      null,
+      null
+     ]
+    ]
+   ],
+   [
+    "rank",
+    "b",
+    "<=",
+    1
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "The operand-swapped bias-epilogue fold.",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "b"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "linear",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "linear_bias_fold_l",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "mvar": "W"
+    },
+    {
+     "mvar": "b"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "linear",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "mm-shape-ok",
+    "x",
+    [
+     "transpose-out",
+     "W",
+     null,
+     null
+    ]
+   ],
+   [
+    "rank",
+    "W",
+    "==",
+    2
+   ],
+   [
+    "bcast-into",
+    "b",
+    [
+     "mm-out",
+     "x",
+     [
+      "transpose-out",
+      "W",
+      null,
+      null
+     ]
+    ]
+   ],
+   [
+    "rank",
+    "b",
+    "<=",
+    1
+   ]
+  ],
+  "derivation": [
+   "linear_bias_fold"
+  ],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "Reverse: expose the fused bias as a pointwise epilogue (eqsat weighs fused vs spelled).",
+  "lhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "mvar": "W"
+    },
+    {
+     "mvar": "b"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "linear",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "linear_bias_expand",
+  "rhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "linear",
+     "source": "native"
+    },
+    {
+     "mvar": "b"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "expansive",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "rank",
+    "A",
+    "==",
+    2
+   ],
+   [
+    "rank",
+    "B",
+    "==",
+    2
+   ],
+   [
+    "shape-compat",
+    "A",
+    "B"
+   ],
+   [
+    "shape-compat",
+    "b1",
+    "b2"
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "linear(x,A,b1) + linear(x,B,b2) = linear(x, A+B, b1+b2) \u2014 the affine-map weight merge (model-soup / LoRA-merge class).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "A"
+      },
+      {
+       "mvar": "b1"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "linear",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "B"
+      },
+      {
+       "mvar": "b2"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "linear",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "add",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "linear_bias_merge",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "A"
+      },
+      {
+       "mvar": "B"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b1"
+      },
+      {
+       "mvar": "b2"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "add",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "linear",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "concrete",
+    "x"
+   ],
+   [
+    "rank",
+    "x",
+    "==",
+    4
+   ],
+   [
+    "concrete",
+    "W1"
+   ],
+   [
+    "rank",
+    "W1",
+    "==",
+    4
+   ],
+   [
+    "dim-eq",
+    "x",
+    1,
+    "W1",
+    1
+   ],
+   [
+    "dim-eq",
+    "W1",
+    1,
+    "W2",
+    1
+   ],
+   [
+    "axis",
+    "x",
+    "CD",
+    1
+   ],
+   [
+    "rank",
+    "b1",
+    "==",
+    1
+   ],
+   [
+    "dim-eq",
+    "b1",
+    0,
+    "W1",
+    0
+   ],
+   [
+    "rank",
+    "b2",
+    "==",
+    1
+   ],
+   [
+    "dim-eq",
+    "b2",
+    0,
+    "W2",
+    0
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(conv(x,W1), conv(x,W2)) = conv(x, cat(W1,W2,0)) on the channel axis \u2014 same-geometry convs merge into one (TASO's conv-merge; the Inception parallel fold).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W1"
+      },
+      {
+       "mvar": "b1"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "conv2d",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W2"
+      },
+      {
+       "mvar": "b2"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "conv2d",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "CD"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "conv_out_merge",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "W1"
+      },
+      {
+       "mvar": "W2"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim": 0
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b1"
+      },
+      {
+       "mvar": "b2"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim": 0
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "conv2d",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "concrete",
+    "x"
+   ],
+   [
+    "rank",
+    "x",
+    "==",
+    4
+   ],
+   [
+    "concrete",
+    "W1"
+   ],
+   [
+    "rank",
+    "W1",
+    "==",
+    4
+   ],
+   [
+    "dim-eq",
+    "x",
+    1,
+    "W1",
+    1
+   ],
+   [
+    "dim-eq",
+    "W1",
+    1,
+    "W2",
+    1
+   ],
+   [
+    "axis",
+    "x",
+    "CD",
+    1
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(conv(x,W1), conv(x,W2)) = conv(x, cat(W1,W2,0)) on the channel axis \u2014 same-geometry convs merge into one (TASO's conv-merge; the Inception parallel fold).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W1"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "conv2d",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W2"
+      }
+     ],
+     "attrs": null,
+     "dim": null,
+     "lit": null,
+     "op": "conv2d",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "CD"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "conv_out_merge_nobias",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "W1"
+      },
+      {
+       "mvar": "W2"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim": 0
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": null,
+   "dim": null,
+   "lit": null,
+   "op": "conv2d",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "concrete",
+    "x"
+   ],
+   [
+    "rank",
+    "x",
+    "==",
+    4
+   ],
+   [
+    "concrete",
+    "W1"
+   ],
+   [
+    "rank",
+    "W1",
+    "==",
+    4
+   ],
+   [
+    "dim-eq",
+    "x",
+    1,
+    "W1",
+    1
+   ],
+   [
+    "dim-eq",
+    "W1",
+    1,
+    "W2",
+    1
+   ],
+   [
+    "axis",
+    "x",
+    "CD",
+    1
+   ],
+   [
+    "rank",
+    "b1",
+    "==",
+    1
+   ],
+   [
+    "dim-eq",
+    "b1",
+    0,
+    "W1",
+    0
+   ],
+   [
+    "rank",
+    "b2",
+    "==",
+    1
+   ],
+   [
+    "dim-eq",
+    "b2",
+    0,
+    "W2",
+    0
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(conv(x,W1), conv(x,W2)) = conv(x, cat(W1,W2,0)) on the channel axis \u2014 same-geometry convs merge into one (TASO's conv-merge; the Inception parallel fold).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W1"
+      },
+      {
+       "mvar": "b1"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "padding": {
+        "bind": "PD"
+       },
+       "stride": {
+        "bind": "ST"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "conv2d",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W2"
+      },
+      {
+       "mvar": "b2"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "padding": {
+        "bind": "PD"
+       },
+       "stride": {
+        "bind": "ST"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "conv2d",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "CD"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "conv_out_merge_sp",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "W1"
+      },
+      {
+       "mvar": "W2"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim": 0
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b1"
+      },
+      {
+       "mvar": "b2"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim": 0
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "padding": {
+      "bind": "PD"
+     },
+     "stride": {
+      "bind": "ST"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "conv2d",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "concrete",
+    "x"
+   ],
+   [
+    "rank",
+    "x",
+    "==",
+    4
+   ],
+   [
+    "concrete",
+    "W1"
+   ],
+   [
+    "rank",
+    "W1",
+    "==",
+    4
+   ],
+   [
+    "dim-eq",
+    "x",
+    1,
+    "W1",
+    1
+   ],
+   [
+    "dim-eq",
+    "W1",
+    1,
+    "W2",
+    1
+   ],
+   [
+    "axis",
+    "x",
+    "CD",
+    1
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(conv(x,W1), conv(x,W2)) = conv(x, cat(W1,W2,0)) on the channel axis \u2014 same-geometry convs merge into one (TASO's conv-merge; the Inception parallel fold).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W1"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "padding": {
+        "bind": "PD"
+       },
+       "stride": {
+        "bind": "ST"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "conv2d",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W2"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "padding": {
+        "bind": "PD"
+       },
+       "stride": {
+        "bind": "ST"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "conv2d",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "CD"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "conv_out_merge_sp_nobias",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "W1"
+      },
+      {
+       "mvar": "W2"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim": 0
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "padding": {
+      "bind": "PD"
+     },
+     "stride": {
+      "bind": "ST"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "conv2d",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "concrete",
+    "x"
+   ],
+   [
+    "rank",
+    "x",
+    "==",
+    4
+   ],
+   [
+    "concrete",
+    "W1"
+   ],
+   [
+    "rank",
+    "W1",
+    "==",
+    4
+   ],
+   [
+    "and",
+    [
+     "attr-eq",
+     "GR",
+     1
+    ],
+    [
+     "dim-eq",
+     "x",
+     1,
+     "W1",
+     1
+    ]
+   ],
+   [
+    "dim-eq",
+    "W1",
+    1,
+    "W2",
+    1
+   ],
+   [
+    "axis",
+    "x",
+    "CD",
+    1
+   ],
+   [
+    "rank",
+    "b1",
+    "==",
+    1
+   ],
+   [
+    "dim-eq",
+    "b1",
+    0,
+    "W1",
+    0
+   ],
+   [
+    "rank",
+    "b2",
+    "==",
+    1
+   ],
+   [
+    "dim-eq",
+    "b2",
+    0,
+    "W2",
+    0
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(conv(x,W1), conv(x,W2)) = conv(x, cat(W1,W2,0)) on the channel axis \u2014 same-geometry convs merge into one (TASO's conv-merge; the Inception parallel fold).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W1"
+      },
+      {
+       "mvar": "b1"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dilation": {
+        "bind": "DL"
+       },
+       "groups": {
+        "bind": "GR"
+       },
+       "padding": {
+        "bind": "PD"
+       },
+       "stride": {
+        "bind": "ST"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "conv2d",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W2"
+      },
+      {
+       "mvar": "b2"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dilation": {
+        "bind": "DL"
+       },
+       "groups": {
+        "bind": "GR"
+       },
+       "padding": {
+        "bind": "PD"
+       },
+       "stride": {
+        "bind": "ST"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "conv2d",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "CD"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "conv_out_merge_spdg",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "W1"
+      },
+      {
+       "mvar": "W2"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim": 0
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "b1"
+      },
+      {
+       "mvar": "b2"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim": 0
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dilation": {
+      "bind": "DL"
+     },
+     "groups": {
+      "bind": "GR"
+     },
+     "padding": {
+      "bind": "PD"
+     },
+     "stride": {
+      "bind": "ST"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "conv2d",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
+    "concrete",
+    "x"
+   ],
+   [
+    "rank",
+    "x",
+    "==",
+    4
+   ],
+   [
+    "concrete",
+    "W1"
+   ],
+   [
+    "rank",
+    "W1",
+    "==",
+    4
+   ],
+   [
+    "and",
+    [
+     "attr-eq",
+     "GR",
+     1
+    ],
+    [
+     "dim-eq",
+     "x",
+     1,
+     "W1",
+     1
+    ]
+   ],
+   [
+    "dim-eq",
+    "W1",
+    1,
+    "W2",
+    1
+   ],
+   [
+    "axis",
+    "x",
+    "CD",
+    1
+   ]
+  ],
+  "derivation": [],
+  "dspec": null,
+  "error_bound": null,
+  "kind": "law",
+  "law": "cat(conv(x,W1), conv(x,W2)) = conv(x, cat(W1,W2,0)) on the channel axis \u2014 same-geometry convs merge into one (TASO's conv-merge; the Inception parallel fold).",
+  "lhs": {
+   "args": [
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W1"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dilation": {
+        "bind": "DL"
+       },
+       "groups": {
+        "bind": "GR"
+       },
+       "padding": {
+        "bind": "PD"
+       },
+       "stride": {
+        "bind": "ST"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "conv2d",
+     "source": "native"
+    },
+    {
+     "args": [
+      {
+       "mvar": "x"
+      },
+      {
+       "mvar": "W2"
+      }
+     ],
+     "attrs": {
+      "fields": {
+       "dilation": {
+        "bind": "DL"
+       },
+       "groups": {
+        "bind": "GR"
+       },
+       "padding": {
+        "bind": "PD"
+       },
+       "stride": {
+        "bind": "ST"
+       }
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "conv2d",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dim": {
+      "bind": "CD"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "concat",
+   "source": "native"
+  },
+  "missing_hooks": [],
+  "name": "conv_out_merge_spdg_nobias",
+  "rhs": {
+   "args": [
+    {
+     "mvar": "x"
+    },
+    {
+     "args": [
+      {
+       "mvar": "W1"
+      },
+      {
+       "mvar": "W2"
+      }
+     ],
+     "attrs": {
+      "lit": {
+       "dim": 0
+      }
+     },
+     "dim": null,
+     "lit": null,
+     "op": "concat",
+     "source": "native"
+    }
+   ],
+   "attrs": {
+    "fields": {
+     "dilation": {
+      "bind": "DL"
+     },
+     "groups": {
+      "bind": "GR"
+     },
+     "padding": {
+      "bind": "PD"
+     },
+     "stride": {
+      "bind": "ST"
+     }
+    }
+   },
+   "dim": null,
+   "lit": null,
+   "op": "conv2d",
+   "source": "native"
+  },
+  "serializable": true,
+  "tags": [
+   "fusion",
+   "prior_art"
+  ],
+  "version": 2
+ },
+ {
+  "bound_norm": "spectral",
+  "cert": null,
+  "cond": [
+   "and",
+   [
     "flat-map-unsq",
     "u",
     "UD",
