@@ -2353,17 +2353,59 @@ _COND_SCORE_T = (
     ("axes-last2", "K", "TD1", "TD2"),
 )
 
-#: Softmax over the last dim (keys) of the score matrix, as data.
-_COND_SM_DIM = ("axis", "Q", "SD", -1)
+#: The score tensor's shape as a spec — ``matmul(Q, Kᵀ)``'s output.
+#: ``softmax(dim=SD)`` must name the LAST axis of the tensor the
+#: softmax actually reads — the ``add``/``masked_fill`` output, whose
+#: rank can exceed ``Q``'s when ``K`` or the mask carries extra batch
+#: dims.  ``("axis", "Q", "SD", -1)`` checked ``SD`` against
+#: ``rank(Q)`` instead: a spelled ``softmax(dim=1)`` on rank-4 scores
+#: under a rank-2 ``Q`` passed the guard and folded into ``sdpa`` —
+#: which always normalizes the key axis — a measured ``verify`` FAIL
+#: (``fold:sdpa_fold_addmul``, the agenda ``ledger_verify_decline``
+#: family).
+_QK_MM = ("mm-out", "Q", ("transpose-out", "K", "TD1", "TD2"))
 
-#: The shared precondition of every sdpa_fold rule.
+
+def _sm_axis(mask):
+    """``axis`` guard — ``SD`` is the last axis of the score tensor.
+
+    *mask* is the broadcast operand the softmax input adds on top of
+    the scores (``"M"`` additive, ``"MK"`` the masked_fill keep-mask);
+    ``None`` is the mask-free spelling, whose softmax reads the scores
+    directly.  The ``shaped`` conjuncts matter: ``bcast`` reads an
+    unresolvable operand as a wildcard, so without them an unknown
+    score (or mask) shape would silently fall back to the *other*
+    operand's rank and could pass ``axis`` on the wrong tensor.
+    """
+    spec = _QK_MM if mask is None else ("bcast", _QK_MM, mask)
+    conjuncts = [("shaped", _QK_MM)]
+    if mask is not None:
+        conjuncts.append(("shaped", mask))
+    conjuncts.append(("axis", spec, "SD", -1))
+    return ("and", *conjuncts)
+
+
+#: Softmax over the last dim (keys) of the score matrix, per mask
+#: spelling — the broadcast rank, not ``Q``'s.
+_COND_SM_DIM = _sm_axis("M")
+_COND_SM_DIM_MF = _sm_axis("MK")
+_COND_SM_DIM_NM = _sm_axis(None)
+
+#: The shared preconditions of every sdpa_fold rule — one per mask
+#: spelling (the broadcast operand the softmax input carries).
 _COND_SDPA_BASE = ("and", _COND_SCORE_T, _COND_SM_DIM)
+_COND_SDPA_BASE_MF = ("and", _COND_SCORE_T, _COND_SM_DIM_MF)
+_COND_SDPA_BASE_NM = ("and", _COND_SCORE_T, _COND_SM_DIM_NM)
 
 #: ``+ a numeric scale leaf (the ``S`` Const).``
 _COND_SDPA_SCALED = ("and", _COND_SDPA_BASE, ("const-num", "S"))
 
 #: ``+ a boolean masked_fill marker (the ``F`` Const < -1e30).``
-_COND_SDPA_MF = ("and", _COND_SDPA_BASE, ("const-cmp", "F", "<", -1e30))
+_COND_SDPA_MF = (
+    "and",
+    _COND_SDPA_BASE_MF,
+    ("const-cmp", "F", "<", -1e30),
+)
 
 #: masked_fill + scale.
 _COND_SDPA_MF_SCALED = ("and", _COND_SDPA_MF, ("const-num", "S"))
@@ -2493,8 +2535,14 @@ _COND_SDPA_QV_RANK = (
 
 #: Mask-free spelled attention — ``(Q @ Kᵀ) * softmax → @V`` with no
 #: mask operand.  The folded ``sdpa`` takes no ``attn_mask``.
-_COND_SDPA_NOMASK = ("and", _COND_SDPA_BASE, _COND_SDPA_QV_RANK)
-_COND_SDPA_DIV_NOMASK = ("and", _COND_SDPA_SCALED, _COND_SDPA_QV_RANK)
+_COND_SDPA_NOMASK = ("and", _COND_SDPA_BASE_NM, _COND_SDPA_QV_RANK)
+_COND_SDPA_NOMASK_SCALED = (
+    "and",
+    _COND_SDPA_BASE_NM,
+    ("const-num", "S"),
+    _COND_SDPA_QV_RANK,
+)
+_COND_SDPA_DIV_NOMASK = _COND_SDPA_NOMASK_SCALED
 
 # The mask-free forms of the fold — ``nn.MultiheadAttention``'s
 # default path exports exactly this spelling (no mask operand), so the
@@ -2530,7 +2578,7 @@ SDPA_FOLD_DIV_NOMASK = R(
 )
 
 #: ``+ the scale is a Const leaf (the ``S`` the mul form binds).``
-_COND_SDPA_MUL_NOMASK = ("and", _COND_SDPA_SCALED, _COND_SDPA_QV_RANK)
+_COND_SDPA_MUL_NOMASK = _COND_SDPA_NOMASK_SCALED
 
 # The mask-free fold's third scale row — ``softmax(q kᵀ · s) v`` —
 # the family gap the ``sdpa_expand`` mint lands on: ``torch`` scales

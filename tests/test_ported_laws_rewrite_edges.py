@@ -34,6 +34,7 @@ from mlopt_core.laws.tensor import (
     _REPEAT_V,
     GQA_ABSORB,
     QKV_FUSE_ASYM,
+    SDPA_FOLD_RULES,
     _check_gqa_absorb,
     _check_linear_bias_compose,
     _check_repeat_chain,
@@ -635,3 +636,93 @@ def test_pair_shared_input_arbitrary_op():
         ),
     )
     assert len(groups) == 1
+
+
+def _sdpa_fold(name):
+    return next(r for r in SDPA_FOLD_RULES if r.name == name)
+
+
+def _rank4_score_term(dim, *, masked=False, nomask=False):
+    """Spelled attention whose scores outrank ``Q``.
+
+    ``Q`` is rank-2 ``(4, 6)``; ``K`` is rank-4 ``(2, 3, 8, 6)`` so
+    ``Q @ Kᵀ`` broadcasts to rank-4 ``(2, 3, 4, 8)`` scores (last axis
+    = keys).  The mask ``(4, 8)`` broadcasts to the same rank.  The
+    softmax ``dim`` therefore reads against a rank-4 tensor — the
+    guard must not normalise it against ``rank(Q) == 2``, under which
+    ``dim=1`` aliases the last axis and a wrong-axis fold used to
+    pass (measured ``verify`` FAIL on ``fold:sdpa_fold_addmul``).
+    """
+    q = _v("q", 4, 6)
+    k = _v("k", 2, 3, 8, 6)
+    v = _v("v", 2, 3, 8, 5)
+    scores = Op.make(
+        "mul",
+        Op.make(
+            "matmul",
+            q,
+            Op.make("transpose", k, dim0=-2, dim1=-1),
+        ),
+        Const(0.5),
+    )
+    if masked:
+        inner = Op.make(
+            "masked_fill", scores, _v("mk", 4, 8), Const(float("-inf"))
+        )
+    elif nomask:
+        inner = scores
+    else:
+        inner = Op.make("add", scores, _v("m", 4, 8))
+    return Op.make(
+        "matmul",
+        Op.make("softmax", inner, dim=dim),
+        v,
+    )
+
+
+def test_sdpa_fold_axis_reads_score_rank_not_q_rank():
+    """``dim=1`` is the last axis of rank-2 ``Q`` but axis 1 of the
+    rank-4 scores — folding it into ``sdpa`` (which always
+    normalises the key axis) is unsound.  Regression for the
+    ``fold:sdpa_fold_addmul`` verify-decline."""
+    eg = EGraph()
+    root = eg.add_term(_rank4_score_term(1))
+    assert not eg.apply_rule(_sdpa_fold("sdpa_fold_addmul"), root)
+
+
+def test_sdpa_fold_axis_accepts_last_axis_controls():
+    """Positive controls: the true key axis still folds — spelled
+    ``dim=-1`` and the normalised ``dim=3`` on the rank-4 scores."""
+    for dim in (-1, 3):
+        eg = EGraph()
+        root = eg.add_term(_rank4_score_term(dim))
+        assert eg.apply_rule(_sdpa_fold("sdpa_fold_addmul"), root), dim
+        assert any(
+            n.op == "sdpa" for n in eg.get_class(root).nodes
+        ), dim
+
+
+def test_sdpa_fold_masked_fill_axis_reads_score_rank():
+    """The masked_fill spelling broadcasts the keep-mask ``MK`` into
+    the same rank-4 grid — ``dim=1`` must decline there too."""
+    eg = EGraph()
+    root = eg.add_term(_rank4_score_term(1, masked=True))
+    assert not eg.apply_rule(
+        _sdpa_fold("sdpa_fold_masked_fillmul"), root
+    )
+    eg = EGraph()
+    root = eg.add_term(_rank4_score_term(-1, masked=True))
+    assert eg.apply_rule(
+        _sdpa_fold("sdpa_fold_masked_fillmul"), root
+    )
+
+
+def test_sdpa_fold_nomask_axis_reads_score_rank():
+    """Mask-free spelling: the softmax reads the scores directly —
+    ``dim=1`` declines, ``dim=-1`` folds."""
+    eg = EGraph()
+    root = eg.add_term(_rank4_score_term(1, nomask=True))
+    assert not eg.apply_rule(_sdpa_fold("sdpa_fold_mul_nomask"), root)
+    eg = EGraph()
+    root = eg.add_term(_rank4_score_term(-1, nomask=True))
+    assert eg.apply_rule(_sdpa_fold("sdpa_fold_mul_nomask"), root)
