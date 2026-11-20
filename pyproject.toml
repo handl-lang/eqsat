@@ -5,8 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "eqsat"
 version = "0.1.0dev"
-description = "The eqsat substrate for the mlopt game — term IR, e-graph engine, certificates, the law bank + machinery, cost algebra, ports, the backend-neutral orchestrator, and the optional Rust engine.  Meta distribution over the packages in packages/; extracted from handl-lang/graphopt (plan 0032 phase 4)."
+description = "The eqsat substrate for the mlopt game — term IR, e-graph engine, certificates, the law bank + machinery, cost algebra, ports, the backend-neutral orchestrator, and the optional Rust engine.  Meta distribution over the packages in packages/."
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "mlopt-core",

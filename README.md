@@ -1,7 +1,12 @@
 # eqsat
 
-The eqsat substrate for the mlopt game — extracted from
-`handl-lang/graphopt` (plan 0032 phase 4).
+The eqsat substrate for the mlopt game — Python 3.13, stdlib-only
+shipped code: `mlopt_core` is the zero-dependency engine and
+`mlopt_orchestrator` depends on it alone.  Downstream domain repos
+(`graphopt`, `kernelopt`) consume these as pinned git deps on
+`packages/` subdirectories.
+
+## Packages
 
 - `packages/mlopt-core` — the torch-free semantic engine: term IR
   (`mlopt_core.ir`), the e-graph (`mlopt_core.egraph` — `EGraph`,
@@ -30,43 +35,32 @@ The eqsat substrate for the mlopt game — extracted from
   uv workspace; build with `maturin develop --release` from
   `packages/mlopt-native`.
 
-Downstream: `handl-lang/graphopt` (tensor domain) and
-`handl-lang/kernelopt` (codegen domain) consume these as pinned
-git deps on `packages/` subdirectories at the `v0.1.0` tag —
-git-URL-at-tag distribution; see
-`graphopt/docs/reports/git_url_distribution.md`.
-`handl-lang/gamekit` is
-the orthogonal game layer (`gamekit ⊥ eqsat` — the game kernel
-imports nothing from here).
+`handl-lang/gamekit` is the orthogonal game layer (`gamekit ⊥ eqsat`
+— the game kernel imports nothing from here).
 
 ## Develop
 
 ```sh
 uv sync --group dev
-.venv/bin/python -m pytest tests/ -q
-.venv/bin/ruff check packages
-.venv/bin/ruff format --check packages
-.venv/bin/ty check
-.venv/bin/lint-imports
 ```
 
-The coverage floor (`[tool.coverage.report] fail_under`) is
-re-measured for this repo's suite — 56% at the extraction scaffold,
-75% measured after the substrate-pure tests were ported back from
-graphopt's domain test files (`tests/test_ported_*`, plus the
-duck-typed `tests/test_value_passes.py` /
-`tests/test_profile.py`); the `fail_under` ratchet is pinned at 74
-for hypothesis-order slack — tighten, never lower.  The suite includes two `slow`-marked e-graph
-saturations (hours-scale under the current `ALL_RULES` — see AGENTS.md);
-iterate with `-m "not slow"` (~35 s).
+## Verify
+
+```sh
+uv run scripts/gate.py --coverage   # pytest → ruff → ty → lint-imports → coverage floor
+```
+
+`scripts/gate.py` is a stdlib runner over the dev toolchain;
+`scripts/gates.sh` remains the repo's full local gate.  The coverage floor
+(`[tool.coverage.report] fail_under = 74`) is pinned for
+hypothesis-order slack — tighten, never lower.  The suite includes
+two `slow`-marked e-graph saturations (hours-scale under the current
+`ALL_RULES`); iterate with `-m "not slow"` (~35 s).
+
+## License
+
+MIT.
 
 ## Documentation
 
-Published site (Diátaxis): <https://handl-lang.github.io/docs/eqsat/>
-
-- [Reference](https://handl-lang.github.io/docs/eqsat/reference/) — API and schemas
-- [How-to](https://handl-lang.github.io/docs/eqsat/how-to/) — task recipes
-- [Explanation](https://handl-lang.github.io/docs/eqsat/explanation/) — design and rationale
-
-Project docs (ADRs, backlog, design notes) ship on the `project` branch and are
-published under [`/eqsat/project/`](https://handl-lang.github.io/docs/eqsat/project/).
+<https://handl-lang.github.io/docs/eqsat/>
