@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "mlopt-dtypes"
 version = "0.1.0dev"
 description = "The dtype registry — one canonical name -> {torch, numpy, ONNX, safetensors, host-tensor wire} table shared by every mlopt backend. Pure stdlib; backends resolve the foreign dtype objects locally."
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = []
 

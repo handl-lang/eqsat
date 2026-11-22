@@ -6,6 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "mlopt-core"
 version = "0.1.0dev"
 description = "The torch-free semantic engine for mlopt: term IR, e-graph, laws, cost algebra."
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = []
 

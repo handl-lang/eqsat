@@ -3,6 +3,7 @@ name = "mlopt-native"
 version = "0.1.0"
 edition = "2021"
 description = "Native (Rust) search core for mlopt equality saturation"
+license = "MIT"
 
 [lib]
 name = "mlopt_native"

@@ -6,6 +6,7 @@ build-backend = "maturin"
 name = "mlopt-native"
 version = "0.1.0dev"
 description = "Optional native (Rust) search core for mlopt equality saturation — PyO3 bindings implementing union-find, enode storage, compiled matching, rebuild/congruence and the saturation loop behind the mlopt_core Engine protocol."
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "mlopt-core",

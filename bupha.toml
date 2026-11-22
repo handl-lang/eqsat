@@ -1,0 +1,21 @@
+# bupha.toml — committed CI manifest for handl-lang/eqsat.
+#
+# The runner is this repo's ci.sh (scripts/gates.sh: uv sync →
+# ruff → ty → vulture → import-linter → pytest under the coverage
+# floor; MLOPT_GATES_LANE selects dev/full), executed natively in a
+# detached worktree of the pushed sha. Merge the [[repos]] entry into
+# the shared watcher (~/.config/bupha/bupha.toml), or run a dedicated
+# instance with: bupha watch --config bupha.toml
+
+[[repos]]
+name = "handl-lang/eqsat"
+dir = "/home/luis/GitHub/handl-lang/eqsat"
+branch = "refs/heads/main"
+  [repos.runner]
+  kind = "script"
+  cmd = "bash ci.sh"
+  cancel_running = true
+
+[status]
+kind = "github"
+context = "ci/bupha"
