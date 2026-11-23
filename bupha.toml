@@ -9,7 +9,7 @@
 
 [[repos]]
 name = "handl-lang/eqsat"
-dir = "/home/luis/GitHub/handl-lang/eqsat"
+dir = "~/GitHub/handl-lang/eqsat"
 branch = "refs/heads/main"
   [repos.runner]
   kind = "script"
