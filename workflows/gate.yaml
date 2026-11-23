@@ -1,0 +1,151 @@
+# workflows/gate.yaml — bespoke per-push gate for eqsat.
+#
+# Replaces the generated `handl-gates` python campaign: the ladder below
+# is the repo's ci.sh contract inlined as a shell node (ci.sh stays in
+# the tree until the fleet cuts over; this file no longer invokes it).
+#
+# Bupha/the fleet runner invokes:
+#
+#   GATE_REPO="$PWD" GATE_RESULTS="$PWD/.gate-results.jsonl" \
+#     peregrin campaign run workflows/gate.yaml --result .ci-result.json
+#
+# Verdict: .ci-result.json `.conclusion` == "success" (result: rules map
+# gate.pass/gate.fail + failure events).
+#
+# Ladder (ci.sh → scripts/gates.sh): uv sync --group dev (when .venv is
+# missing) → ruff check packages → ruff format --check packages →
+# ty check → vulture packages → lint-imports → coverage run pytest →
+# coverage report (pyproject fail_under floor).
+#
+# Lanes (MLOPT_GATES_LANE, same as gates.sh): dev (default) deselects
+# the two hours-scale `slow` e-graph saturations via `-m "not slow"`;
+# full runs everything. GATE_PYTEST_ARGS overrides the pytest arg
+# string entirely (default: "-q" plus the lane marker).
+name: gate-eqsat
+
+result:
+  - event: gate.pass
+    conclusion: success
+  - event: gate.fail
+    conclusion: failure
+  - event: gate.failed
+    conclusion: failure
+  - event: gate.init.failed
+    conclusion: failure
+  - event: ensure.failed
+    conclusion: failure
+
+capabilities:
+  env:
+    - GATE_REPO
+    - GATE_RESULTS
+    - GATE_PYTEST_ARGS
+    - GATE_TARGET_DIR
+    - GATE_ENV_FILE
+    - MLOPT_GATES_LANE
+
+nodes:
+  # --- init: validate inputs, fresh results file --------------------
+  - id: gate.init
+    driver: shell
+    on: [start]
+    emits: [gate.due, gate.init.failed]
+    params:
+      cmd: >-
+        set -u;
+        REPO="${config.gate.repo:-${env("GATE_REPO","")}}";
+        [ -n "$REPO" ] || { echo "gate.repo is required — set GATE_REPO or config.gate.repo to an absolute checkout path"; exit 1; };
+        [ -d "$REPO" ] || { echo "no such directory: $REPO"; exit 1; };
+        RES="${config.gate.results:-${env("GATE_RESULTS","$HOME/.local/share/handl-gates/python.results.jsonl")}}";
+        mkdir -p "$(dirname "$RES")";
+        : > "$RES";
+        echo "gate-eqsat: repo=$REPO results=$RES"
+      timeout: 60
+      emit:
+        "0": gate.due
+        default: gate.init.failed
+
+  # --- ensure: sibling layout + shared cargo target env ------------
+  - include: tamias:handl-gates@0.2.1//lib/ensure-siblings.node.yml
+    id: gate.ensure
+    on: [gate.due]
+    emits: [ensure.done, ensure.failed]
+    params:
+      repo: '${config.gate.repo:-${env("GATE_REPO","")}}'
+      target_dir: '${config.gate.target_dir:-${env("GATE_TARGET_DIR","auto")}}'
+      env_file: '${config.gate.env_file:-${env("GATE_ENV_FILE","auto")}}'
+      emit:
+        "0": ensure.done
+        default: ensure.failed
+
+  # --- ladder: the ci.sh gate inlined (scripts/gates.sh port) -------
+  - id: gate.ladder
+    driver: shell
+    on: [ensure.done]
+    emits: [gate.done, gate.failed]
+    params:
+      repo: '${config.gate.repo:-${env("GATE_REPO","")}}'
+      results: '${config.gate.results:-${env("GATE_RESULTS","$HOME/.local/share/handl-gates/python.results.jsonl")}}'
+      env_file: '${config.gate.env_file:-${env("GATE_ENV_FILE","auto")}}'
+      timeout: 3600
+      cmd: |
+        set -uo pipefail;
+        REPO="${params.repo}";
+        RESULTS="${params.results}";
+        START=$(date +%s);
+        cd "$REPO" || exit 1;
+        REPO="$(pwd)";
+        EF="${params.env_file}";
+        [ "$EF" = "auto" ] && EF="$(dirname "$REPO")/.gate-env/$(basename "$REPO").env";
+        [ -z "$EF" ] || [ ! -f "$EF" ] || . "$EF";
+        export PATH="$HOME/.local/bin:$HOME/.cargo/bin:/usr/local/bin:/usr/bin:/bin";
+        ( set -euo pipefail;
+          LANE="${MLOPT_GATES_LANE:-dev}";
+          PYTEST_M=();
+          if [[ "$LANE" == "dev" ]]; then
+            PYTEST_M=(-m "not slow");
+          elif [[ "$LANE" != "full" ]]; then
+            echo "unknown MLOPT_GATES_LANE=$LANE (dev|full)" >&2; exit 2;
+          fi;
+          if [ ! -x .venv/bin/python ]; then
+            uv sync --group dev;
+          fi;
+          .venv/bin/ruff check packages;
+          .venv/bin/ruff format --check packages;
+          .venv/bin/ty check;
+          .venv/bin/vulture packages;
+          .venv/bin/lint-imports;
+          if [ -n "${GATE_PYTEST_ARGS:-}" ]; then
+            .venv/bin/coverage run -m pytest -q $GATE_PYTEST_ARGS;
+          else
+            .venv/bin/coverage run -m pytest -q "${PYTEST_M[@]}";
+          fi;
+          .venv/bin/coverage report -m );
+        rc=$?;
+        if [ -n "$RESULTS" ]; then
+          esc=$(printf '%s' "$REPO" | sed 's/\\/\\\\/g; s/"/\\"/g');
+          printf '{"family":"python","repo":"%s","rc":%s,"secs":%s}\n' "$esc" "$rc" "$(( $(date +%s) - START ))" >> "$RESULTS" 2>/dev/null || true;
+        fi;
+        exit $rc
+      emit:
+        "0": gate.done
+        default: gate.failed
+
+  # --- report: terminal verdict from the results record -------------
+  - id: gate.report
+    driver: shell
+    on: [gate.done, gate.failed]
+    emits: [gate.pass, gate.fail]
+    params:
+      cmd: >-
+        set -u;
+        F="${config.gate.results:-${env("GATE_RESULTS","$HOME/.local/share/handl-gates/python.results.jsonl")}}";
+        [ -s "$F" ] || { echo "no results record — gate produced nothing"; exit 1; };
+        line=$(tail -n 1 "$F");
+        rc=$(printf '%s' "$line" | sed -n 's/.*"rc":\([0-9][0-9]*\).*/\1/p');
+        echo "gate-eqsat verdict: $line";
+        [ "${rc:-1}" = "0" ]
+      timeout: 60
+      emit:
+        "0": gate.pass
+        default: gate.fail
