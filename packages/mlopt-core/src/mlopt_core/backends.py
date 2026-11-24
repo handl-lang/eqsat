@@ -30,7 +30,12 @@ What a registration carries
 ---------------------------
 * ``name`` — the format/target key (``"onnx"``, ``"torch"``, …).
 * ``source`` — a :class:`Source` or a zero-arg factory returning
-  one (``model -> (IR, leaves)``).
+  one (``model -> (IR, leaves)``), or ``None`` for a **sink-only**
+  backend: a package that only *delivers* (its lift direction lives
+  in a different producer — ``kit_onnx`` after the ONNX lifter moved
+  to the Rust ``source-onnx`` crate) still advertises its sink
+  targets honestly.  ``source_instance()`` raises
+  :class:`BackendPortsMissing` on a ``None`` source.
 * ``targets`` — a non-empty mapping ``{target_name: Sink | factory}``:
   the sink targets this source format lowers *to*.  ONNX registers
   ``{"onnx": OnnxSink}`` (source and target share a format);
@@ -138,7 +143,7 @@ class BackendRegistration:
     """
 
     name: str
-    source: Source | Callable[[], Source]
+    source: Source | Callable[[], Source] | None
     targets: Mapping[str, Sink | Callable[[], Sink]]
     composer: Composer | Callable[[], Composer] | None = None
     meter: Meter | Callable[[], Meter] | None = None
@@ -168,12 +173,13 @@ class BackendRegistration:
                     f"expected a Sink or a zero-arg factory, got "
                     f"{type(sink).__name__}"
                 )
-        if not (
+        if self.source is not None and not (
             isinstance(self.source, Source) or callable(self.source)
         ):
             raise TypeError(
                 f"backend {self.name!r}: source must be a Source "
-                f"or a zero-arg factory, got {type(self.source).__name__}"
+                f"or a zero-arg factory, got "
+                f"{type(self.source).__name__}"
             )
         for port_name, port, value in (
             ("composer", Composer, self.composer),
@@ -195,7 +201,17 @@ class BackendRegistration:
     # -- lazy resolution -------------------------------------------------
 
     def source_instance(self) -> Source:
-        """Resolve and return the backend's :class:`Source`."""
+        """Resolve and return the backend's :class:`Source`.
+
+        Raises :class:`BackendPortsMissing` when the registration is
+        sink-only (``source=None``) — the port was never declared, so
+        there is nothing to resolve.
+        """
+        if self.source is None:
+            raise BackendPortsMissing(
+                f"backend {self.name!r} declares no source "
+                f"(sink-only registration)"
+            )
         return _resolve(self.source, Source, f"{self.name} source")
 
     def sink_names(self) -> tuple[str, ...]:
@@ -263,9 +279,10 @@ class BackendRegistration:
 
         Raises :class:`BackendPortsMissing` naming the ports the
         registration does not provide — a backend may legitimately
-        advertise only ``source``/``sink`` (ONNX does) and still
-        drive ``Optimizer(source=…, sink=…)``; the bundled value
-        needs all four ports.
+        advertise only ``source``/``sink`` and still drive
+        ``Optimizer(source=…, sink=…)``; the bundled value needs all
+        four ports.  A sink-only registration (``source=None``)
+        reports ``source`` missing the same way.
         """
         from mlopt_core.pipeline import Backend
 
@@ -274,6 +291,7 @@ class BackendRegistration:
         missing = [
             port
             for port, value in (
+                ("source", self.source),
                 ("composer", composer),
                 ("meter", meter),
             )
@@ -426,7 +444,7 @@ DEFAULT_REGISTRY = BackendRegistry()
 def register_backend(
     name: str,
     *,
-    source: Source | Callable[[], Source],
+    source: Source | Callable[[], Source] | None,
     targets: Mapping[str, Sink | Callable[[], Sink]],
     composer: Composer | Callable[[], Composer] | None = None,
     meter: Meter | Callable[[], Meter] | None = None,
@@ -446,15 +464,16 @@ def register_backend(
 
         def register() -> None:
             register_backend(
-                "onnx",
-                source=OnnxSource,
-                targets={"onnx": OnnxSink},
+                "torch",
+                source=TorchSource,
+                targets={"torch": TorchSink},
             )
 
-    Factories (``OnnxSource`` / ``OnnxSink`` themselves are
+    Factories (``TorchSource`` / ``TorchSink`` themselves are
     zero-arg-callable classes) keep the import side-effect free —
     the registry stores the callable and resolves it only when a
-    consumer asks for the port.
+    consumer asks for the port.  ``source=None`` seats a sink-only
+    backend (one whose lift direction lives in another producer).
     """
     reg = registry if registry is not None else DEFAULT_REGISTRY
     return reg.register(

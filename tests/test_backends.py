@@ -481,6 +481,22 @@ def test_build_backend_passes_device_policy():
     assert r.build_backend().device_policy is sentinel
 
 
+def test_sink_only_registration_source_is_honestly_absent():
+    """``source=None`` — a backend whose lift direction lives in a
+    different producer (``kit_onnx`` post-lifter-retirement) still
+    advertises its sink targets; asking for the source port names
+    the absence rather than inventing one."""
+    r = _registration(source=None)
+    assert r.source is None
+    with pytest.raises(BackendPortsMissing, match="no source"):
+        r.source_instance()
+    with pytest.raises(BackendPortsMissing, match="source"):
+        r.build_backend()
+    # Capability reads never touch the source — the sink is real.
+    assert isinstance(r.sink(), Sink)
+    assert r.supported_ops() == FakeSink().supported_ops
+
+
 # ---------------------------------------------------------------------------
 #  End-to-end honesty — a registered source+sink drives Optimizer
 # ---------------------------------------------------------------------------
